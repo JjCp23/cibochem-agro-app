@@ -7,7 +7,7 @@
  * Uso:  node scripts/generar-artefacto.mjs [ruta-de-salida]
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,8 +19,9 @@ const MODULOS = [
   'src/data/taxonomia.js',
   'src/data/gruposMoA.js',
   'src/data/conocimiento.js',
-  'src/lib/buscador.js',
-  'src/lib/calculos.js',
+  'src/motores/resistencia.js',
+  'src/motores/diagnostico.js',
+  'src/motores/aplicacion.js',
   'src/components/ui/Etiqueta.jsx',
   'src/components/TarjetaProducto.jsx',
   'src/components/FichaProducto.jsx',
@@ -76,6 +77,7 @@ import { ${[...iconos].sort().join(', ')} } from 'lucide-react';
 const salida = process.argv[2] || resolve(raiz, 'dist-artefacto/CibochemCampo.jsx');
 const contenido = `${encabezado}\n${partes.join('\n\n')}\n\nexport default App;\n`;
 
+mkdirSync(dirname(salida), { recursive: true });
 writeFileSync(salida, contenido, 'utf8');
 console.log(`Artefacto generado: ${salida}`);
 console.log(`Iconos incluidos: ${[...iconos].sort().join(', ')}`);
