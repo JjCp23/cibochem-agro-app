@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+*.local
+
+# Artefacto generado: se reconstruye con npm run artefacto
+dist-artefacto/
