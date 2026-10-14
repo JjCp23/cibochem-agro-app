@@ -11,19 +11,31 @@
  */
 
 export const COLORES = {
-  tinta: '#0B2431',
-  azul: '#1F6FA5',
-  azulClaro: '#DCEAF3',
+  tinta: '#33424E',
+  azul: '#2B7FB8',
+  azulClaro: '#D6E7F2',
   naranja: '#E8722C',
-  naranjaClaro: '#FBE7D8',
-  verde: '#3F7A5E',
-  verdeClaro: '#DDECE4',
-  teal: '#0F766E',
-  tealClaro: '#D7EBE9',
-  ambar: '#B45309',
-  papel: '#F1F5F8',
-  borde: '#CFDCE5',
-  textoSuave: '#5A7183',
+  naranjaClaro: '#FBE3D4',
+  verde: '#5C9A3D',
+  verdeClaro: '#E2EFD8',
+  teal: '#177E8E',
+  tealClaro: '#D5EAEE',
+  ambar: '#C2760E',
+  ambarClaro: '#FBEBD2',
+  gris: '#6E7B85',
+  grisClaro: '#EDF0F2',
+  papel: '#F5F8FA',
+  borde: '#D8E1E8',
+  textoSuave: '#6C7C88',
+};
+
+/** Fondo suave asociado a cada color de categoría, para los paneles laterales. */
+export const FONDO_CATEGORIA = {
+  Insecticida: '#D6E7F2',
+  Herbicida: '#FBE3D4',
+  Fungicida: '#D5EAEE',
+  Bioestimulante: '#E2EFD8',
+  Regulador: '#FBEBD2',
 };
 
 export const COLOR_CATEGORIA = {
@@ -45,7 +57,7 @@ export const RAMAS = [
   {
     id: 'insectos',
     titulo: 'Insectos y ácaros',
-    categoria: 'Insecticida',
+    categorias: ['Insecticida'],
     sistema: 'IRAC',
     resumen: 'Plagas que se alimentan del cultivo',
     pregunta: '¿Qué tipo de plaga estás viendo?',
@@ -81,7 +93,7 @@ export const RAMAS = [
   {
     id: 'malezas',
     titulo: 'Malezas',
-    categoria: 'Herbicida',
+    categorias: ['Herbicida'],
     sistema: 'HRAC',
     resumen: 'Competencia por luz, agua y nutrientes',
     pregunta: '¿Qué tipo de maleza vas a controlar?',
@@ -115,7 +127,7 @@ export const RAMAS = [
   {
     id: 'enfermedades',
     titulo: 'Enfermedades',
-    categoria: 'Fungicida',
+    categorias: ['Fungicida'],
     sistema: 'FRAC',
     resumen: 'Hongos verdaderos y oomicetos',
     pregunta: '¿Qué tipo de enfermedad estás manejando?',
@@ -143,7 +155,7 @@ export const RAMAS = [
   {
     id: 'nutricion',
     titulo: 'Nutrición y estrés',
-    categoria: 'Bioestimulante',
+    categorias: ['Bioestimulante', 'Regulador'],
     sistema: null,
     resumen: 'Fisiología, desarrollo y recuperación',
     pregunta: '¿Qué necesita la planta?',

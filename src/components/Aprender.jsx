@@ -1,8 +1,24 @@
 import React, { useState } from 'react';
-import { ChevronDown, Lightbulb, ArrowLeft } from 'lucide-react';
+import { ChevronDown, Lightbulb, ArrowLeft, ShieldCheck, Move, Sprout, Leaf, Bug, SprayCan, FileText, Target, Stethoscope } from 'lucide-react';
+import { FilaMenu } from './ui/Superficie.jsx';
+import { ILUSTRACIONES_POR_TEMA } from './ui/Ilustraciones.jsx';
 import { TEMAS, PREGUNTAS } from '../data/conocimiento.js';
 import { TRANSLOCACION } from '../data/gruposMoA.js';
-import { COLORES } from '../data/taxonomia.js';
+import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
+
+// Cada tema se identifica con un icono y el color de la línea con la que se
+// relaciona, para que el módulo se lea igual que el resto de la app.
+const ESTILO_TEMA = {
+  resistencia: { icono: ShieldCheck, color: COLORES.tinta, fondo: COLORES.grisClaro },
+  translocacion: { icono: Move, color: COLORES.azul, fondo: COLORES.azulClaro },
+  arvenses: { icono: Sprout, color: COLORES.naranja, fondo: COLORES.naranjaClaro },
+  hongos: { icono: Leaf, color: COLORES.teal, fondo: COLORES.tealClaro },
+  insectos: { icono: Bug, color: COLORES.azul, fondo: COLORES.azulClaro },
+  aplicacion: { icono: SprayCan, color: COLORES.verde, fondo: COLORES.verdeClaro },
+  etiqueta: { icono: FileText, color: COLORES.ambar, fondo: COLORES.ambarClaro },
+  umbrales: { icono: Target, color: COLORES.gris, fondo: COLORES.grisClaro },
+  estres: { icono: Stethoscope, color: COLORES.ambar, fondo: COLORES.ambarClaro },
+};
 
 function Acordeon({ pregunta, respuesta }) {
   const [abierto, setAbierto] = useState(false);
@@ -57,22 +73,30 @@ export function Aprender() {
         </p>
 
         <div className="mt-5 space-y-4">
-          {tema.secciones.map((s) => (
-            <div
-              key={s.titulo}
-              className="rounded-lg border p-4"
-              style={{
-                borderColor: s.destacado ? COLORES.naranja : COLORES.borde,
-                backgroundColor: s.destacado ? COLORES.naranjaClaro : '#fff',
-              }}
-            >
-              <h3 className="text-sm font-bold" style={{ color: COLORES.tinta }}>
-                {s.titulo}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
-                {s.texto}
-              </p>
-            </div>
+          {tema.secciones.map((s, i) => (
+            <React.Fragment key={s.titulo}>
+              <div
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: s.destacado ? COLORES.naranjaClaro : '#fff',
+                  boxShadow: s.destacado ? 'none' : '0 1px 3px rgba(11,36,49,0.08)',
+                  border: s.destacado ? `1px solid ${COLORES.naranja}55` : 'none',
+                }}
+              >
+                <h3 className="text-sm font-bold" style={{ color: COLORES.tinta }}>
+                  {s.titulo}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  {s.texto}
+                </p>
+              </div>
+              {/* La ilustración va tras el primer apartado, cuando el lector ya
+                  tiene el contexto pero antes de que el texto se haga denso. */}
+              {i === 0 &&
+                (ILUSTRACIONES_POR_TEMA[tema.id] || []).map((Ilustracion, k) => (
+                  <Ilustracion key={k} />
+                ))}
+            </React.Fragment>
           ))}
         </div>
 
@@ -86,7 +110,7 @@ export function Aprender() {
               {Object.values(TRANSLOCACION).map((t) => (
                 <div
                   key={t.id}
-                  className="flex gap-3 rounded-lg border bg-white p-3"
+                  className="flex gap-3 rounded-xl border bg-white p-3"
                   style={{ borderColor: COLORES.borde }}
                 >
                   <span
@@ -121,30 +145,26 @@ export function Aprender() {
         El razonamiento agronómico detrás de cada recomendación de la app.
       </p>
 
-      <div className="mt-5 space-y-2">
-        {TEMAS.map((t, i) => (
-          <button
-            key={t.id}
-            onClick={() => setTemaId(t.id)}
-            className="flex w-full items-center gap-3 rounded-lg border bg-white p-4 text-left transition hover:shadow-md"
-            style={{ borderColor: COLORES.borde }}
-          >
-            <span className="font-mono text-xs font-bold" style={{ color: COLORES.naranja }}>
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-bold" style={{ color: COLORES.tinta }}>
-                {t.titulo}
-              </span>
-              <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
-                {t.resumen}
-              </span>
-            </span>
-            <span className="shrink-0 font-mono text-xs" style={{ color: COLORES.borde }}>
-              {t.secciones.length}
-            </span>
-          </button>
-        ))}
+      <div className="mt-5 space-y-3">
+        {TEMAS.map((t) => {
+          const e = ESTILO_TEMA[t.id] || ESTILO_TEMA.resistencia;
+          return (
+            <FilaMenu
+              key={t.id}
+              icono={e.icono}
+              color={e.color}
+              fondo={e.fondo}
+              titulo={t.titulo}
+              descripcion={t.resumen}
+              onClick={() => setTemaId(t.id)}
+              insignia={
+                <span className="text-[11px] font-semibold" style={{ color: COLORES.textoSuave }}>
+                  {t.secciones.length} apartados
+                </span>
+              }
+            />
+          );
+        })}
       </div>
 
       <h3

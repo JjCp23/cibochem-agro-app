@@ -15,7 +15,7 @@ import {
 import { compartenModoDeAccion, explicarConflicto } from '../motores/index.js';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
 
-const entrada = 'w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2';
+const entrada = 'w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2';
 
 function Campo({ etiqueta, ayuda, children }) {
   return (
@@ -70,7 +70,7 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice }) {
 
   return (
     <div
-      className="rounded-lg border bg-white p-3"
+      className="rounded-xl border bg-white p-3"
       style={{ borderColor: COLORES.borde, borderLeft: `4px solid ${color}` }}
     >
       <div className="flex items-start gap-2">
@@ -130,7 +130,7 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice }) {
             <select
               value={item.unidad}
               onChange={(e) => onCambiar({ ...item, unidad: e.target.value })}
-              className="shrink-0 rounded-lg border bg-white px-2 text-sm"
+              className="shrink-0 rounded-xl border bg-white px-2 text-sm"
               style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
             >
               {opciones.map((u) => (
@@ -311,7 +311,7 @@ export function Mezcla() {
 
           <button
             onClick={() => setItems([...items, { productoId: '', dosis: '', unidad: 'L/ha' }])}
-            className="mt-3 flex items-center gap-1.5 rounded-lg border border-dashed px-4 py-2 text-sm font-semibold transition hover:bg-white"
+            className="mt-3 flex items-center gap-1.5 rounded-2xl border border-dashed px-4 py-2 text-sm font-semibold transition hover:bg-white"
             style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
           >
             <Plus size={15} /> Agregar producto a la mezcla
@@ -397,7 +397,7 @@ export function Mezcla() {
             </div>
           ) : (
             <div
-              className="mt-4 rounded-lg border border-dashed p-6 text-center text-sm"
+              className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm"
               style={{ borderColor: COLORES.borde, color: COLORES.textoSuave }}
             >
               Completa los tres datos de la prueba para calcular el volumen real.
@@ -418,7 +418,7 @@ export function Mezcla() {
                 {ordenCarga.map(({ producto, f }, i) => (
                   <li
                     key={producto.id}
-                    className="flex items-center gap-3 rounded-lg border bg-white p-3"
+                    className="flex items-center gap-3 rounded-xl border bg-white p-3"
                     style={{ borderColor: COLORES.borde }}
                   >
                     <span

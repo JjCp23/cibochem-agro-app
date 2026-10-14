@@ -23,9 +23,12 @@ const MODULOS = [
   'src/motores/diagnostico.js',
   'src/motores/aplicacion.js',
   'src/components/ui/Etiqueta.jsx',
+  'src/components/ui/Superficie.jsx',
+  'src/components/ui/Ilustraciones.jsx',
   'src/components/TarjetaProducto.jsx',
   'src/components/FichaProducto.jsx',
   'src/components/Diagnostico.jsx',
+  'src/components/Comparador.jsx',
   'src/components/Catalogo.jsx',
   'src/components/Rotacion.jsx',
   'src/components/CicloVida.jsx',
@@ -52,12 +55,19 @@ function aplanar(codigo) {
 }
 
 const iconos = new Set();
+const hooks = new Set();
 const partes = MODULOS.map((ruta) => {
   const bruto = readFileSync(resolve(raiz, ruta), 'utf8');
 
   // recolecta los iconos de lucide-react usados en todo el proyecto
   const m = bruto.match(/import\s*\{([^}]+)\}\s*from\s*'lucide-react'/);
   if (m) m[1].split(',').forEach((i) => iconos.add(i.trim()));
+
+  // recolecta los hooks de React. Antes esta lista estaba escrita a mano en el
+  // encabezado y bastaba con que un módulo estrenara un hook para que el
+  // artefacto fallara en tiempo de ejecución con "Can't find variable".
+  const h = bruto.match(/import\s+React\s*,\s*\{([^}]+)\}\s*from\s*'react'/);
+  if (h) h[1].split(',').forEach((x) => hooks.add(x.trim()));
 
   return `// ${'═'.repeat(66)}\n// ${ruta}\n// ${'═'.repeat(66)}\n\n${aplanar(bruto)}`;
 });
@@ -70,7 +80,7 @@ const encabezado = `/**
  *   node scripts/generar-artefacto.mjs
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { ${[...hooks].sort().join(', ')} } from 'react';
 import { ${[...iconos].sort().join(', ')} } from 'lucide-react';
 `;
 
@@ -80,4 +90,5 @@ const contenido = `${encabezado}\n${partes.join('\n\n')}\n\nexport default App;\
 mkdirSync(dirname(salida), { recursive: true });
 writeFileSync(salida, contenido, 'utf8');
 console.log(`Artefacto generado: ${salida}`);
+console.log(`Hooks de React: ${[...hooks].sort().join(', ')}`);
 console.log(`Iconos incluidos: ${[...iconos].sort().join(', ')}`);

@@ -40,7 +40,7 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
       <select
         value={id}
         onChange={(e) => setId(e.target.value)}
-        className="mt-4 w-full rounded-lg border bg-white px-3 py-2.5 text-sm"
+        className="mt-4 w-full rounded-xl border bg-white px-3 py-2.5 text-sm"
         style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
       >
         <option value="">Selecciona el producto aplicado…</option>
@@ -52,7 +52,7 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
       </select>
 
       {!producto && (
-        <div className="mt-8 rounded-lg border border-dashed p-8 text-center" style={{ borderColor: COLORES.borde }}>
+        <div className="mt-8 rounded-2xl border border-dashed p-8 text-center" style={{ borderColor: COLORES.borde }}>
           <RotateCcw size={26} className="mx-auto" style={{ color: COLORES.borde }} />
           <p className="mt-3 text-sm" style={{ color: COLORES.textoSuave }}>
             Selecciona un producto para ver con qué puedes rotar sin repetir modo de acción.

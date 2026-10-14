@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Bug, Sprout, Leaf, Droplets, RotateCcw, SearchX } from 'lucide-react';
-import { RAMAS, COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
+import { ArrowLeft, Bug, Sprout, Leaf, Droplets, RotateCcw, SearchX, Activity } from 'lucide-react';
+import { RAMAS, COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
+import { FilaMenu } from './ui/Superficie.jsx';
 import { PRODUCTOS } from '../data/productos.js';
 import { recomendar } from '../motores/index.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
@@ -47,7 +48,7 @@ function Paso({ numero, titulo, children }) {
 }
 
 /** Asistente que traduce una situación de campo en una lista de productos. */
-export function Diagnostico({ onAbrirProducto }) {
+export function Diagnostico({ onAbrirProducto, onVerCiclo }) {
   const [rama, setRama] = useState(null);
   const [objetivo, setObjetivo] = useState(null);
   const [escenario, setEscenario] = useState(null);
@@ -62,7 +63,7 @@ export function Diagnostico({ onAbrirProducto }) {
   const resultados = useMemo(() => {
     if (!rama || !objetivo) return [];
     return recomendar({
-      categoria: rama.categoria,
+      categorias: rama.categorias,
       objetivo,
       escenario,
       momento,
@@ -89,42 +90,48 @@ export function Diagnostico({ onAbrirProducto }) {
           Responde tres preguntas y la app te arma la lista de productos que encajan, ordenada por
           qué tan bien responden a tu situación.
         </p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 space-y-3">
           {RAMAS.map((r) => {
-            const Icono = ICONOS[r.id];
-            const color = COLOR_CATEGORIA[r.categoria];
+            const cat = r.categorias[0];
             return (
-              <button
+              <FilaMenu
                 key={r.id}
+                icono={ICONOS[r.id]}
+                color={COLOR_CATEGORIA[cat]}
+                fondo={FONDO_CATEGORIA[cat]}
+                titulo={r.titulo}
+                descripcion={r.resumen}
                 onClick={() => setRama(r)}
-                className="flex items-start gap-3 rounded-lg border bg-white p-4 text-left transition hover:shadow-md"
-                style={{ borderColor: COLORES.borde, borderTop: `3px solid ${color}` }}
-              >
-                <span className="rounded-lg p-2" style={{ backgroundColor: `${color}17` }}>
-                  <Icono size={20} style={{ color }} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-bold" style={{ color: COLORES.tinta }}>
-                    {r.titulo}
-                  </span>
-                  <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
-                    {r.resumen}
-                  </span>
-                  {r.sistema && (
-                    <span className="mt-2 inline-block font-mono text-xs font-semibold" style={{ color }}>
+                insignia={
+                  r.sistema ? (
+                    <span
+                      className="rounded px-2 py-0.5 font-mono text-[11px] font-bold"
+                      style={{ backgroundColor: FONDO_CATEGORIA[cat], color: COLOR_CATEGORIA[cat] }}
+                    >
                       {r.sistema}
                     </span>
-                  )}
-                </span>
-              </button>
+                  ) : null
+                }
+              />
             );
           })}
+
+          {onVerCiclo && (
+            <FilaMenu
+              icono={Activity}
+              color={COLORES.gris}
+              fondo={COLORES.grisClaro}
+              titulo="Ciclo de vida"
+              descripcion="Qué estadio de la plaga alcanza cada insecticida"
+              onClick={onVerCiclo}
+            />
+          )}
         </div>
       </div>
     );
   }
 
-  const color = COLOR_CATEGORIA[rama.categoria];
+  const color = COLOR_CATEGORIA[rama.categorias[0]];
 
   return (
     <div>
@@ -196,11 +203,11 @@ export function Diagnostico({ onAbrirProducto }) {
           <select
             value={ultimoId}
             onChange={(e) => setUltimoId(e.target.value)}
-            className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
+            className="w-full rounded-xl border bg-white px-3 py-2 text-sm"
             style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
           >
             <option value="">No apliqué nada o no recuerdo</option>
-            {PRODUCTOS.filter((p) => p.categoria === rama.categoria).map((p) => (
+            {PRODUCTOS.filter((p) => rama.categorias.includes(p.categoria)).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nombre} — {p.sistema} {p.grupo}
               </option>

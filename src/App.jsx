@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stethoscope, BookOpen, RotateCcw, Beaker, Bug, GraduationCap } from 'lucide-react';
+import { Stethoscope, LayoutList, RotateCcw, Calculator, GraduationCap, Bug } from 'lucide-react';
 import { COLORES } from './data/taxonomia.js';
 import { PRODUCTOS } from './data/productos.js';
 import { Diagnostico } from './components/Diagnostico.jsx';
@@ -9,93 +9,69 @@ import { Mezcla } from './components/Mezcla.jsx';
 import { CicloVida } from './components/CicloVida.jsx';
 import { Aprender } from './components/Aprender.jsx';
 import { FichaProducto } from './components/FichaProducto.jsx';
+import { BarraInferior, Encabezado } from './components/ui/Superficie.jsx';
 
+// La barra inferior se queda con cinco entradas: más de eso deja de leerse
+// bien en un teléfono. "Ciclo de vida" vive dentro de Diagnóstico.
 const PESTANAS = [
-  { id: 'diagnostico', label: 'Diagnóstico', icono: Stethoscope },
-  { id: 'catalogo', label: 'Catálogo', icono: BookOpen },
-  { id: 'rotacion', label: 'Rotación', icono: RotateCcw },
-  { id: 'ciclo', label: 'Ciclo de vida', icono: Bug },
-  { id: 'mezcla', label: 'Mezcla', icono: Beaker },
-  { id: 'aprender', label: 'Aprender', icono: GraduationCap },
+  { id: 'diagnostico', label: 'Diagnóstico', icono: Stethoscope, titulo: 'Contenido' },
+  { id: 'catalogo', label: 'Catálogo', icono: LayoutList, titulo: 'Portafolio' },
+  { id: 'rotacion', label: 'Rotación', icono: RotateCcw, titulo: 'Manejo de resistencia' },
+  { id: 'mezcla', label: 'Mezcla', icono: Calculator, titulo: 'Calculadoras' },
+  { id: 'aprender', label: 'Aprender', icono: GraduationCap, titulo: 'Datos de interés' },
 ];
 
 export default function App() {
   const [pestana, setPestana] = useState('diagnostico');
   const [productoAbierto, setProductoAbierto] = useState(null);
   const [productoRotacion, setProductoRotacion] = useState(null);
+  const [verCiclo, setVerCiclo] = useState(false);
+
+  const actual = PESTANAS.find((p) => p.id === pestana);
 
   const irARotacion = (producto) => {
     setProductoRotacion(producto);
     setProductoAbierto(null);
+    setVerCiclo(false);
     setPestana('rotacion');
   };
 
+  const cambiarPestana = (id) => {
+    setVerCiclo(false);
+    setPestana(id);
+  };
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: COLORES.papel }}>
-      <header style={{ backgroundColor: COLORES.tinta }}>
-        <div className="mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center gap-3">
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded font-bold text-white"
-              style={{ backgroundColor: COLORES.naranja }}
-            >
-              C
-            </span>
-            <div>
-              <h1 className="text-lg font-bold leading-tight text-white">Cibochem Campo</h1>
-              <p className="text-xs" style={{ color: '#9DB8C9' }}>
-                Selector agronómico · {PRODUCTOS.length} productos · IRAC · HRAC · FRAC
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen pb-24" style={{ backgroundColor: COLORES.papel }}>
+      <Encabezado
+        titulo={verCiclo ? 'Ciclo de vida' : actual.titulo}
+        subtitulo={`${PRODUCTOS.length} productos · IRAC · HRAC · FRAC`}
+      />
 
-        <nav className="mx-auto max-w-4xl px-4">
-          <div className="flex gap-1 overflow-x-auto">
-            {PESTANAS.map((p) => {
-              const Icono = p.icono;
-              const activo = pestana === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setPestana(p.id)}
-                  className="flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-semibold transition"
-                  style={{
-                    borderColor: activo ? COLORES.naranja : 'transparent',
-                    color: activo ? '#fff' : '#9DB8C9',
-                  }}
-                >
-                  <Icono size={15} />
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-4 py-6">
-        {pestana === 'diagnostico' && <Diagnostico onAbrirProducto={setProductoAbierto} />}
+      <main className="mx-auto max-w-3xl px-4 py-5">
+        {pestana === 'diagnostico' &&
+          (verCiclo ? (
+            <CicloVida onAbrirProducto={setProductoAbierto} onVolver={() => setVerCiclo(false)} />
+          ) : (
+            <Diagnostico onAbrirProducto={setProductoAbierto} onVerCiclo={() => setVerCiclo(true)} />
+          ))}
         {pestana === 'catalogo' && <Catalogo onAbrirProducto={setProductoAbierto} />}
         {pestana === 'rotacion' && (
           <Rotacion onAbrirProducto={setProductoAbierto} productoInicial={productoRotacion} />
         )}
-        {pestana === 'ciclo' && <CicloVida onAbrirProducto={setProductoAbierto} />}
         {pestana === 'mezcla' && <Mezcla />}
         {pestana === 'aprender' && <Aprender />}
-      </main>
 
-      <footer className="mx-auto max-w-4xl px-4 pb-8">
         <p
-          className="border-t pt-4 text-xs leading-relaxed"
+          className="mt-8 border-t pt-4 text-center text-xs leading-relaxed"
           style={{ borderColor: COLORES.borde, color: COLORES.textoSuave }}
         >
-          Herramienta de apoyo a la decisión agronómica construida sobre el portafolio Cibochem 2026.
-          Clasificación de modo de acción según IRAC, HRAC Global y FRAC. No reemplaza la etiqueta ICA
-          ni la visita técnica: verifica siempre cultivo registrado, dosis, periodo de carencia y
-          compatibilidad antes de aplicar.
+          Herramienta de apoyo a la decisión sobre el portafolio Cibochem 2026.
+          No reemplaza la etiqueta ICA ni la visita técnica.
         </p>
-      </footer>
+      </main>
+
+      <BarraInferior pestanas={PESTANAS} activa={pestana} onCambio={cambiarPestana} />
 
       {productoAbierto && (
         <FichaProducto

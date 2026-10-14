@@ -32,10 +32,16 @@ const PESOS = {
  * oomiceto, que no tiene ergosterol en su membrana.
  */
 export function recomendar(criterio) {
-  const { categoria, objetivo, escenario, momento, ultimoUsado } = criterio;
+  const { categoria, categorias, objetivo, escenario, momento, ultimoUsado } = criterio;
+
+  // Una rama del diagnóstico puede abarcar varias categorías de producto. La
+  // rama de nutrición, por ejemplo, incluye bioestimulantes Y reguladores de
+  // crecimiento: para el agricultor "alargar los brotes" es la misma pregunta,
+  // aunque internamente sean dos familias distintas.
+  const admitidas = categorias || (categoria ? [categoria] : null);
 
   const candidatos = PRODUCTOS.filter((p) => {
-    if (categoria && p.categoria !== categoria) return false;
+    if (admitidas && !admitidas.includes(p.categoria)) return false;
     if (objetivo && !p.objetivos?.includes(objetivo)) return false;
     return true;
   });

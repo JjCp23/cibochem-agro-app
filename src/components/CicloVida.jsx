@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Check, Info } from 'lucide-react';
+import { Check, Info, ArrowLeft } from 'lucide-react';
 import { PRODUCTOS } from '../data/productos.js';
 import { ESTADIOS } from '../data/gruposMoA.js';
 import { estadiosDeProducto } from '../motores/index.js';
 import { COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
+import { IlustracionCicloVida } from './ui/Ilustraciones.jsx';
 
 /**
  * Matriz de ciclo de vida.
@@ -13,7 +14,7 @@ import { SelloGrupo } from './ui/Etiqueta.jsx';
  * está en huevo o en larva pequeña, ¿qué productos sirven realmente? Muchos
  * fracasos de campo son productos correctos aplicados al estadio equivocado.
  */
-export function CicloVida({ onAbrirProducto }) {
+export function CicloVida({ onAbrirProducto, onVolver }) {
   const [filtro, setFiltro] = useState(null);
   const color = COLOR_CATEGORIA.Insecticida;
 
@@ -28,6 +29,15 @@ export function CicloVida({ onAbrirProducto }) {
 
   return (
     <div>
+      {onVolver && (
+        <button
+          onClick={onVolver}
+          className="mb-3 flex items-center gap-1.5 text-sm font-medium transition hover:opacity-70"
+          style={{ color: COLORES.textoSuave }}
+        >
+          <ArrowLeft size={15} /> Volver
+        </button>
+      )}
       <h2 className="text-lg font-bold" style={{ color: COLORES.tinta }}>
         Ciclo de vida
       </h2>
@@ -35,6 +45,8 @@ export function CicloVida({ onAbrirProducto }) {
         Qué estadio de la plaga alcanza cada insecticida. Un producto correcto aplicado al estadio
         equivocado se ve igual que una falla de control.
       </p>
+
+      <IlustracionCicloVida />
 
       {/* Filtro por estadio */}
       <div className="mt-4 flex flex-wrap gap-2">
@@ -143,7 +155,7 @@ export function CicloVida({ onAbrirProducto }) {
         {ESTADIOS.map((e) => (
           <div
             key={e.id}
-            className="rounded-lg border bg-white p-3"
+            className="rounded-xl border bg-white p-3"
             style={{ borderColor: COLORES.borde }}
           >
             <span className="text-sm font-bold" style={{ color: COLORES.tinta }}>

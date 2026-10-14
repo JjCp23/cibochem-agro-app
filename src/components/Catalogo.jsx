@@ -4,6 +4,8 @@ import { PRODUCTOS } from '../data/productos.js';
 import { buscarTexto } from '../motores/index.js';
 import { COLORES, COLOR_CATEGORIA, CATEGORIAS } from '../data/taxonomia.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
+import { Segmentado } from './ui/Superficie.jsx';
+import { Comparador } from './Comparador.jsx';
 
 function Filtro({ label, activo, onClick, color }) {
   return (
@@ -23,6 +25,7 @@ function Filtro({ label, activo, onClick, color }) {
 
 /** Catálogo completo del portafolio con búsqueda y filtros. */
 export function Catalogo({ onAbrirProducto }) {
+  const [vista, setVista] = useState('lista');
   const [termino, setTermino] = useState('');
   const [categoria, setCategoria] = useState(null);
   const [soloDisponibles, setSoloDisponibles] = useState(false);
@@ -45,6 +48,21 @@ export function Catalogo({ onAbrirProducto }) {
 
   return (
     <div>
+      <Segmentado
+        opciones={[
+          { id: 'lista', label: 'Buscar' },
+          { id: 'comparar', label: 'Comparar' },
+        ]}
+        valor={vista}
+        onCambio={setVista}
+      />
+
+      {vista === 'comparar' ? (
+        <div className="mt-5">
+          <Comparador onAbrirProducto={onAbrirProducto} />
+        </div>
+      ) : (
+      <div className="mt-5">
       <h2 className="text-lg font-bold" style={{ color: COLORES.tinta }}>
         Catálogo
       </h2>
@@ -64,7 +82,7 @@ export function Catalogo({ onAbrirProducto }) {
           value={termino}
           onChange={(e) => setTermino(e.target.value)}
           placeholder="Abamectina, TIOXAM, triazol, 4A…"
-          className="w-full rounded-lg border bg-white py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2"
+          className="w-full rounded-xl border bg-white py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2"
           style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
         />
       </div>
@@ -123,6 +141,8 @@ export function Catalogo({ onAbrirProducto }) {
             </div>
           ))}
         </div>
+      )}
+      </div>
       )}
     </div>
   );

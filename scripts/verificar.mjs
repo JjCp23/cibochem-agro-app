@@ -10,6 +10,7 @@
  * las cuentas de mezcla cuadren.
  */
 
+import { readFileSync, existsSync } from 'node:fs';
 import { PRODUCTOS } from '../src/data/productos.js';
 import { RAMAS } from '../src/data/taxonomia.js';
 import {
@@ -114,12 +115,44 @@ PRODUCTOS.forEach((p) =>
 );
 
 // ────────────────────────────────────────────────────────────
+seccion('Ninguna opción del diagnóstico queda sin productos');
+RAMAS.forEach((r) => {
+  r.objetivos.forEach((o) => {
+    const n = recomendar({ categorias: r.categorias, objetivo: o.id }).length;
+    check(n > 0, `${r.titulo} → objetivo "${o.label}" no devuelve ningún producto`);
+  });
+  r.escenarios.forEach((e) => {
+    const n = PRODUCTOS.filter(
+      (p) => r.categorias.includes(p.categoria) && p.escenarios?.includes(e.id)
+    ).length;
+    check(n > 0, `${r.titulo} → escenario "${e.label}" sin productos`);
+  });
+  r.momentos.forEach((m) => {
+    const n = PRODUCTOS.filter(
+      (p) => r.categorias.includes(p.categoria) && p.momento?.includes(m.id)
+    ).length;
+    check(n > 0, `${r.titulo} → momento "${m.label}" sin productos`);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+seccion('Todo producto es alcanzable desde alguna rama del diagnóstico');
+PRODUCTOS.forEach((p) => {
+  const alcanzable = RAMAS.some(
+    (r) =>
+      r.categorias.includes(p.categoria) &&
+      r.objetivos.some((o) => p.objetivos?.includes(o.id))
+  );
+  check(alcanzable, `${p.nombre} no se puede encontrar desde ninguna rama`);
+});
+
+// ────────────────────────────────────────────────────────────
 seccion('Rotación: se compara por número de grupo, no por letra (regla IRAC)');
 check(grupoDeRotacion('IRAC', '3A') === '3', '3A debe reducirse a 3');
 check(grupoDeRotacion('IRAC', '22A') === '22', '22A debe reducirse a 22');
 check(grupoDeRotacion('FRAC', 'M03') === 'M03', 'los códigos multisitio se conservan completos');
 check(
-  compartenModoDeAccion(buscar('cyper'), buscar('detrin')),
+  compartenModoDeAccion(buscar('cyper'), buscar('lambdox')),
   'dos piretroides (3A) deben chocar entre sí'
 );
 check(
@@ -222,6 +255,33 @@ TEMAS.forEach((t) => {
   t.secciones.forEach((s) => check(s.titulo && s.texto, `${t.id}: sección incompleta`));
 });
 PREGUNTAS.forEach((q) => check(q.p && q.r, 'pregunta frecuente incompleta'));
+
+// ────────────────────────────────────────────────────────────
+seccion('Artefacto de un solo archivo: nada usado sin importar');
+const rutaArtefacto = 'dist-artefacto/CibochemCampo.jsx';
+if (!existsSync(rutaArtefacto)) {
+  console.log('  (no generado todavía; corre npm run artefacto)');
+} else {
+  const src = readFileSync(rutaArtefacto, 'utf8');
+  const importados = new Set(['React']);
+  for (const m of src.matchAll(/import\s+(?:React\s*,\s*)?\{([^}]+)\}\s*from/g)) {
+    m[1].split(',').forEach((x) => importados.add(x.trim()));
+  }
+  const declarados = new Set();
+  for (const m of src.matchAll(/^(?:export\s+)?(?:function|const|let|class)\s+(\w+)/gm)) {
+    declarados.add(m[1]);
+  }
+  // El encabezado del artefacto se genera solo; si un módulo estrena un hook y
+  // no queda importado, la app falla en tiempo de ejecución y no al compilar.
+  const hooks = ['useState', 'useEffect', 'useMemo', 'useRef', 'useCallback', 'useReducer', 'useContext', 'useLayoutEffect'];
+  hooks.forEach((h) => {
+    const seUsa = new RegExp('[^.\\w]' + h + '\\s*\\(').test(src);
+    check(
+      !seUsa || importados.has(h) || declarados.has(h) || src.includes('React.' + h),
+      `el artefacto usa ${h} sin importarlo`
+    );
+  });
+}
 
 // ────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(56)}`);

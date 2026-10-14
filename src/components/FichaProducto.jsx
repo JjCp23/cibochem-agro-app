@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, AlertTriangle, RotateCcw, Info, Target, Compass, ShieldAlert } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { X, AlertTriangle, RotateCcw, Info, Target, Compass, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, COLOR_RIESGO, etiquetaDe } from '../data/taxonomia.js';
 import { TRANSLOCACION, ESTADIOS, fichasDeProducto } from '../data/gruposMoA.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
@@ -42,6 +42,39 @@ function Dato({ etiqueta, children }) {
 
 /** Ficha técnica completa. Combina datos del producto con la ficha de su grupo. */
 export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
+  const panel = useRef(null);
+
+  // La ficha se abre sobre toda la pantalla, así que tiene que poder cerrarse
+  // sin buscar el botón: tecla Escape, botón físico de atrás del teléfono, o
+  // tocando fuera del panel.
+  useEffect(() => {
+    if (!producto) return undefined;
+
+    const conEscape = (e) => {
+      if (e.key === 'Escape') onCerrar();
+    };
+    const conAtras = () => onCerrar();
+
+    document.addEventListener('keydown', conEscape);
+    window.addEventListener('popstate', conAtras);
+    // Entrada en el historial para que el botón atrás cierre la ficha en vez
+    // de sacar al usuario de la aplicación.
+    window.history.pushState({ ficha: true }, '');
+
+    // Bloquear el desplazamiento del fondo mientras la ficha está abierta
+    const desplazamientoPrevio = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panel.current?.focus();
+
+    return () => {
+      document.removeEventListener('keydown', conEscape);
+      window.removeEventListener('popstate', conAtras);
+      document.body.style.overflow = desplazamientoPrevio;
+      // Si se cerró con el botón y no con "atrás", limpiar la entrada añadida
+      if (window.history.state?.ficha) window.history.back();
+    };
+  }, [producto, onCerrar]);
+
   if (!producto) return null;
 
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
@@ -51,13 +84,32 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
   const estadios = estadiosDeProducto(producto);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white sm:rounded-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"
+      onClick={onCerrar}
+      role="presentation"
+    >
+      <div
+        ref={panel}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Ficha de ${producto.nombre}`}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white outline-none sm:rounded-2xl"
+      >
         {/* Encabezado */}
         <div
           className="sticky top-0 z-10 border-b bg-white px-5 py-4"
           style={{ borderColor: COLORES.borde }}
         >
+          <button
+            onClick={onCerrar}
+            className="mb-2 flex items-center gap-1.5 text-sm font-semibold transition hover:opacity-70"
+            style={{ color: COLORES.azul }}
+          >
+            <ArrowLeft size={16} /> Volver
+          </button>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -321,13 +373,22 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
             </div>
           )}
 
-          <div className="mt-5 flex gap-2 rounded-lg p-3" style={{ backgroundColor: COLORES.papel }}>
+          <div className="mt-5 flex gap-2 rounded-xl p-3" style={{ backgroundColor: COLORES.papel }}>
             <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.textoSuave }} />
             <p className="text-xs leading-relaxed" style={{ color: COLORES.textoSuave }}>
               Confirma el cultivo registrado, la dosis, el periodo de carencia y el de reentrada en la
               etiqueta ICA vigente antes de recomendar o aplicar.
             </p>
           </div>
+
+          {/* Cierre al final: tras una ficha larga, el botón de arriba queda lejos */}
+          <button
+            onClick={onCerrar}
+            className="mt-5 w-full rounded-xl py-3 text-sm font-bold text-white transition hover:opacity-90"
+            style={{ backgroundColor: COLORES.tinta }}
+          >
+            Cerrar ficha
+          </button>
         </div>
       </div>
     </div>

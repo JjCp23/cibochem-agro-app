@@ -205,6 +205,142 @@ export const TEMAS = [
 
   // ════════════════════════════════════════════════════════════
   {
+    id: 'etiqueta',
+    titulo: 'Leer la etiqueta ICA',
+    resumen: 'El único documento que manda sobre la aplicación',
+    secciones: [
+      {
+        titulo: 'La etiqueta es ley, no sugerencia',
+        texto:
+          'En Colombia la etiqueta aprobada por el ICA es el documento legal del producto. Lo que dice sobre cultivo, dosis, plaga blanco y periodos define el uso autorizado. Aplicar en un cultivo no registrado es un uso por fuera de etiqueta, con consecuencias en certificación, exportación y responsabilidad legal si hay daño.',
+        destacado: true,
+      },
+      {
+        titulo: 'Cultivo y plaga registrados',
+        texto:
+          'Un producto puede ser técnicamente eficaz contra una plaga y aun así no estar registrado para ese cultivo. Esta app le dice qué modo de acción encaja agronómicamente; la etiqueta le dice si puede usarlo ahí. Son dos preguntas distintas y ambas tienen que dar sí.',
+      },
+      {
+        titulo: 'Periodo de carencia (PC)',
+        texto:
+          'Días que deben pasar entre la última aplicación y la cosecha para que el residuo quede por debajo del límite máximo permitido. Es la variable que más se pasa por alto cerca de cosecha y la que más rechazos genera en exportación. Si faltan menos días que el PC, ese producto queda descartado por más que sea el mejor técnicamente.',
+        destacado: true,
+      },
+      {
+        titulo: 'Periodo de reentrada (PR)',
+        texto:
+          'Horas que deben pasar antes de que alguien vuelva a entrar al lote sin equipo de protección. Protege al trabajador, no al cultivo, y hay que planificarlo junto con las labores de campo: no sirve aplicar en la mañana si en la tarde entra la cuadrilla a cosechar.',
+      },
+      {
+        titulo: 'Categoría toxicológica',
+        texto:
+          'Va de I a IV, de mayor a menor peligrosidad, con banda de color en el empaque: roja para I y II, amarilla para III y verde o azul para IV. Determina el equipo de protección obligatorio y las restricciones de manejo. A igual eficacia, escoger la categoría menos tóxica es una mejor decisión agronómica y comercial.',
+      },
+      {
+        titulo: 'Lo que la app deliberadamente no trae',
+        texto:
+          'Esta herramienta no incluye dosis ni cultivos registrados, y eso es una decisión de diseño, no una carencia. Los registros cambian, varían por formulación y equivocarse ahí tiene consecuencias reales. La app le ayuda a elegir el modo de acción correcto; el número final lo pone la etiqueta que tiene en la mano.',
+        destacado: true,
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════
+  {
+    id: 'umbrales',
+    titulo: 'Monitoreo y umbrales',
+    resumen: 'Cuándo vale la pena aplicar y cuándo no',
+    secciones: [
+      {
+        titulo: 'La decisión más rentable suele ser no aplicar',
+        texto:
+          'Aplicar por calendario garantiza gasto, presión de selección y daño a los benéficos, sin garantizar beneficio. El umbral de acción es la densidad de plaga a partir de la cual el daño esperado supera el costo del control. Por debajo de ese punto, la mejor decisión es monitorear y dejar trabajar al control biológico.',
+        destacado: true,
+      },
+      {
+        titulo: 'Umbral económico y nivel de daño',
+        texto:
+          'El nivel de daño económico es la densidad a la que la pérdida iguala el costo de controlarla. El umbral de acción se fija por debajo, porque hay que aplicar antes de llegar ahí para alcanzar a evitar el daño. Esa diferencia es el margen de reacción y depende de qué tan rápido crezca la población.',
+      },
+      {
+        titulo: 'Muestreo que sirve',
+        texto:
+          'Recorrer el lote en zigzag o en equis, no solo por los bordes ni siempre en el mismo sitio. Revisar un número fijo de plantas por punto para poder comparar entre fechas. Contar la plaga y también los benéficos: una relación alta de depredadores puede justificar esperar. Anotar siempre, porque la tendencia entre dos fechas informa más que un solo conteo.',
+      },
+      {
+        titulo: 'Distinguir daño viejo de daño activo',
+        texto:
+          'Una hoja perforada es evidencia de que hubo una larva, no de que siga ahí. Aplicar por daño acumulado es el error más común: se trata una plaga que ya pasó. Lo que decide es la presencia de individuos vivos y de daño fresco en el tejido nuevo.',
+        destacado: true,
+      },
+      {
+        titulo: 'La etapa del cultivo cambia el umbral',
+        texto:
+          'La misma densidad de plaga tolera distinto según el momento. Un cultivo en desarrollo vegetativo compensa defoliación que en floración o llenado sería irreversible. Y una plaga que ataca directamente el órgano cosechado tiene umbral mucho más bajo que una que solo come hoja.',
+      },
+      {
+        titulo: 'Evaluar después de aplicar',
+        texto:
+          'Volver al lote a los pocos días con el mismo método de muestreo es lo que permite saber si funcionó, y lo que distingue una falla de producto de una falla de aplicación o de un producto de acción lenta. Sin esa evaluación no hay forma de aprender del ciclo ni de detectar resistencia a tiempo.',
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════
+  {
+    id: 'estres',
+    titulo: 'Reconocer el estrés en campo',
+    resumen: 'Qué estoy viendo y si de verdad hay que aplicar algo',
+    secciones: [
+      {
+        titulo: 'La pregunta antes de escoger producto',
+        texto:
+          'Toda la app sirve para elegir bien el modo de acción, pero eso solo importa si el diagnóstico es correcto. Una hoja amarilla puede ser plaga, enfermedad, deficiencia nutricional, exceso de agua o fitotoxicidad de la aplicación anterior. Cuatro de esas cinco causas no se resuelven con un plaguicida, y en una de ellas aplicar empeora el cuadro.',
+        destacado: true,
+      },
+      {
+        titulo: 'El patrón en el lote decide antes que el síntoma en la hoja',
+        texto:
+          'Lo vivo se reproduce y se mueve, así que deja focos que se expanden desde un punto y bordes de avance. Lo abiótico afecta a todas las plantas expuestas a la misma condición, así que aparece uniforme o siguiendo la topografía, el tipo de suelo o la trayectoria del aspersor. Antes de bajarse a mirar la hoja, conviene mirar el lote completo.',
+        destacado: true,
+      },
+      {
+        titulo: 'Estrés hídrico por déficit y por exceso',
+        texto:
+          'El déficit da marchitez que se recupera en la noche, hojas más pequeñas y cierre estomático que frena la fotosíntesis. El exceso da un amarillamiento parecido pero con raíz oscura y olor a fermentado, porque la raíz se asfixia. Se distinguen sacando una planta: el diagnóstico está abajo, no arriba.',
+      },
+      {
+        titulo: 'Estrés térmico',
+        texto:
+          'El calor alto cierra estomas y detiene la fotosíntesis aunque haya agua disponible, y sobre floración causa aborto de flor y polen inviable. El frío frena la absorción de fósforo y da tonos morados en hojas viejas. En ambos casos la planta no está enferma: está gastando energía en defenderse.',
+      },
+      {
+        titulo: 'Fitotoxicidad: el daño que uno mismo causó',
+        texto:
+          'Se reconoce porque es uniforme dentro de la franja tratada, respeta el borde no asperjado, aparece uno o dos días después de aplicar y suele quemar bordes y puntas. Las causas típicas son sobredosis, mezcla incompatible, aplicar a mediodía con calor, agua muy alcalina o solapamiento de franjas. La respuesta es corregir la práctica, no aplicar algo encima.',
+        destacado: true,
+      },
+      {
+        titulo: 'Deficiencia nutricional: dónde aparece importa',
+        texto:
+          'Los elementos móviles en la planta (nitrógeno, fósforo, potasio, magnesio) se retiran de las hojas viejas para alimentar las nuevas, así que el síntoma aparece primero abajo. Los inmóviles (calcio, boro, hierro, zinc) no se pueden reubicar, así que el síntoma aparece en las hojas nuevas y en los puntos de crecimiento. Esa sola observación reduce a la mitad las posibilidades.',
+      },
+      {
+        titulo: 'Estrés y ventana de aplicación',
+        texto:
+          'Una planta estresada transloca mal, tiene la cutícula alterada y menor capacidad de metabolizar la molécula. Eso significa dos cosas: los sistémicos funcionan peor justo cuando más se necesitan, y el riesgo de fitotoxicidad sube. Si el cultivo está en estrés severo, muchas veces la mejor decisión es aliviar la causa, esperar y aplicar después.',
+        destacado: true,
+      },
+      {
+        titulo: 'Qué aporta un bioestimulante y qué no',
+        texto:
+          'Acompaña la recuperación: aminoácidos que ahorran energía de síntesis, algas con fitohormonas que reactivan meristemos, calcio que estabiliza membranas, potasio que regula la apertura estomática. No corrige la causa. Sobre un lote encharcado o con salinidad alta, el bioestimulante ayuda poco si no se arregla primero el drenaje o el lavado de sales.',
+      },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════════════
+  {
     id: 'aplicacion',
     titulo: 'Calidad de aplicación',
     resumen: 'La variable que más explica una falla de control',
@@ -241,6 +377,18 @@ export const TEMAS = [
 
 /** Preguntas frecuentes de campo, con respuesta directa. */
 export const PREGUNTAS = [
+  {
+    p: '¿Puedo aplicar un producto en un cultivo que no está en la etiqueta?',
+    r: 'Técnicamente puede funcionar, pero es un uso por fuera de etiqueta: sin respaldo legal, sin periodo de carencia validado para ese cultivo y con riesgo de rechazo en certificación o exportación. La app le dice qué modo de acción encaja; la etiqueta le dice si puede usarlo ahí.',
+  },
+  {
+    p: 'Faltan pocos días para cosechar, ¿qué reviso primero?',
+    r: 'El periodo de carencia, antes que la eficacia. Si el PC es mayor que los días que faltan, ese producto queda descartado sin importar qué tan bien encaje técnicamente. Es el filtro que hay que aplicar de primero cerca de cosecha.',
+  },
+  {
+    p: 'La plaga bajó pero no desapareció. ¿Aplico otra vez?',
+    r: 'Depende del umbral, no de si quedó cero. Rara vez el objetivo es erradicar: es mantener la población por debajo del nivel donde el daño cuesta más que el control. Si está por debajo del umbral y hay benéficos activos, repetir solo suma costo y presión de selección.',
+  },
   {
     p: '¿Por qué el glifosato no me controló el coquito?',
     r: 'El coquito (ciperácea) se reproduce por tubérculos subterráneos. El glifosato sí transloca por floema, pero si la planta estaba pequeña o estresada no bajó suficiente producto al tubérculo. Se necesita maleza en crecimiento activo, con área foliar suficiente para absorber, y en general más de una aplicación.',
