@@ -2,14 +2,15 @@
  * Fotos de la presentación comercial (empaque) de cada producto.
  *
  * Son la referencia visual para quien reconoce el envase pero no recuerda el
- * nombre. Cada archivo vive en public/productos/ en WebP de 480 px. Las 64
- * primeras vienen de la versión publicada de la app (empaques oficiales de
- * Cibochem); las que se agreguen después deben salir de la ficha oficial del
- * producto en cibochem.com.co, con esa URL como fuente. Un producto sin foto
+ * nombre. Cada archivo vive en public/productos/ en WebP de 480 px. Vienen de
+ * la versión publicada de la app (empaques oficiales de Cibochem) o del
+ * portafolio 2025 en PDF; las que se agreguen después deben salir de una fuente
+ * oficial de Cibochem, anotada en `fuente`. Un producto sin foto
  * muestra su medalla de línea y los envases dibujados a partir de sus
  * presentaciones: la app nunca muestra una imagen que no sea la real.
  */
 const ORIGEN_PUBLICADA = 'Versión publicada de CiboCAMPO (empaque oficial Cibochem)';
+const ORIGEN_PORTAFOLIO = 'Portafolio de productos Cibochem 2025 (PDF)';
 
 export const FOTOS_PRODUCTOS = {
   acarisil: { archivo: 'acarisil.webp', fuente: ORIGEN_PUBLICADA },
@@ -17,6 +18,7 @@ export const FOTOS_PRODUCTOS = {
   alga600: { archivo: 'alga600.webp', fuente: ORIGEN_PUBLICADA },
   algasoil: { archivo: 'algasoil.webp', fuente: ORIGEN_PUBLICADA },
   amino43: { archivo: 'amino43.webp', fuente: ORIGEN_PUBLICADA },
+  amino80: { archivo: 'amino80.webp', fuente: `${ORIGEN_PORTAFOLIO}, página 8` },
   benevolo: { archivo: 'benevolo.webp', fuente: ORIGEN_PUBLICADA },
   benigno: { archivo: 'benigno.webp', fuente: ORIGEN_PUBLICADA },
   benoagro: { archivo: 'benoagro.webp', fuente: ORIGEN_PUBLICADA },
@@ -50,6 +52,7 @@ export const FOTOS_PRODUCTOS = {
   limpion: { archivo: 'limpion.webp', fuente: ORIGEN_PUBLICADA },
   limpionpro: { archivo: 'limpionpro.webp', fuente: ORIGEN_PUBLICADA },
   manconex: { archivo: 'manconex.webp', fuente: ORIGEN_PUBLICADA },
+  mepex: { archivo: 'mepex.webp', fuente: `${ORIGEN_PORTAFOLIO}, página 17` },
   mesotriol: { archivo: 'mesotriol.webp', fuente: ORIGEN_PUBLICADA },
   metomil216: { archivo: 'metomil216.webp', fuente: ORIGEN_PUBLICADA },
   metomil40: { archivo: 'metomil40.webp', fuente: ORIGEN_PUBLICADA },
