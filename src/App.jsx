@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { Stethoscope, LayoutList, RotateCcw, FlaskConical, GraduationCap, Search, Star } from 'lucide-react';
 import { COLORES } from './data/taxonomia.js';
 import { PRODUCTOS } from './data/productos.js';
@@ -12,7 +12,7 @@ import { Aprender } from './components/Aprender.jsx';
 import { FichaProducto } from './components/FichaProducto.jsx';
 import { Buscador } from './components/Buscador.jsx';
 import { BarraInferior, Encabezado, BotonEncabezado } from './components/ui/Superficie.jsx';
-import { EstilosApp } from './components/ui/Movimiento.jsx';
+import { EstilosApp, prefiereMenosMovimiento } from './components/ui/Movimiento.jsx';
 import { Avisos, avisar } from './components/ui/Avisos.jsx';
 
 // La barra inferior se queda con cinco entradas: más de eso deja de leerse
@@ -34,6 +34,32 @@ export default function App() {
   const [favoritos] = useAlmacen(FAVORITOS);
 
   const actual = PESTANAS.find((p) => p.id === pestana);
+
+  // Cada sección conserva su estado y su posición al cambiar de pestaña, como
+  // en una app nativa: el diagnóstico a medias sigue ahí al volver de Mezcla.
+  const vista = pestana === 'diagnostico' && verCiclo ? 'ciclo' : pestana;
+  const posiciones = useRef({});
+  const vistaAnterior = useRef(vista);
+  const contenido = useRef(null);
+
+  const recordarPosicion = () => {
+    posiciones.current[vista] = window.scrollY;
+  };
+
+  useLayoutEffect(() => {
+    if (vistaAnterior.current === vista) return;
+    vistaAnterior.current = vista;
+    window.scrollTo({ top: posiciones.current[vista] || 0 });
+    if (!prefiereMenosMovimiento() && contenido.current?.animate) {
+      contenido.current.animate(
+        [
+          { opacity: 0, transform: 'translateY(8px)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 280, easing: 'cubic-bezier(.2,.8,.2,1)' }
+      );
+    }
+  }, [vista]);
 
   // Avisar cuando se pierde la señal: con la app instalada todo sigue
   // funcionando, y conviene que el usuario lo sepa en vez de cerrar la app.
@@ -57,28 +83,33 @@ export default function App() {
   const cerrarProducto = useCallback(() => setProductoAbierto(null), []);
 
   const irARotacion = (producto) => {
-    setProductoRotacion(producto);
+    recordarPosicion();
+    posiciones.current.rotacion = 0;
+    // Copia nueva: aunque sea el mismo producto, Rotación vuelve a cargarlo
+    setProductoRotacion({ ...producto });
     setProductoAbierto(null);
     setBuscador(null);
-    setVerCiclo(false);
     setPestana('rotacion');
-    window.scrollTo({ top: 0 });
   };
 
   const agregarAMezcla = (producto) => {
-    agregarProductoAMezcla(producto);
+    const agregado = agregarProductoAMezcla(producto);
+    recordarPosicion();
+    posiciones.current.mezcla = 0;
     setProductoAbierto(null);
     setBuscador(null);
-    setVerCiclo(false);
     setPestana('mezcla');
-    window.scrollTo({ top: 0 });
-    avisar(`${producto.nombre} agregado a la mezcla`, 'ok');
+    avisar(
+      agregado ? `${producto.nombre} agregado a la mezcla` : `${producto.nombre} ya estaba en la mezcla`,
+      agregado ? 'ok' : 'info'
+    );
   };
 
   const cambiarPestana = (id) => {
-    if (id === pestana && !verCiclo) {
-      // Tocar la pestaña activa sube al inicio, como en las apps nativas
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (id === pestana) {
+      // Tocar la pestaña activa vuelve a su inicio, como en las apps nativas
+      if (verCiclo) verCicloDeVida(false);
+      else window.scrollTo({ top: 0, behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
       return;
     }
     try {
@@ -86,9 +117,14 @@ export default function App() {
     } catch {
       // Sin vibración disponible
     }
-    setVerCiclo(false);
+    recordarPosicion();
     setPestana(id);
-    window.scrollTo({ top: 0 });
+  };
+
+  const verCicloDeVida = (activo) => {
+    recordarPosicion();
+    if (activo) posiciones.current.ciclo = 0;
+    setVerCiclo(activo);
   };
 
   return (
@@ -96,7 +132,7 @@ export default function App() {
       <EstilosApp />
 
       <Encabezado
-        titulo={verCiclo ? 'Ciclo de vida de la plaga' : actual.titulo}
+        titulo={vista === 'ciclo' ? 'Ciclo de vida de la plaga' : actual.titulo}
         acciones={
           <>
             <BotonEncabezado
@@ -110,26 +146,31 @@ export default function App() {
         }
       />
 
-      <main key={`${pestana}-${verCiclo}`} className="cc-entrada mx-auto max-w-3xl px-4 py-5">
-        {pestana === 'diagnostico' &&
-          (verCiclo ? (
-            <CicloVida onAbrirProducto={abrirProducto} onVolver={() => setVerCiclo(false)} />
-          ) : (
-            <Diagnostico
-              onAbrirProducto={abrirProducto}
-              onVerCiclo={() => {
-                setVerCiclo(true);
-                window.scrollTo({ top: 0 });
-              }}
-              onBuscar={() => setBuscador('buscar')}
-            />
-          ))}
-        {pestana === 'catalogo' && <Catalogo onAbrirProducto={abrirProducto} />}
-        {pestana === 'rotacion' && (
-          <Rotacion onAbrirProducto={abrirProducto} productoInicial={productoRotacion} />
+      <main ref={contenido} className="mx-auto max-w-3xl px-4 py-5">
+        <section hidden={vista !== 'diagnostico'}>
+          <Diagnostico
+            onAbrirProducto={abrirProducto}
+            onVerCiclo={() => verCicloDeVida(true)}
+            onBuscar={() => setBuscador('buscar')}
+          />
+        </section>
+        {verCiclo && (
+          <section hidden={vista !== 'ciclo'}>
+            <CicloVida onAbrirProducto={abrirProducto} onVolver={() => verCicloDeVida(false)} />
+          </section>
         )}
-        {pestana === 'mezcla' && <Mezcla onAbrirProducto={abrirProducto} />}
-        {pestana === 'aprender' && <Aprender />}
+        <section hidden={vista !== 'catalogo'}>
+          <Catalogo onAbrirProducto={abrirProducto} />
+        </section>
+        <section hidden={vista !== 'rotacion'}>
+          <Rotacion onAbrirProducto={abrirProducto} productoInicial={productoRotacion} />
+        </section>
+        <section hidden={vista !== 'mezcla'}>
+          <Mezcla onAbrirProducto={abrirProducto} />
+        </section>
+        <section hidden={vista !== 'aprender'}>
+          <Aprender />
+        </section>
 
         <p
           className="mt-10 border-t pt-4 text-center text-xs leading-relaxed"

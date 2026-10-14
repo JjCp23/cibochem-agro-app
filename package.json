@@ -1,8 +1,8 @@
 {
   "name": "cibochem-campo",
   "private": true,
-  "version": "1.4.1",
-  "description": "Selector agronómico del portafolio Cibochem 2026: diagnóstico guiado, rotación anti-resistencia (IRAC/HRAC/FRAC), ciclo de vida y calculadora de mezcla.",
+  "version": "1.5.0",
+  "description": "Selector agronómico del portafolio Cibochem 2026: diagnóstico guiado, rotación anti-resistencia (IRAC/HRAC/FRAC), ciclo de vida y calculadora de mezcla. Funciona sin señal.",
   "type": "module",
   "scripts": {
     "dev": "vite",

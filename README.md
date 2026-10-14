@@ -5,7 +5,8 @@ Convierte una situación de campo — *"tengo mosca blanca en etapa vegetativa y
 última vez apliqué un neonicotinoide"* — en una lista corta de productos que
 encajan, ordenada y explicada.
 
-![Estado](https://img.shields.io/badge/verificaciones-2701-brightgreen)
+![Estado](https://img.shields.io/badge/verificaciones-2852-brightgreen)
+![PWA](https://img.shields.io/badge/funciona-sin%20se%C3%B1al-2B7FB8)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-blue)
 
 ---
@@ -14,12 +15,26 @@ encajan, ordenada y explicada.
 
 | Módulo | Para qué sirve |
 |---|---|
-| **Diagnóstico** | Asistente de 3–4 preguntas: qué plaga, maleza o enfermedad, dónde, cuándo y qué aplicaste antes. Devuelve productos ordenados con la razón de cada uno. |
-| **Catálogo** | Búsqueda por nombre comercial, ingrediente activo, familia química o código de grupo, con filtros por línea. |
+| **Diagnóstico** | Asistente por pasos: qué plaga, maleza o enfermedad, dónde, cuándo y qué aplicaste antes. Devuelve productos ordenados con la razón de cada uno y un **programa de rotación de 3 pases** que no repite sitio de acción. |
+| **Catálogo** | Búsqueda por nombre comercial, ingrediente activo, familia química, código de grupo o **nombre de la plaga** ("mosca blanca", "coquito"), sin importar tildes. Filtros por línea, favoritos y disponibilidad, y comparador lado a lado. |
 | **Rotación** | Escoges lo que acabas de aplicar y separa el portafolio en lo que **repite** el sitio de acción y lo que **sí sirve** para rotar, explicando por qué importa rotar ese grupo. |
 | **Ciclo de vida** | Matriz de qué estadio de la plaga alcanza cada insecticida. Muchos fracasos de campo son el producto correcto en el estadio equivocado. |
-| **Mezcla** | Calculadora multiproducto, calibración real del equipo, orden de carga del tanque y detección de modos de acción repetidos dentro de la misma mezcla. |
+| **Mezcla** | Calculadora multiproducto que **queda guardada en el teléfono**, calibración real del equipo, orden de carga, detección de modos de acción repetidos, **receta para enviar al operario** por WhatsApp y **lista de chequeo antes de aplicar**. |
 | **Aprender** | El razonamiento agronómico completo: resistencia, translocación, biología de arvenses, hongos frente a oomicetos, ciclo de vida y calidad de aplicación. |
+
+### Pensada para usarse en el lote
+
+- **Funciona sin señal.** Se instala en el teléfono como una app (Android,
+  iOS y escritorio) y guarda todo en el equipo desde la primera visita.
+- **Buscador global** en el encabezado, desde cualquier sección.
+- **Cada sección recuerda dónde ibas**: cambiar de pestaña no borra el
+  diagnóstico a medias ni los filtros del catálogo.
+- **Favoritos y vistos hace poco**, guardados en el teléfono, sin cuentas.
+- **Ficha técnica en hoja deslizable**: se cierra arrastrando hacia abajo, con
+  el botón atrás del teléfono, con Escape o tocando fuera. Desde la ficha se
+  comparte el producto, se agrega a la mezcla o se abre su plan de rotación.
+- **Animaciones cortas y con propósito** (de dónde viene un panel, qué número
+  cambió). Quien activa "reducir movimiento" en su teléfono no ve ninguna.
 
 ---
 
@@ -101,6 +116,10 @@ npm run dev        # http://localhost:5173
 | `npm run verificar` | Pruebas de integridad y lógica agronómica |
 | `npm run artefacto` | Genera la versión de un solo archivo |
 
+El modo sin conexión solo se activa en el build publicado (`npm run build` y
+`npm run preview`). En desarrollo se desactiva a propósito para no servir
+versiones guardadas mientras se edita.
+
 ---
 
 ## Subirlo a GitHub
@@ -138,8 +157,10 @@ en un subdirectorio de Pages o en un dominio propio.
 │   │   └── verificar.yml    ← corre pruebas en cada pull request
 │   ├── ISSUE_TEMPLATE/
 │   └── pull_request_template.md
+├── public/                  ← manifiesto e iconos de la app instalable
 ├── scripts/
 │   ├── verificar.mjs        ← suite de pruebas, sin framework
+│   ├── sw-plantilla.js      ← service worker; el build le escribe la lista de archivos
 │   └── generar-artefacto.mjs
 └── src/
     ├── data/
@@ -149,14 +170,23 @@ en un subdirectorio de Pages o en un dominio propio.
     │   └── taxonomia.js     ← árbol de diagnóstico, colores, etiquetas
     ├── motores/
     │   ├── resistencia.js   ← cerebro 1
-    │   ├── diagnostico.js   ← cerebro 2
-    │   ├── aplicacion.js    ← cerebro 3
+    │   ├── diagnostico.js   ← cerebro 2 (incluye la búsqueda)
+    │   ├── aplicacion.js    ← cerebro 3 (incluye la receta de mezcla)
     │   └── index.js         ← punto único de entrada
+    ├── estado/
+    │   └── memoria.js       ← favoritos, recientes y mezcla guardados en el teléfono
     ├── components/
     │   ├── Diagnostico.jsx  · Catalogo.jsx   · Rotacion.jsx
     │   ├── CicloVida.jsx    · Mezcla.jsx     · Aprender.jsx
+    │   ├── Buscador.jsx     · Comparador.jsx
     │   ├── FichaProducto.jsx · TarjetaProducto.jsx
-    │   └── ui/Etiqueta.jsx
+    │   └── ui/
+    │       ├── Movimiento.jsx       ← animaciones y estilos globales
+    │       ├── Hoja.jsx             ← hoja inferior (ficha, buscador, selector)
+    │       ├── SelectorProducto.jsx ← selector con búsqueda
+    │       ├── Avisos.jsx           ← avisos breves y compartir
+    │       ├── Superficie.jsx       ← encabezado, barra inferior, chips, logotipo
+    │       ├── Iconos.jsx · Etiqueta.jsx · Ilustraciones.jsx
     └── App.jsx
 ```
 
@@ -199,9 +229,9 @@ npm run verificar
 
 - Guardar programas de aplicación por lote y exportarlos a PDF.
 - Historial de aplicaciones por finca, para calcular la rotación contra las
-  últimas 2–3 aplicaciones y no solo la anterior.
+  últimas 2–3 aplicaciones y no solo la anterior (la memoria local ya existe:
+  `src/estado/memoria.js`).
 - Umbrales de acción por plaga y cultivo.
-- Modo sin conexión (PWA) para uso en finca sin señal.
 - Costo por hectárea a partir de precio y dosis.
 
 ---

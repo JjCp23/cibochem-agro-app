@@ -76,11 +76,12 @@ function nuevaLinea(producto = null) {
 
 /**
  * Agrega un producto a la mezcla en curso desde cualquier parte de la app (la
- * ficha técnica, por ejemplo). Si la última línea está vacía, la ocupa.
+ * ficha técnica, por ejemplo). Si hay una línea vacía, la ocupa. Devuelve
+ * false si el producto ya estaba en la mezcla.
  */
 export function agregarProductoAMezcla(producto) {
+  if (MEZCLA_PRODUCTOS.obtener().some((l) => l.productoId === producto.id)) return false;
   MEZCLA_PRODUCTOS.fijar((lista) => {
-    if (lista.some((l) => l.productoId === producto.id)) return lista;
     const vacia = lista.findIndex((l) => !l.productoId);
     if (vacia !== -1) {
       const copia = [...lista];
@@ -89,6 +90,7 @@ export function agregarProductoAMezcla(producto) {
     }
     return [...lista, nuevaLinea(producto)];
   });
+  return true;
 }
 
 function Campo({ etiqueta, ayuda, children }) {

@@ -2,6 +2,49 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.5.0]
+
+### Agregado
+- **Funciona sin señal y se instala en el teléfono.** Manifiesto, icono propio
+  y service worker generado en el build con la lista exacta de archivos. La
+  página se pide primero a la red (máximo 3 s) y si no hay señal se sirve la
+  guardada. Aviso "Lista para usar sin conexión" y tarjeta para instalar.
+- **Buscador global** en el encabezado. La búsqueda ignora tildes, acepta
+  varias palabras, entiende nombres comunes de plagas ("mosca blanca",
+  "arañita", "coquito") y trata los códigos como grupos: "3" trae 3A y 3B,
+  "4a" ya no trae el 14A.
+- **Favoritos y vistos hace poco**, guardados en el teléfono.
+- **Programa de rotación sugerido** en el diagnóstico: tres pases sin repetir
+  sitio de acción, que arranca después de lo último aplicado.
+- **Mezcla guardada**, tamaños de bomba de un toque, **receta para enviar al
+  operario** y **lista de chequeo antes de aplicar** (etiqueta, EPP, viento,
+  lluvia, hora, compatibilidad, envases).
+- Ficha con datos clave en mosaico y acciones rápidas: favorito, compartir,
+  agregar a la mezcla y ver rotación.
+- Aprender con tiempo de lectura, apartados numerados y "siguiente tema".
+
+### Cambiado
+- **Rediseño de la interfaz**: encabezado fijo y compacto con logotipo,
+  asistente de diagnóstico por pasos con barra de avance, selector de
+  producto con búsqueda en lugar de desplegables de 80 opciones, catálogo con
+  filtros fijos al desplazarse y conteo por línea, contadores en rotación.
+- **Animaciones** de entrada, listas escalonadas, indicadores que se deslizan,
+  números que cuentan al cambiar y hojas que suben desde abajo; todas se
+  apagan con "reducir movimiento".
+- La ficha y los selectores usan una hoja inferior que se cierra arrastrando,
+  con atrás, Escape o tocando fuera, y admite hojas apiladas.
+- Los números ya no llevan ceros sobrantes ("20 bombas", no "20.0 bombas").
+- **Cada sección conserva su estado y su posición** al cambiar de pestaña: el
+  diagnóstico a medias sigue ahí al volver de Mezcla. Tocar la pestaña activa
+  vuelve a su inicio, como en las apps nativas.
+
+### Corregido
+- **La versión publicada era la 1.1.** La 1.4.1 se había subido dentro de
+  "App CicoCampo/" y GitHub Pages seguía construyendo el código viejo de la
+  raíz. Ahora la raíz tiene la versión vigente y se eliminó la copia.
+- El generador del artefacto dejaba un nombre vacío en la lista de iconos
+  cuando un import ocupaba varias líneas. Ahora se filtra y hay una prueba.
+
 ## [1.4.1]
 
 ### Corregido
