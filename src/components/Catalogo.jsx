@@ -33,10 +33,10 @@ function TarjetaGaleria({ producto, onAbrir }) {
         )}
       </span>
       <span className="block border-t px-3 py-2.5" style={{ borderColor: COLORES.borde }}>
-        <span className="block truncate text-sm font-bold" style={{ color: COLORES.tinta }}>
+        <span className="line-clamp-2 block text-sm font-bold leading-tight" style={{ color: COLORES.tinta }}>
           {producto.nombre}
         </span>
-        <span className="mt-0.5 block truncate font-mono text-[11px]" style={{ color: COLORES.textoSuave }}>
+        <span className="mt-0.5 block truncate font-mono text-[0.6875rem]" style={{ color: COLORES.textoSuave }}>
           {(producto.presentaciones || []).join(' · ')}
         </span>
       </span>
@@ -64,7 +64,8 @@ export function Catalogo({ onAbrirProducto, pedidoComparar }) {
   // así cada chip de categoría muestra cuántos encontraría.
   const coincidencias = useMemo(() => {
     let base = PRODUCTOS;
-    if (soloDisponibles) base = base.filter((p) => p.estado === 'Disponible');
+    // "Nuevo" también está en el mercado: solo se ocultan los que vienen pronto
+    if (soloDisponibles) base = base.filter((p) => p.estado !== 'Pronto');
     if (soloFavoritos) base = base.filter((p) => favoritos.includes(p.id));
     return buscarTexto(termino, base);
   }, [termino, soloDisponibles, soloFavoritos, favoritos]);
@@ -120,7 +121,7 @@ export function Catalogo({ onAbrirProducto, pedidoComparar }) {
           <div
             className="sticky z-20 -mx-4 px-4 pb-3 pt-2"
             style={{
-              top: 'calc(56px + env(safe-area-inset-top))',
+              top: 'var(--alto-encabezado, calc(56px + env(safe-area-inset-top)))',
               backgroundColor: 'rgba(245,248,250,0.94)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',

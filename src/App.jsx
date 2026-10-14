@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from
 import { Stethoscope, LayoutList, RotateCcw, FlaskConical, GraduationCap, Search, Star } from 'lucide-react';
 import { COLORES } from './data/taxonomia.js';
 import { PRODUCTOS } from './data/productos.js';
-import { FAVORITOS, RECIENTES, useAlmacen, anteponerReciente } from './estado/memoria.js';
+import { FAVORITOS, RECIENTES, VISTA_MEZCLA, useAlmacen, anteponerReciente } from './estado/memoria.js';
 import { Diagnostico } from './components/Diagnostico.jsx';
 import { Catalogo } from './components/Catalogo.jsx';
 import { Rotacion } from './components/Rotacion.jsx';
@@ -14,12 +14,13 @@ import { Buscador } from './components/Buscador.jsx';
 import { BarraInferior, Encabezado, BotonEncabezado } from './components/ui/Superficie.jsx';
 import { EstilosApp, prefiereMenosMovimiento } from './components/ui/Movimiento.jsx';
 import { Avisos, avisar } from './components/ui/Avisos.jsx';
+import { usePasoConAtras } from './components/ui/Hoja.jsx';
 
 // La barra inferior se queda con cinco entradas: más de eso deja de leerse
 // bien en un teléfono. "Ciclo de vida" vive dentro de Diagnóstico.
 const PESTANAS = [
   { id: 'diagnostico', label: 'Diagnóstico', icono: Stethoscope, titulo: 'Diagnóstico de campo' },
-  { id: 'catalogo', label: 'Catálogo', icono: LayoutList, titulo: `Portafolio 2026 · ${PRODUCTOS.length} productos` },
+  { id: 'catalogo', label: 'Catálogo', icono: LayoutList, titulo: `Portafolio · ${PRODUCTOS.length} productos` },
   { id: 'rotacion', label: 'Rotación', icono: RotateCcw, titulo: 'Manejo de resistencia' },
   { id: 'mezcla', label: 'Mezcla', icono: FlaskConical, titulo: 'Mezcla y aplicación' },
   { id: 'aprender', label: 'Aprender', icono: GraduationCap, titulo: 'El porqué de cada recomendación' },
@@ -113,6 +114,8 @@ export default function App() {
     setProductoAbierto(null);
     setBuscador(null);
     setPestana('mezcla');
+    // Que se vea el producto agregado aunque Mezcla estuviera en Calibrar u Orden
+    VISTA_MEZCLA.fijar('mezcla');
     avisar(
       agregado ? `${producto.nombre} agregado a la mezcla` : `${producto.nombre} ya estaba en la mezcla`,
       agregado ? 'ok' : 'info'
@@ -150,6 +153,9 @@ export default function App() {
     setVerCiclo(activo);
   };
 
+  // Atrás en el teléfono cierra el ciclo de vida en vez de salir de la app
+  usePasoConAtras(vista === 'ciclo', () => verCicloDeVida(false));
+
   return (
     <div className="min-h-screen pb-28" style={{ backgroundColor: COLORES.papel }}>
       <EstilosApp />
@@ -175,6 +181,7 @@ export default function App() {
             onAbrirProducto={abrirProducto}
             onVerCiclo={() => verCicloDeVida(true)}
             onBuscar={() => setBuscador('buscar')}
+            activa={vista === 'diagnostico'}
           />
         </section>
         {verCiclo && (
@@ -192,7 +199,7 @@ export default function App() {
           <Mezcla onAbrirProducto={abrirProducto} />
         </section>
         <section hidden={vista !== 'aprender'}>
-          <Aprender />
+          <Aprender activa={vista === 'aprender'} />
         </section>
 
         <p

@@ -189,24 +189,36 @@ export const RAMAS = [
   },
 ];
 
-/** Etiquetas legibles para mostrar los códigos internos en la interfaz. */
-export const ETIQUETAS = (() => {
-  const mapa = {};
+/**
+ * Etiquetas legibles por tipo de código. Hay ids que se repiten entre tipos
+ * ("estres" es objetivo "Recuperar de estrés" y momento "Bajo estrés"), así
+ * que cada tipo tiene su mapa.
+ */
+export const ETIQUETAS_POR_TIPO = (() => {
+  const mapas = { objetivo: {}, escenario: {}, momento: {} };
   RAMAS.forEach((r) => {
-    [...r.objetivos, ...r.escenarios, ...r.momentos].forEach((o) => {
-      mapa[o.id] = o.label;
-    });
+    r.objetivos.forEach((o) => (mapas.objetivo[o.id] = o.label));
+    r.escenarios.forEach((o) => (mapas.escenario[o.id] = o.label));
+    r.momentos.forEach((o) => (mapas.momento[o.id] = o.label));
   });
-  return mapa;
+  return mapas;
 })();
+
+/** Etiquetas legibles para mostrar los códigos internos (gana la de objetivo). */
+export const ETIQUETAS = {
+  ...ETIQUETAS_POR_TIPO.momento,
+  ...ETIQUETAS_POR_TIPO.escenario,
+  ...ETIQUETAS_POR_TIPO.objetivo,
+};
 
 /**
  * Devuelve el nombre legible de una etiqueta. Si algún producto usa un código
  * que todavía no existe en la taxonomía, lo muestra de forma presentable en vez
  * de dejar ver el identificador interno.
  */
-export function etiquetaDe(id) {
+export function etiquetaDe(id, tipo) {
   if (!id) return '';
+  if (tipo && ETIQUETAS_POR_TIPO[tipo]?.[id]) return ETIQUETAS_POR_TIPO[tipo][id];
   if (ETIQUETAS[id]) return ETIQUETAS[id];
   const texto = String(id).replace(/-/g, ' ');
   return texto.charAt(0).toUpperCase() + texto.slice(1);

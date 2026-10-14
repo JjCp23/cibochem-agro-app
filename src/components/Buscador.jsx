@@ -15,7 +15,7 @@ function TituloLista({ icono: Icono, children, accion }) {
   return (
     <div className="flex items-center justify-between px-3 pb-1 pt-4">
       <p
-        className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide"
+        className="flex items-center gap-1.5 text-[0.6875rem] font-bold uppercase tracking-wide"
         style={{ color: COLORES.textoSuave }}
       >
         <Icono size={12} /> {children}
@@ -64,7 +64,7 @@ export function Buscador({ onCerrar, onAbrirProducto, soloFavoritos = false }) {
                 onChange={(e) => setTermino(e.target.value)}
                 placeholder="Producto, ingrediente, grupo o plaga…"
                 enterKeyHint="search"
-                className="w-full rounded-2xl border py-3 pl-10 pr-10 text-[15px] focus:outline-none focus:ring-2"
+                className="w-full rounded-2xl border py-3 pl-10 pr-10 text-[0.9375rem] focus:outline-none focus:ring-2"
                 style={{ borderColor: COLORES.borde, color: COLORES.tinta, backgroundColor: COLORES.papel }}
               />
               {termino && (
@@ -144,7 +144,7 @@ export function Buscador({ onCerrar, onAbrirProducto, soloFavoritos = false }) {
                   accion={
                     <button
                       onClick={() => setRecientes([])}
-                      className="flex items-center gap-1 text-[11px] font-semibold"
+                      className="flex items-center gap-1 text-[0.6875rem] font-semibold"
                       style={{ color: COLORES.textoSuave }}
                     >
                       <Trash2 size={12} /> Borrar

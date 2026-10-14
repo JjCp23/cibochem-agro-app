@@ -56,6 +56,22 @@ function retirarHoja(cerrar) {
   });
 }
 
+/**
+ * Paso interno de una sección (un tema abierto, un paso del diagnóstico) que
+ * el botón atrás del teléfono debe deshacer en vez de sacar de la app. Usa la
+ * misma pila que las hojas: atrás cierra primero lo que esté encima.
+ */
+export function usePasoConAtras(activo, alVolver) {
+  const alVolverRef = useRef(alVolver);
+  alVolverRef.current = alVolver;
+  useEffect(() => {
+    if (!activo) return undefined;
+    const desdeHistorial = () => alVolverRef.current();
+    registrarHoja(desdeHistorial);
+    return () => retirarHoja(desdeHistorial);
+  }, [activo]);
+}
+
 // Bloqueo del desplazamiento del fondo, contado para admitir hojas apiladas
 let bloqueosDeScroll = 0;
 let overflowPrevio = '';
@@ -206,7 +222,7 @@ export function HojaInferior({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-wrap:break-word]">
           {typeof children === 'function' ? children(cerrar) : children}
         </div>
       </div>

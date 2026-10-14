@@ -32,7 +32,7 @@ export const TRANSLOCACION = {
     descripcion:
       'Penetra la cutícula y atraviesa el grosor de la hoja formando un depósito interno, pero no viaja lejos del punto de entrada.',
     implicacion:
-      'Alcanza plagas del envés aunque se asperje por el haz, y llega a minadores dentro de la galería. No protege hojas nuevas.',
+      'Llega al envés aunque se asperje por el haz: alcanza plagas del envés, minadores dentro de la galería y el hongo que ya entró en el tejido de esa hoja. No protege hojas nuevas.',
   },
   xilema: {
     id: 'xilema',

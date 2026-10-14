@@ -137,7 +137,7 @@ function SelectorMolecula({ valor, onCambio }) {
                         {m.otraCasa ? ' · otra casa' : ' · en el portafolio'}
                       </span>
                     </span>
-                    <span className="shrink-0 rounded-md px-2 py-1 font-mono text-[11px] font-bold" style={{ backgroundColor: COLORES.grisClaro, color: COLORES.tinta }}>
+                    <span className="shrink-0 rounded-md px-2 py-1 font-mono text-[0.6875rem] font-bold" style={{ backgroundColor: COLORES.grisClaro, color: COLORES.tinta }}>
                       {m.grupo.replace(':', ' ')}
                     </span>
                   </button>
@@ -155,7 +155,7 @@ function SelectorMolecula({ valor, onCambio }) {
 function Contador({ icono: Icono, valor, etiqueta, color, fondo }) {
   return (
     <div className="flex-1 rounded-2xl p-3" style={{ backgroundColor: fondo }}>
-      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color }}>
+      <span className="flex items-center gap-1.5 text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color }}>
         <Icono size={13} strokeWidth={2.6} /> {etiqueta}
       </span>
       <span className="mt-0.5 block font-mono text-3xl font-bold" style={{ color }}>
@@ -252,7 +252,7 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
             className="mt-5 rounded-3xl bg-white p-4"
             style={{ borderTop: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
           >
-            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
               Ya aplicaste
             </p>
             <div className="mt-2 flex items-center gap-3">

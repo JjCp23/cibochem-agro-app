@@ -97,10 +97,10 @@ export function resumenParaCompartir(producto) {
 function DatoClave({ icono: Icono, etiqueta, valor, color }) {
   return (
     <div className="rounded-2xl bg-white p-3" style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.07)' }}>
-      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+      <span className="flex items-center gap-1.5 text-[0.625rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
         <Icono size={12} /> {etiqueta}
       </span>
-      <span className="mt-1 block text-[13px] font-semibold leading-snug" style={{ color: color || COLORES.tinta }}>
+      <span className="mt-1 block text-[0.8125rem] font-semibold leading-snug" style={{ color: color || COLORES.tinta }}>
         {valor}
       </span>
     </div>
@@ -112,7 +112,7 @@ function AccionFicha({ icono: Icono, etiqueta, onClick, activo, color }) {
   return (
     <button
       onClick={onClick}
-      className="cc-presionable flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[11px] font-semibold"
+      className="cc-presionable flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[0.6875rem] font-semibold"
       style={{
         backgroundColor: activo ? `${color}1A` : COLORES.papel,
         color: activo ? color : COLORES.tinta,
@@ -236,7 +236,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
           <div className="cc-entrada flex items-center gap-4 rounded-2xl bg-white p-4" style={tarjeta}>
             <FotoProducto producto={producto} alto={128} className="max-w-[40%] shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+              <p className="mb-3 text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
                 Se vende en
               </p>
               <PresentacionesProducto producto={producto} color={color} alto={54} />
@@ -265,7 +265,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
           {campo.descripcion && (
             <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm italic leading-relaxed" style={{ color: COLORES.textoSuave, ...tarjeta }}>
               «{campo.descripcion}»
-              <span className="mt-1 block text-[10px] font-bold uppercase not-italic tracking-wide">
+              <span className="mt-1 block text-[0.625rem] font-bold uppercase not-italic tracking-wide">
                 Así lo presenta el portafolio
               </span>
             </p>
@@ -406,7 +406,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
               <div className="space-y-2">
                 {campo.blancos && (
                   <div className="rounded-2xl bg-white p-3" style={tarjeta}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                    <p className="text-[0.625rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
                       Blancos
                     </p>
                     <p className="mt-1 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
@@ -435,7 +435,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
                 )}
                 {campo.etiqueta && (
                   <div className="rounded-2xl border bg-white p-3" style={{ borderColor: COLORES.borde }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                    <p className="text-[0.625rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
                       Lo que dice la ficha técnica consultada
                     </p>
                     {campo.etiqueta.usos && (
@@ -458,7 +458,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
                         <strong>Selectividad:</strong> {campo.etiqueta.selectividad}
                       </p>
                     )}
-                    <p className="mt-2 text-[11px] leading-snug" style={{ color: COLORES.textoSuave }}>
+                    <p className="mt-2 text-[0.6875rem] leading-snug" style={{ color: COLORES.textoSuave }}>
                       Fuente:{' '}
                       <a href={campo.etiqueta.fuente} target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: COLORES.azul }}>
                         {dominioDe(campo.etiqueta.fuente)}
@@ -480,7 +480,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
                   (g.recomiendaSi || g.noRecomiendesSi) && (
                     <div key={g.clave} className="mb-2 space-y-1.5">
                       {gruposQ.length > 1 && (
-                        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                        <p className="text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
                           {g.clave.replace(':', ' ')} · {g.nombre}
                         </p>
                       )}
@@ -522,7 +522,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
             <div className="mt-5 flex gap-3 rounded-2xl p-4" style={{ backgroundColor: COLORES.ambarClaro }}>
               <IconoIlustrado nombre="idea" tamano={30} respaldo={Lightbulb} color={COLORES.ambar} className="shrink-0" />
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.ambar }}>
+                <p className="text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: COLORES.ambar }}>
                   Consejo de campo
                 </p>
                 <p className="mt-1 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
@@ -660,14 +660,14 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
               <Dato etiqueta="Controla">
                 <div className="flex flex-wrap gap-1.5">
                   {producto.objetivos?.map((o) => (
-                    <Etiqueta key={o} texto={etiquetaDe(o)} color={color} />
+                    <Etiqueta key={o} texto={etiquetaDe(o, 'objetivo')} color={color} />
                   ))}
                 </div>
               </Dato>
               <Dato etiqueta="Momento">
                 <div className="flex flex-wrap gap-1.5">
                   {producto.momento?.map((m) => (
-                    <Etiqueta key={m} texto={etiquetaDe(m)} color={COLORES.tinta} />
+                    <Etiqueta key={m} texto={etiquetaDe(m, 'momento')} color={COLORES.tinta} />
                   ))}
                 </div>
               </Dato>

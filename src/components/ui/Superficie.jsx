@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Sun } from 'lucide-react';
 import { COLORES } from '../../data/taxonomia.js';
 import { IconoIlustrado } from './Iconos.jsx';
@@ -105,7 +105,7 @@ export function FilaMenu({ icono, imagen, color, fondo, titulo, descripcion, onC
             <span className="mt-2 flex flex-wrap items-center gap-2">
               {insignia}
               {contador != null && (
-                <span className="text-[11px] font-semibold" style={{ color: COLORES.textoSuave }}>
+                <span className="text-[0.6875rem] font-semibold" style={{ color: COLORES.textoSuave }}>
                   {contador}
                 </span>
               )}
@@ -160,7 +160,7 @@ export function Segmentado({ opciones, valor, onCambio, sobreOscuro = false, ver
             onClick={() => onCambio(o.id)}
             className={`relative z-10 flex flex-1 items-center justify-center font-semibold transition-colors ${
               vertical
-                ? 'flex-col gap-0.5 rounded-xl px-1 py-1.5 text-[11px]'
+                ? 'flex-col gap-0.5 rounded-xl px-1 py-1.5 text-[0.6875rem]'
                 : 'gap-1.5 rounded-full px-2 py-2 text-sm'
             }`}
             style={{
@@ -204,7 +204,7 @@ export function Chip({ label, icono: Icono, activo, onClick, color = COLORES.tin
       {label}
       {cuenta != null && (
         <span
-          className="cc-num rounded-full px-1.5 text-[10px] leading-4"
+          className="cc-num rounded-full px-1.5 text-[0.625rem] leading-4"
           style={{
             backgroundColor: activo ? 'rgba(255,255,255,0.25)' : COLORES.grisClaro,
             color: activo ? '#fff' : COLORES.textoSuave,
@@ -291,7 +291,7 @@ export function BarraInferior({ pestanas, activa, onCambio }) {
                 />
               </span>
               <span
-                className="mt-0.5 text-[10px] font-semibold leading-none transition-colors"
+                className="mt-0.5 text-[0.625rem] font-semibold leading-none transition-colors"
                 style={{ color: activo ? COLORES.azul : '#8FA3B0' }}
               >
                 {p.label}
@@ -311,6 +311,20 @@ export function BarraInferior({ pestanas, activa, onCambio }) {
  */
 export function Encabezado({ titulo, acciones, children }) {
   const [conSombra, setConSombra] = useState(false);
+  const refEncabezado = useRef(null);
+
+  // Publica el alto real del encabezado (cambia con el modo campo y la zona
+  // segura del teléfono) para que los paneles fijos se cuelguen justo debajo
+  useEffect(() => {
+    const barra = refEncabezado.current;
+    if (!barra || typeof ResizeObserver === 'undefined') return undefined;
+    const publicar = () =>
+      document.documentElement.style.setProperty('--alto-encabezado', `${Math.round(barra.getBoundingClientRect().height)}px`);
+    publicar();
+    const observador = new ResizeObserver(publicar);
+    observador.observe(barra);
+    return () => observador.disconnect();
+  }, []);
 
   useEffect(() => {
     const alDesplazar = () => setConSombra(window.scrollY > 4);
@@ -321,6 +335,7 @@ export function Encabezado({ titulo, acciones, children }) {
 
   return (
     <header
+      ref={refEncabezado}
       className="cc-arriba-seguro sticky top-0 z-30 transition-shadow duration-300"
       style={{
         background: `linear-gradient(135deg, ${COLORES.azul} 0%, #1F6FA5 100%)`,
@@ -330,7 +345,7 @@ export function Encabezado({ titulo, acciones, children }) {
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
         <Logotipo tamano={36} animado />
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="text-[15px] font-extrabold tracking-tight text-white">
+          <p className="text-[0.9375rem] font-extrabold tracking-tight text-white">
             Cibo<span className="font-light">CAMPO</span>
           </p>
           {titulo && (
@@ -407,7 +422,7 @@ export function BotonEncabezado({ icono: Icono, etiqueta, onClick, contador }) {
       {contador > 0 && (
         <span
           key={contador}
-          className="cc-pop cc-num absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+          className="cc-pop cc-num absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[0.625rem] font-bold text-white"
           style={{ backgroundColor: COLORES.naranja, boxShadow: '0 0 0 2px #2179B0' }}
         >
           {contador}

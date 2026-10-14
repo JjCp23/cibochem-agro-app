@@ -179,7 +179,9 @@ export function productoDesdeMolecula(molecula) {
     categoria: CATEGORIA_DE_SISTEMA[sistema],
     sistema,
     grupo,
-    familia: molecula.familia,
+    // "bipiridilo, 22" con grupo 22 repetiría el código; "organofosforado, 1B"
+    // sí aporta el subgrupo y se deja
+    familia: String(molecula.familia || '').replace(new RegExp(`,\\s*${grupo}$`, 'i'), ''),
     externo: true,
   };
 }

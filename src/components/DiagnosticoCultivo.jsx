@@ -71,18 +71,18 @@ function ListaProblemas({ items, tipo, color, onEscoger }) {
                   {x.comun}
                 </span>
                 {cientifico && (
-                  <span className="block truncate text-xs italic" style={{ color: COLORES.textoSuave }}>
+                  <span className="line-clamp-2 block text-xs italic" style={{ color: COLORES.textoSuave }}>
                     {cientifico}
                   </span>
                 )}
                 <span
-                  className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                  className="mt-1 inline-block rounded-full px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide"
                   style={{
                     backgroundColor: sinProducto ? COLORES.grisClaro : `${color}14`,
                     color: sinProducto ? COLORES.textoSuave : color,
                   }}
                 >
-                  {sinProducto ? 'Sin producto en el portafolio' : etiquetaDe(x.objetivo)}
+                  {sinProducto ? 'Sin producto en el portafolio' : etiquetaDe(x.objetivo, 'objetivo')}
                 </span>
               </span>
               {!sinProducto && <ChevronRight size={18} className="shrink-0" style={{ color: COLORES.borde }} />}
@@ -105,9 +105,9 @@ function ListaProblemas({ items, tipo, color, onEscoger }) {
  * Cada problema lleva su nombre científico y la categoría con la que la app
  * busca producto; los que el portafolio no maneja lo dicen con su razón.
  */
-export function ProblemasDeCultivo({ cultivoId, onEscoger, onVolver }) {
+export function ProblemasDeCultivo({ cultivoId, tipoInicial = 'plagas', onEscoger, onVolver }) {
   const cultivo = CULTIVOS.find((c) => c.id === cultivoId);
-  const [tipo, setTipo] = useState('plagas');
+  const [tipo, setTipo] = useState(tipoInicial);
   if (!cultivo) return null;
   const color = { plagas: COLOR_CATEGORIA.Insecticida, enfermedades: COLOR_CATEGORIA.Fungicida, malezas: COLOR_CATEGORIA.Herbicida }[tipo];
 
@@ -185,7 +185,7 @@ function FilaRecomendacion({ icono: Icono, titulo, children, color = COLORES.tin
         <Icono size={14} style={{ color }} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+        <p className="text-[0.625rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
           {titulo}
         </p>
         <div className="mt-0.5 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
@@ -219,7 +219,7 @@ export function TarjetaRecomendacion({ rec, contexto, onAbrirProducto }) {
       <div className="flex items-center gap-3 px-4 pb-3 pt-4" style={{ backgroundColor: FONDO_CATEGORIA[p.categoria] }}>
         <MiniaturaProducto producto={p} color={color} tamano={52} />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color }}>
+          <p className="text-[0.625rem] font-bold uppercase tracking-wide" style={{ color }}>
             Recomendación técnica
           </p>
           <button onClick={() => onAbrirProducto(p)} className="block text-left text-lg font-extrabold leading-tight" style={{ color: COLORES.tinta }}>
@@ -235,7 +235,7 @@ export function TarjetaRecomendacion({ rec, contexto, onAbrirProducto }) {
         <div className="flex flex-wrap items-center gap-1.5 py-3">
           {p.sistema && <SelloGrupo sistema={p.sistema} grupo={p.grupo} color={color} />}
           {[contexto.cultivo, contexto.problema, contexto.etapa].filter(Boolean).map((t) => (
-            <span key={t} className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: COLORES.grisClaro, color: COLORES.tinta }}>
+            <span key={t} className="rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold" style={{ backgroundColor: COLORES.grisClaro, color: COLORES.tinta }}>
               {t}
             </span>
           ))}

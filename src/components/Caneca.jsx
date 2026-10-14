@@ -126,9 +126,9 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
   const nivelActual = niveles[indice];
   const yLiquido = yDeNivel(nivelActual);
   const litros = nivelActual * capacidad;
-  // Litros enteros cuando lo son; si no, un decimal con coma
+  // Litros enteros cuando lo son; si no, un decimal (con punto, como el resto de la app)
   const litrosTexto =
-    Math.abs(litros - Math.round(litros)) < 0.05 ? String(Math.round(litros)) : litros.toFixed(1).replace('.', ',');
+    Math.abs(litros - Math.round(litros)) < 0.05 ? String(Math.round(litros)) : litros.toFixed(1);
   const porcentaje = Math.round(nivelActual * 100);
   const estilo = ESTILO_CATEGORIA[actual.categoria] || ESTILO_GENERICO;
   const IconoPaso = estilo.Icono;
@@ -491,7 +491,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
             </g>
           </svg>
           <div className="mt-1 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
               Nivel del tanque
             </p>
             <p className="mt-0.5" style={{ color: COLORES.tinta }}>
@@ -524,7 +524,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
                 </span>
                 <div className="min-w-0 flex-1">
                   <p
-                    className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide"
+                    className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide"
                     style={{ color: aplica ? estilo.color : COLORES.textoSuave }}
                   >
                     <IconoPaso size={13} strokeWidth={2.2} />
@@ -545,7 +545,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
                   {siglasPaso.map((sigla) => (
                     <span
                       key={sigla}
-                      className="rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold"
+                      className="rounded-md px-1.5 py-0.5 font-mono text-[0.6875rem] font-bold"
                       style={{ backgroundColor: estilo.fondo, color: estilo.color }}
                     >
                       {sigla}
@@ -553,7 +553,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
                   ))}
                   {!aplica && (
                     <span
-                      className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                      className="rounded-md px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide"
                       style={{ backgroundColor: COLORES.grisClaro, color: COLORES.textoSuave }}
                     >
                       No aplica a tu mezcla
@@ -562,7 +562,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
                 </div>
               )}
               <p
-                className="mt-3 text-[11px] font-semibold uppercase tracking-wide"
+                className="mt-3 text-[0.6875rem] font-semibold uppercase tracking-wide"
                 style={{ color: COLORES.textoSuave }}
               >
                 Qué entra aquí
@@ -584,7 +584,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
                       </span>
                       {pr && pr.sigla && (
                         <span
-                          className="shrink-0 rounded font-mono text-[10px] font-bold"
+                          className="shrink-0 rounded font-mono text-[0.625rem] font-bold"
                           style={{ color: COLORES.textoSuave }}
                         >
                           {pr.sigla}
@@ -655,7 +655,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
               Anterior
             </button>
             <span
-              className="flex-1 text-center text-[11px] font-semibold uppercase tracking-wide"
+              className="flex-1 text-center text-[0.6875rem] font-semibold uppercase tracking-wide"
               style={{ color: COLORES.textoSuave }}
             >
               Paso {indice + 1} de {total}
@@ -705,7 +705,7 @@ export function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros
                         }}
                       />
                       <span
-                        className="mt-1 block font-mono text-[10px] font-bold leading-none"
+                        className="mt-1 block font-mono text-[0.625rem] font-bold leading-none"
                         style={{ color: esActual ? colorAcento : COLORES.textoSuave }}
                       >
                         {Number.isFinite(Number(paso.paso)) ? paso.paso : i + 1}

@@ -112,7 +112,7 @@ export function PresentacionesProducto({ producto, color, alto = 62 }) {
           <span className="font-mono text-xs font-bold leading-none" style={{ color: COLORES.tinta }}>
             {e.etiqueta}
           </span>
-          <span className="text-[10px] leading-none" style={{ color: COLORES.textoSuave }}>
+          <span className="text-[0.625rem] leading-none" style={{ color: COLORES.textoSuave }}>
             {NOMBRE_ENVASE[e.tipo]}
           </span>
         </div>

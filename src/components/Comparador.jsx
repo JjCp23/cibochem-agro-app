@@ -19,6 +19,7 @@ import { SelloGrupo, TextoMarcado } from './ui/Etiqueta.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { EstadoVacio, Chip } from './ui/Superficie.jsx';
 import { IconoIlustrado } from './ui/Iconos.jsx';
+import { COMPARACION, useAlmacen } from '../estado/memoria.js';
 
 const MAXIMO_COMPARADOS = 3;
 const ORDEN_RIESGO = { Nulo: 0, Bajo: 1, Medio: 2, Alto: 3 };
@@ -511,7 +512,7 @@ export function resumenDeComparacion(elegidos) {
   });
   exclusivosDe(
     (p) => p.objetivos || [],
-    (id) => minuscInicial(etiquetaDe(id))
+    (id) => minuscInicial(etiquetaDe(id, 'objetivo'))
   ).forEach(({ fam, nombres }) => {
     objetivos.push({
       tono: 'info',
@@ -583,7 +584,7 @@ export function sugerenciasDeComparacion(base, idsElegidos = [], maximo = 5) {
 function SelloMejor() {
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-bold leading-4"
+      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[0.625rem] font-bold leading-4"
       style={{ backgroundColor: COLORES.verdeClaro, color: TEXTO_MEJOR }}
     >
       <Check size={10} strokeWidth={3} />
@@ -644,7 +645,7 @@ function TextoRecortable({ texto, lineas = 4 }) {
         <button
           type="button"
           onClick={() => setAbierto(!abierto)}
-          className="mt-1 py-1 text-[11px] font-bold"
+          className="mt-1 py-1 text-[0.6875rem] font-bold"
           style={{ color: '#1F6FA5' }}
         >
           {abierto ? 'Ver menos' : 'Ver más'}
@@ -661,7 +662,7 @@ function ListaComparada({ fila, valor, compartidos, producto, esMejor }) {
   return (
     <div>
       {cuenta != null && (
-        <p className="cc-num mb-1 flex flex-wrap items-center gap-1 text-[11px] font-bold" style={{ color: COLORES.tinta }}>
+        <p className="cc-num mb-1 flex flex-wrap items-center gap-1 text-[0.6875rem] font-bold" style={{ color: COLORES.tinta }}>
           {cuenta} {cuenta === 1 ? fila.unidad[0] : fila.unidad[1]}
           {esMejor && <SelloMejor />}
         </p>
@@ -672,7 +673,7 @@ function ListaComparada({ fila, valor, compartidos, producto, esMejor }) {
           return (
             <span
               key={item}
-              className="inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] leading-tight"
+              className="inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[0.6875rem] leading-tight"
               style={{
                 color: COLORES.tinta,
                 backgroundColor: destaca ? FONDO_CATEGORIA[producto.categoria] : '#fff',
@@ -700,7 +701,7 @@ function EstadiosComparados({ valor, producto, esMejor }) {
   const color = COLOR_CATEGORIA[producto.categoria];
   return (
     <div>
-      <p className="cc-num mb-1 flex flex-wrap items-center gap-1 text-[11px] font-bold" style={{ color: COLORES.tinta }}>
+      <p className="cc-num mb-1 flex flex-wrap items-center gap-1 text-[0.6875rem] font-bold" style={{ color: COLORES.tinta }}>
         {valor.length} de {ESTADIOS.length}
         {esMejor && <SelloMejor />}
       </p>
@@ -710,7 +711,7 @@ function EstadiosComparados({ valor, producto, esMejor }) {
           return (
             <span
               key={e.id}
-              className="inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[11px] leading-tight"
+              className="inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[0.6875rem] leading-tight"
               style={
                 alcanza
                   ? { backgroundColor: FONDO_CATEGORIA[producto.categoria], borderColor: `${color}66`, color: COLORES.tinta, fontWeight: 600 }
@@ -791,11 +792,11 @@ function FilaComparada({ item, elegidos, primera }) {
   return (
     <div className="px-3 py-2.5" style={{ borderTop: primera ? 'none' : `1px solid ${COLORES.borde}` }}>
       <p
-        className="flex flex-wrap items-baseline gap-x-2 text-[11px] font-bold uppercase tracking-wide"
+        className="flex flex-wrap items-baseline gap-x-2 text-[0.6875rem] font-bold uppercase tracking-wide"
         style={{ color: COLORES.textoSuave }}
       >
         {fila.etiqueta}
-        {igual && <span className="text-[10px] font-semibold normal-case tracking-normal">igual en todos</span>}
+        {igual && <span className="text-[0.625rem] font-semibold normal-case tracking-normal">igual en todos</span>}
       </p>
       {igual ? (
         <div className="mt-1.5">
@@ -813,7 +814,7 @@ function FilaComparada({ item, elegidos, primera }) {
               style={largo && n > 1 ? { borderColor: `${COLOR_CATEGORIA[p.categoria]}66` } : undefined}
             >
               {largo && n > 1 && (
-                <p className="mb-0.5 text-[11px] font-bold sm:hidden" style={{ color: COLOR_CATEGORIA[p.categoria] }}>
+                <p className="mb-0.5 text-[0.6875rem] font-bold sm:hidden" style={{ color: COLOR_CATEGORIA[p.categoria] }}>
                   {p.nombre}
                 </p>
               )}
@@ -851,7 +852,7 @@ function CabeceraComparada({ elegidos, onQuitar, onAbrir, debajoDe }) {
                 className="cc-presionable block w-full rounded-xl py-2 pl-2.5 pr-7 text-left"
                 aria-label={`Abrir ficha de ${p.nombre}`}
               >
-                <span className="line-clamp-2 break-words text-[13px] font-bold leading-tight" style={{ color: COLORES.tinta }}>
+                <span className="line-clamp-2 break-words text-[0.8125rem] font-bold leading-tight" style={{ color: COLORES.tinta }}>
                   {p.nombre}
                   <ChevronRight size={12} className="ml-0.5 inline align-[-2px]" style={{ color }} />
                 </span>
@@ -918,7 +919,7 @@ function ResumenComparacion({ puntos }) {
               style={alerta ? { backgroundColor: '#FDF3EE', border: '1px solid #F0C9B4' } : undefined}
             >
               <Icono size={16} className="mt-0.5 shrink-0" style={{ color: COLOR_TONO[pt.tono] }} />
-              <p className="text-[13px] leading-snug" style={{ color: COLORES.tinta }}>
+              <p className="text-[0.8125rem] leading-snug" style={{ color: COLORES.tinta }}>
                 <TextoMarcado texto={pt.texto} />
               </p>
             </li>
@@ -933,8 +934,8 @@ function SugerenciasComparacion({ sugerencias, color, onElegir }) {
   if (sugerencias.length === 0) return null;
   return (
     <div className="cc-entrada mt-4">
-      <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
-        Compárelo con
+      <p className="text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+        Compáralo con
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {sugerencias.map(({ producto, comunes, gemelo }) => (
@@ -946,7 +947,7 @@ function SugerenciasComparacion({ sugerencias, color, onElegir }) {
             label={
               <span className="text-left leading-tight">
                 {producto.nombre}
-                <span className="block text-[10px] font-normal" style={{ opacity: 0.8 }}>
+                <span className="block text-[0.625rem] font-normal" style={{ opacity: 0.8 }}>
                   {gemelo
                     ? 'mismo producto'
                     : comunes === 0
@@ -971,24 +972,39 @@ function SugerenciasComparacion({ sugerencias, color, onElegir }) {
  * y marca la mejor opción donde se puede decir de forma objetiva.
  */
 export function Comparador({ onAbrirProducto, pedido }) {
-  const [ids, setIds] = useState(pedido?.id ? [pedido.id] : []);
+  // Los productos elegidos viven en un almacén: no se pierden al ir a Buscar
+  // y volver, ni al abrir una ficha
+  const [ids, setIds] = useAlmacen(COMPARACION);
 
-  // Desde la ficha de un producto: empezar la comparación con él
+  // Desde la ficha de un producto: si es de la misma línea y hay cupo, se
+  // suma a la comparación en curso; si no, empieza una nueva con él
   useEffect(() => {
-    if (pedido?.id) setIds([pedido.id]);
+    if (!pedido?.id) return;
+    setIds((actuales) => {
+      if (actuales.includes(pedido.id)) return actuales;
+      const nuevo = PRODUCTOS.find((p) => p.id === pedido.id);
+      const primero = PRODUCTOS.find((p) => p.id === actuales[0]);
+      const cabe = nuevo && primero && primero.categoria === nuevo.categoria && actuales.length < MAXIMO_COMPARADOS;
+      return cabe ? [...actuales, pedido.id] : [pedido.id];
+    });
   }, [pedido]);
   const [soloDiferencias, setSoloDiferencias] = useState(false);
   // Alto de la barra superior fija (incluye la zona segura del teléfono): de ahí cuelgan los encabezados
   const [altoBarra, setAltoBarra] = useState(60);
 
   useEffect(() => {
-    const medir = () => {
-      const barra = document.querySelector('header');
-      if (barra) setAltoBarra(Math.round(barra.getBoundingClientRect().height));
-    };
+    const barra = document.querySelector('header');
+    if (!barra) return undefined;
+    const medir = () => setAltoBarra(Math.round(barra.getBoundingClientRect().height));
     medir();
-    window.addEventListener('resize', medir);
-    return () => window.removeEventListener('resize', medir);
+    // El encabezado cambia de alto con el modo campo, no solo al girar el teléfono
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', medir);
+      return () => window.removeEventListener('resize', medir);
+    }
+    const observador = new ResizeObserver(medir);
+    observador.observe(barra);
+    return () => observador.disconnect();
   }, []);
 
   const elegidos = useMemo(
@@ -1078,7 +1094,7 @@ export function Comparador({ onAbrirProducto, pedido }) {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] leading-snug" style={{ color: COLORES.textoSuave }}>
+              <p className="text-[0.6875rem] leading-snug" style={{ color: COLORES.textoSuave }}>
                 «Mejor» marca el menor riesgo o el que cubre más. Lo resaltado en Controla y Cultivos no lo
                 tienen todos.
               </p>

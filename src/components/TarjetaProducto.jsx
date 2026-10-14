@@ -28,7 +28,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
       >
         <MiniaturaProducto producto={producto} color={color} tamano={46} />
         {orden != null && (
-          <span className="cc-num font-mono text-[10px] font-bold" style={{ color }}>
+          <span className="cc-num font-mono text-[0.625rem] font-bold" style={{ color }}>
             {String(orden).padStart(2, '0')}
           </span>
         )}
@@ -36,7 +36,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
 
       <span className="min-w-0 flex-1 px-4 py-3.5">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-[15px] font-bold leading-tight" style={{ color: COLORES.tinta }}>
+          <span className="text-[0.9375rem] font-bold leading-tight" style={{ color: COLORES.tinta }}>
             {producto.nombre}
           </span>
           {esFavorito && (
@@ -50,7 +50,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
           )}
         </span>
 
-        <span className="mt-0.5 block text-[13px]" style={{ color: COLORES.textoSuave }}>
+        <span className="mt-0.5 block text-[0.8125rem]" style={{ color: COLORES.textoSuave }}>
           {producto.ia}
         </span>
 
@@ -60,7 +60,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
         </span>
 
         {producto.presentaciones?.length > 0 && (
-          <span className="mt-2 flex items-end gap-1.5 text-[11px]" style={{ color: COLORES.textoSuave }}>
+          <span className="mt-2 flex items-end gap-1.5 text-[0.6875rem]" style={{ color: COLORES.textoSuave }}>
             <EnvaseDibujo tipo={envasePrincipal(producto).tipo} color={color} alto={16} />
             <span className="font-mono leading-none">{producto.presentaciones.join(' · ')}</span>
           </span>

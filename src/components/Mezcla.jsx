@@ -32,6 +32,7 @@ import {
   calcularMezcla,
   calcularCalibracion,
   formulacionDe,
+  pasoDeCarga,
   ORDEN_TANQUE,
   COADYUVANTES,
   analizarFormulaciones,
@@ -43,7 +44,7 @@ import {
   compartenModoDeAccion,
   explicarConflicto,
 } from '../motores/index.js';
-import { MEZCLA_PRODUCTOS, useAlmacen, usePersistente } from '../estado/memoria.js';
+import { MEZCLA_PRODUCTOS, VISTA_MEZCLA, useAlmacen, usePersistente } from '../estado/memoria.js';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
 import { Segmentado, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
@@ -277,7 +278,7 @@ function AvisoAmable({ tono = 'info', imagen, className = '', children }) {
 function Cifra({ icono: Icono, valor, unidad, etiqueta, uso, decimales = 1 }) {
   return (
     <div className="flex-1 rounded-2xl p-3" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#9DB8C9' }}>
+      <span className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide" style={{ color: '#9DB8C9' }}>
         <Icono size={13} /> {etiqueta}
       </span>
       <span className="mt-1 block font-mono text-2xl font-bold text-white">
@@ -285,7 +286,7 @@ function Cifra({ icono: Icono, valor, unidad, etiqueta, uso, decimales = 1 }) {
         {unidad && <span className="ml-1 text-sm font-semibold">{unidad}</span>}
       </span>
       {uso && (
-        <span className="mt-1.5 block text-[11px] leading-snug" style={{ color: '#9DB8C9' }}>
+        <span className="mt-1.5 block text-[0.6875rem] leading-snug" style={{ color: '#9DB8C9' }}>
           {uso}
         </span>
       )}
@@ -403,8 +404,8 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
     [resultado, producto]
   );
 
-  const etiquetaResultado = 'block text-[10px] font-bold uppercase tracking-wide';
-  const usoResultado = 'mt-0.5 block text-[11px] leading-snug';
+  const etiquetaResultado = 'block text-[0.625rem] font-bold uppercase tracking-wide';
+  const usoResultado = 'mt-0.5 block text-[0.6875rem] leading-snug';
 
   return (
     <div
@@ -413,7 +414,7 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
     >
       <div className="flex items-start gap-2">
         <span
-          className="cc-num mt-2.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+          className="cc-num mt-2.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-bold"
           style={{ backgroundColor: COLORES.grisClaro, color: COLORES.textoSuave }}
         >
           {indice + 1}
@@ -535,6 +536,13 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
                   </div>
                 )}
               </div>
+
+              {resultado.productoPorBomba > 0 && resultado.productoPorBomba < 0.001 && (
+                <AvisoAmable tono="ojo" className="mt-2">
+                  Es menos de 1 {resultado.base === 'Kg' ? 'gramo' : 'cc'} por bomba: pésalo en gramera o mídelo
+                  con jeringa, o prediluye la dosis de varias bombas en un balde y reparte ese caldo.
+                </AvisoAmable>
+              )}
 
               {resultado.dosisPorHa > DOSIS_ALTA_POR_HA && (
                 <AvisoAmable tono="ojo" className="mt-2">
@@ -700,7 +708,7 @@ function PasoPlegable({ titulo, subtitulo, children }) {
 }
 
 export function Mezcla({ onAbrirProducto }) {
-  const [vista, setVista] = useState('mezcla');
+  const [vista, setVista] = useAlmacen(VISTA_MEZCLA);
   const [verTutorial, setVerTutorial] = useState(false);
   const [pasoCaneca, setPasoCaneca] = useState(0);
   const [condiciones, setCondiciones] = usePersistente('cibo:mezcla:condiciones', {
@@ -775,32 +783,42 @@ export function Mezcla({ onAbrirProducto }) {
   // Pasos de la caneca de 200 L con los productos de la mezcla ubicados en su
   // paso. Un paso de formulación sin productos queda como "no aplica"; los
   // pasos generales (agua, acondicionador, cierre) siempre aplican.
-  const pasosCaneca = useMemo(() => {
+  const { pasosCaneca, sinPasoDeCarga } = useMemo(() => {
     const porPaso = new Map();
+    const sinPaso = [];
     items.forEach((item) => {
       const producto = PRODUCTOS.find((p) => p.id === item.productoId);
       if (!producto) return;
-      const f = formulacionDe(producto);
-      const paso = f?.ordenCarga || 8;
+      const carga = pasoDeCarga(producto);
+      // La caneca es de 200 L: la cantidad se calcula para 200 L de caldo, no
+      // por la bomba del usuario, para no echar la décima parte de la dosis.
       const calculo = calcularMezcla({
         dosis: item.dosis,
         unidad: item.unidad,
         area: condiciones.area,
         volumenHa: condiciones.volumenHa,
-        capacidadBomba: condiciones.capacidadBomba,
+        capacidadBomba: 200,
       });
-      if (!porPaso.has(paso)) porPaso.set(paso, []);
-      porPaso.get(paso).push({
+      const fila = {
         id: producto.id,
         nombre: producto.nombre,
-        sigla: f?.sigla || '—',
-        dosis: calculo ? `${unidadAmigable(calculo.productoPorBomba, calculo.base)} por bomba` : 'falta la dosis',
-      });
+        sigla: carga.sigla || '—',
+        dosis: calculo ? `${unidadAmigable(calculo.productoPorBomba, calculo.base)} en 200 L` : 'falta la dosis',
+      };
+      if (carga.paso == null) {
+        sinPaso.push(fila);
+        return;
+      }
+      if (!porPaso.has(carga.paso)) porPaso.set(carga.paso, []);
+      porPaso.get(carga.paso).push(fila);
     });
-    return ORDEN_TANQUE.map((p) => {
-      const productos = porPaso.get(p.paso) || [];
-      return { ...p, productos, aplica: p.siglas.length === 0 || productos.length > 0 };
-    });
+    return {
+      sinPasoDeCarga: sinPaso,
+      pasosCaneca: ORDEN_TANQUE.map((p) => {
+        const productos = porPaso.get(p.paso) || [];
+        return { ...p, productos, aplica: p.siglas.length === 0 || productos.length > 0 };
+      }),
+    };
   }, [items, condiciones]);
 
   // Orden de carga sugerido para los productos elegidos
@@ -1191,6 +1209,13 @@ export function Mezcla({ onAbrirProducto }) {
               </span>
             </span>
           </button>
+
+          {sinPasoDeCarga.length > 0 && (
+            <AvisoAmable tono="ojo" className="mt-4">
+              No se pudo deducir la formulación de {unirConY(sinPasoDeCarga.map((x) => x.nombre))}: revisa en la
+              etiqueta si es sólido (WG, WP, SG) o líquido (SC, SL, EC) para saber en qué paso va.
+            </AvisoAmable>
+          )}
 
           {/* La caneca de 200 L se llena paso a paso con los productos de la mezcla */}
           <div className="mt-5">

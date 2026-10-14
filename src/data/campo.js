@@ -53,7 +53,7 @@ export const CAMPO = {
     "enCampo": "Es el que mejor se ve en aplicación al suelo. En drench o por riego, sube y se distribuye por toda la planta en 24 a 48 horas —más rápido que imidacloprid, que es mucho menos soluble—. En campo eso significa control de chupadores en la parte alta de la planta aplicando abajo, y protección de hoja nueva por 14 a 21 días.",
     "blancos": "Chupadores, comedores de follaje, barrenadores y minadores: mosca blanca, áfidos, saltahojas, psílidos, escamas, minador de la hoja.",
     "usos": "Hortalizas, frutales, arroz, café, cítricos, ornamentales. Muy fuerte en cultivo protegido con riego por goteo.",
-    "consejo": "Sirve donde el imidacloprid ya falla por resistencia metabólica en mosca blanca, pero sigue siendo IRAC 4A: no cuenta como rotación real frente a TIOXAM, INSECTOPRID o la parte neonicotinoide de TAGEO/FORXAM/RIDDER/FURIOSO/MULTA PRO. Alta toxicidad para abejas por vía sistémica —no aplicar en floración.",
+    "consejo": "Sirve donde el imidacloprid ya falla por resistencia metabólica en mosca blanca, pero sigue siendo IRAC 4A: no cuenta como rotación real frente a TIOXAM, INSECTOPRID o la parte neonicotinoide de TAGEO, FORXAM, RIDDER, FURIOSO o MULTA PRO. Alta toxicidad para abejas por vía sistémica —no aplicar en floración.",
     "accion": "Contacto, ingestión y sistémico",
     "cultivos": [
       "arroz",

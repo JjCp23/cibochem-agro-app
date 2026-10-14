@@ -149,17 +149,78 @@ const TEXTO_OBJETIVO = (() => {
   return mapa;
 })();
 
-// Un código de grupo ("4a", "m03", "22") se compara por palabra completa al
-// inicio, para que buscar el 4A no traiga el 14A.
-const PARECE_CODIGO = /^m?\d+[a-z]?$/;
+// Un código de grupo ("4a", "m03", "p07", "22") se compara por palabra completa
+// al inicio, para que buscar el 4A no traiga el 14A.
+const PARECE_CODIGO = /^[mp]?\d+[a-z]?$/;
 
-// "3" encuentra el 3A y el 3B (mismo sitio de acción), pero no el 30
-function coincideCodigo(palabra, t) {
-  return palabra === t || (palabra.startsWith(t) && /^[a-z]$/.test(palabra.slice(t.length)));
+// Las siglas de clasificación solo se comparan con el sistema del producto:
+// "irac" no puede coincidir dentro de "respiración".
+const SISTEMAS_DE_RESISTENCIA = ['irac', 'frac', 'hrac'];
+
+// 2,4-D se escribe de mil formas ("2,4-D", "2,4 D", "24d"). Se unifica en una
+// sola palabra antes de partir el texto, para que no se convierta en un "2",
+// un "4" y una "d" que coinciden con cualquier cosa.
+const PATRON_DOS_CUATRO_D = /\b2\s*,?\s*4\s*-?\s*d\b/g;
+
+/** Texto listo para buscar: normalizado y con el 2,4-D en una sola palabra. */
+function textoBuscable(texto) {
+  return normalizarTexto(texto).replace(PATRON_DOS_CUATRO_D, '24d');
 }
 
 function palabrasDe(texto) {
-  return normalizarTexto(texto).split(/[^a-z0-9]+/).filter(Boolean);
+  return textoBuscable(texto).split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+/** "m03" y "m3" son el mismo grupo multisitio; igual "p07" y "p7". */
+function codigoSinCeros(codigo) {
+  return codigo.replace(/^([mp]?)0+(?=\d)/, '$1');
+}
+
+// "3" encuentra el 3A y el 3B (mismo sitio de acción), pero no el 30 ni el
+// M03; "m3" encuentra el M03.
+function coincideCodigo(palabra, t) {
+  const grupo = codigoSinCeros(palabra);
+  const buscado = codigoSinCeros(t);
+  return grupo === buscado || (grupo.startsWith(buscado) && /^[a-z]$/.test(grupo.slice(buscado.length)));
+}
+
+/**
+ * Forma química canónica de una palabra: acerca la grafía española de un
+ * ingrediente a la inglesa que trae la etiqueta. "Azoxistrobina" y
+ * "Azoxystrobin" quedan iguales, igual que "clorotalonil" y "Chlorothalonil",
+ * "mancoceb" y "Mancozeb" o "espinosad" y "Spinosad". Se aplica a los dos
+ * lados de la comparación, así que no importa que la palabra resultante no
+ * sea ni española ni inglesa.
+ */
+function formaQuimica(palabra) {
+  const w = palabra
+    .replace(/th/g, 't')
+    .replace(/ph/g, 'f')
+    .replace(/y/g, 'i')
+    .replace(/ch(?=[lr])/g, 'c')
+    .replace(/z/g, 's')
+    .replace(/c(?=[ei])/g, 's')
+    .replace(/^es(?=[b-df-hj-np-tv-z])/, 's');
+  // La vocal final distingue el español del inglés (-ina/-in, -ona/-one,
+  // -ilo/-il), pero en palabras cortas ("papa", "hoja") cambia el sentido.
+  return w.length >= 7 ? w.replace(/[aeiou]$/, '') : w;
+}
+
+/**
+ * Qué clase de palabra buscó el usuario:
+ * - sistema: "irac", "frac" o "hrac"; solo se compara con el sistema.
+ * - exacta: 2,4-D unificado; solo vale la palabra completa en nombre o
+ *   ingrediente.
+ * - codigo: número de grupo; vale el grupo o, si la consulta no nombra un
+ *   sistema, la palabra completa en nombre o ingrediente ("250"). Nunca por
+ *   prefijo: "2" no puede encontrar la concentración 200.
+ * - texto: todo lo demás, por prefijo.
+ */
+function tipoDeTermino(t) {
+  if (SISTEMAS_DE_RESISTENCIA.includes(t)) return 'sistema';
+  if (t === '24d') return 'exacta';
+  if (PARECE_CODIGO.test(t)) return 'codigo';
+  return 'texto';
 }
 
 /**
@@ -172,6 +233,15 @@ export function buscarTexto(termino, lista = PRODUCTOS) {
   const consulta = palabrasDe(termino);
   if (consulta.length === 0) return lista;
 
+  // Con "IRAC 1" el número es el grupo, no la concentración del nombre
+  const nombraSistema = consulta.some((t) => SISTEMAS_DE_RESISTENCIA.includes(t));
+  const terminos = consulta.map((t) => ({
+    t,
+    tipo: tipoDeTermino(t),
+    // Por debajo de 4 letras la forma química solo agrega ruido mientras se escribe
+    quimica: t.length >= 4 ? formaQuimica(t) : null,
+  }));
+
   const evaluados = [];
   lista.forEach((p, orden) => {
     const nombre = palabrasDe(p.nombre);
@@ -182,17 +252,44 @@ export function buscarTexto(termino, lista = PRODUCTOS) {
         .filter(Boolean)
         .join(' ')
     );
+    const sistema = normalizarTexto(p.sistema);
     const textoCompleto = [...nombre, ...ia, ...grupo, ...resto].join(' ');
 
+    // La forma química solo se usa con el ingrediente: en nombres comerciales
+    // y familias junta cosas distintas ("triazol" no es TRIASOL, que es
+    // atrazina). Se calcula solo si alguna palabra la necesita.
+    let iaQuimica = null;
+    const coincideQuimica = (quimica) => {
+      if (quimica === null) return false;
+      if (iaQuimica === null) iaQuimica = ia.map(formaQuimica);
+      return iaQuimica.some((w) => w.startsWith(quimica));
+    };
+
     let puntaje = 0;
-    const todas = consulta.every((t, i) => {
-      if (i === 0 && normalizarTexto(p.nombre).startsWith(t)) puntaje += 100;
-      if (PARECE_CODIGO.test(t) && grupo.some((w) => coincideCodigo(w, t))) puntaje += 80;
-      else if (nombre.some((w) => w.startsWith(t))) puntaje += 60;
+    const todas = terminos.every(({ t, tipo, quimica }, i) => {
+      if (i === 0 && tipo === 'texto' && textoBuscable(p.nombre).startsWith(t)) puntaje += 100;
+
+      if (tipo === 'sistema') {
+        if (sistema !== t) return false;
+        puntaje += 30;
+        return true;
+      }
+
+      if (tipo === 'codigo' || tipo === 'exacta') {
+        const porPalabra = tipo === 'exacta' || !nombraSistema;
+        if (tipo === 'codigo' && grupo.some((w) => coincideCodigo(w, t))) puntaje += 80;
+        else if (porPalabra && nombre.includes(t)) puntaje += 60;
+        else if (porPalabra && ia.includes(t)) puntaje += 40;
+        else return false;
+        return true;
+      }
+
+      if (nombre.some((w) => w.startsWith(t))) puntaje += 60;
       else if (grupo.includes(t)) puntaje += 50;
       else if (ia.some((w) => w.startsWith(t))) puntaje += 40;
+      else if (coincideQuimica(quimica)) puntaje += 35;
       else if (resto.some((w) => w.startsWith(t))) puntaje += 20;
-      else if (!PARECE_CODIGO.test(t) && textoCompleto.includes(t)) puntaje += 5;
+      else if (textoCompleto.includes(t)) puntaje += 5;
       else return false;
       return true;
     });

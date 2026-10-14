@@ -206,7 +206,7 @@ export function SelectorProducto({
                 {mostrarRecientes && (
                   <>
                     <p
-                      className="flex items-center gap-1.5 px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide"
+                      className="flex items-center gap-1.5 px-3 pb-1 pt-3 text-[0.6875rem] font-bold uppercase tracking-wide"
                       style={{ color: COLORES.textoSuave }}
                     >
                       <Clock size={12} /> Vistos hace poco
@@ -215,7 +215,7 @@ export function SelectorProducto({
                       <FilaProductoCompacta key={`r-${p.id}`} producto={p} activo={p.id === valor} onClick={() => escoger(p.id)} />
                     ))}
                     <p
-                      className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wide"
+                      className="px-3 pb-1 pt-4 text-[0.6875rem] font-bold uppercase tracking-wide"
                       style={{ color: COLORES.textoSuave }}
                     >
                       Todos ({lista.length})

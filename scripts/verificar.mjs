@@ -12,7 +12,7 @@
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { PRODUCTOS } from '../src/data/productos.js';
-import { RAMAS } from '../src/data/taxonomia.js';
+import { RAMAS, etiquetaDe } from '../src/data/taxonomia.js';
 import {
   GRUPOS_MOA,
   TRANSLOCACION,
@@ -42,6 +42,7 @@ import {
   ORDEN_TANQUE,
   formulacionDe,
   analizarFormulaciones,
+  pasoDeCarga,
 } from '../src/motores/aplicacion.js';
 import { buscarTexto, normalizarTexto } from '../src/motores/diagnostico.js';
 import { codigosDeGrupo } from '../src/data/gruposMoA.js';
@@ -515,6 +516,134 @@ check(ORDEN_TANQUE[ORDEN_TANQUE.length - 1].nivel === 1, 'el último paso debe d
     if (f) check(ORDEN_TANQUE.some((o) => o.paso === f.ordenCarga), `${p.id}: su formulación ${f.sigla} tiene paso de carga`);
   });
 }
+
+// ────────────────────────────────────────────────────────────
+seccion('Búsqueda: códigos de grupo, 2,4-D e ingredientes en español');
+{
+  // Un código nunca coincide por prefijo: "HRAC 2" no puede traer la
+  // concentración 200 ni "IRAC 1" un fungicida por la palabra "respiración".
+  // Cada caso: consulta, sistema, grupo de rotación y un producto esperado.
+  const casosDeGrupo = [
+    ['HRAC 2', 'HRAC', '2', 'acertado'],
+    ['IRAC 1', 'IRAC', '1', 'metomil40'],
+    ['IRAC 5', 'IRAC', '5', 'trosador'],
+    ['IRAC 6', 'IRAC', '6', 'oromectin'],
+    ['FRAC 3', 'FRAC', '3', 'flutri'],
+    ['FRAC 11', 'FRAC', '11', 'tenaz'],
+    ['HRAC 9', 'HRAC', '9', 'reddi'],
+    ['M3', 'FRAC', 'M03', 'manconex'],
+    ['FRAC P07', 'FRAC', 'P07', 'protecsol'],
+  ];
+  casosDeGrupo.forEach(([consulta, sistema, grupo, esperado]) => {
+    const esDelGrupo = (p) =>
+      p.sistema === sistema && codigosDeGrupo(p.grupo).some((c) => grupoDeRotacion(p.sistema, c) === grupo);
+    const resultado = buscarTexto(consulta);
+    check(resultado.some((p) => p.id === esperado), `"${consulta}" debe encontrar ${esperado}`);
+    check(
+      PRODUCTOS.filter(esDelGrupo).every((p) => resultado.includes(p)),
+      `"${consulta}" debe encontrar todos los productos de ${sistema} ${grupo}`
+    );
+    resultado.forEach((p) =>
+      check(esDelGrupo(p), `"${consulta}" no debe traer ${p.nombre} (${p.sistema || 'sin sistema'} ${p.grupo})`)
+    );
+  });
+
+  // Los subgrupos siguen funcionando solos
+  [['3A', 'cyper'], ['4A', 'tioxam']].forEach(([codigo, esperado]) => {
+    const resultado = buscarTexto(codigo);
+    check(resultado.some((p) => p.id === esperado), `"${codigo}" debe encontrar ${esperado}`);
+    resultado.forEach((p) =>
+      check(codigosDeGrupo(p.grupo).includes(codigo), `"${codigo}" no debe traer ${p.nombre} (${p.grupo})`)
+    );
+  });
+
+  // Las siglas solo se comparan con el sistema del producto
+  ['IRAC', 'FRAC', 'HRAC'].forEach((sistema) => {
+    const resultado = buscarTexto(sistema.toLowerCase());
+    check(resultado.length > 0, `"${sistema}" debe encontrar productos`);
+    resultado.forEach((p) => check(p.sistema === sistema, `"${sistema}" no debe traer ${p.nombre} (${p.sistema || 'sin sistema'})`));
+  });
+
+  // Sin sistema en la consulta, un número sigue encontrando la concentración,
+  // pero como palabra completa: "250" no es "2500" ni "25"
+  const concentracion = buscarTexto('250');
+  check(concentracion.some((p) => p.id === 'tioxam'), '"250" debe encontrar TIOXAM 250 WG');
+  concentracion.forEach((p) =>
+    check(/(^|\D)250(\D|$)/.test(`${p.nombre} ${p.ia}`), `"250" no debe traer ${p.nombre} (${p.ia})`)
+  );
+
+  // 2,4-D se escribe de varias formas y siempre es la misma molécula
+  const conDosCuatroD = PRODUCTOS.filter((p) => /2,4-D/i.test(p.ia));
+  ['2,4-D', '2,4 D', '24d', '2,4-d'].forEach((consulta) => {
+    const resultado = buscarTexto(consulta);
+    check(
+      conDosCuatroD.length > 0 && conDosCuatroD.every((p) => resultado.includes(p)),
+      `"${consulta}" debe encontrar todos los productos con 2,4-D`
+    );
+    resultado.forEach((p) => check(/2,4-D/i.test(p.ia), `"${consulta}" no debe traer ${p.nombre} (${p.ia})`));
+  });
+
+  // Ingredientes en grafía española contra la grafía inglesa de la etiqueta
+  const ingredientes = [
+    ['azoxistrobina', 'tenaz', /azoxystrobin/i],
+    ['clorotalonil', 'cloropaz', /chlorothalonil/i],
+    ['tiametoxam', 'tioxam', /thiametoxam/i],
+    ['emamectina', 'multa', /emamectin/i],
+    ['mesotriona', 'mesotriol', /mesotrione/i],
+    ['piraclostrobina', 'blindax', /pyraclostrobin/i],
+    ['piriproxifen', 'acarisil', /pyriproxifen/i],
+    ['oxifluorfen', 'desmalexe', /oxyfluorfen/i],
+    ['cletodim', 'pastrol', /clethodim/i],
+    ['espinosad', 'trosador', /spinosad/i],
+    ['benomilo', 'benoagro', /benomil/i],
+    ['mancoceb', 'manconex', /mancozeb/i],
+    ['fluopicolida', 'kurax', /fluopicolide/i],
+    ['Azoxystrobin', 'tenaz', /azoxystrobin/i],
+  ];
+  ingredientes.forEach(([consulta, esperado, patron]) => {
+    const resultado = buscarTexto(consulta);
+    check(resultado.some((p) => p.id === esperado), `"${consulta}" debe encontrar ${esperado}`);
+    resultado.forEach((p) => check(patron.test(p.ia), `"${consulta}" no debe traer ${p.nombre} (${p.ia})`));
+  });
+  check(
+    !buscarTexto('triazol').some((p) => p.id === 'triasol'),
+    'la forma química no confunde "triazol" con TRIASOL, que es atrazina'
+  );
+
+  // Lo que ya funcionaba: tildes, nombres de plagas y nombres comerciales
+  const conTilde = buscarTexto('arañita').map((p) => p.id);
+  const sinTilde = buscarTexto('aranita').map((p) => p.id);
+  check(conTilde.length > 0 && conTilde.join() === sinTilde.join(), '"arañita" y "aranita" dan lo mismo');
+  buscarTexto('aranita').forEach((p) =>
+    check(p.objetivos.includes('acaros'), `${p.nombre} apareció en "aranita" sin controlar ácaros`)
+  );
+  const coquito = buscarTexto('coquito');
+  check(coquito.length > 0, '"coquito" debe encontrar herbicidas por su objetivo');
+  coquito.forEach((p) =>
+    check(p.objetivos.includes('ciperaceas'), `${p.nombre} apareció en "coquito" sin controlar ciperáceas`)
+  );
+  check(buscarTexto('benevolo')[0]?.id === 'benevolo', 'el nombre comercial "benevolo" va primero');
+  check(buscarTexto('stop west')[0]?.id === 'stopwest', 'un nombre comercial de dos palabras va primero');
+}
+
+// ────────────────────────────────────────────────────────────
+seccion('Correcciones de la revisión: dosis pequeñas, carga, etiquetas');
+check(unidadAmigable(0.0006, 'Kg') === '0.6 g', `0.6 g por bomba no se redondea a 1 g (salió ${unidadAmigable(0.0006, 'Kg')})`);
+check(unidadAmigable(0.0025, 'L') === '2.5 cc', `2.5 cc no se redondea a 3 cc (salió ${unidadAmigable(0.0025, 'L')})`);
+check(unidadAmigable(0.0004, 'Kg') === '0.4 g', '0.4 g no se muestra como 0 g');
+check(unidadAmigable(0.35, 'L') === '350 cc', '350 cc se sigue mostrando entero');
+PRODUCTOS.filter((p) => p.categoria === 'Bioestimulante').forEach((p) => {
+  check(pasoDeCarga(p).paso === 11 || formulacionDe(p), `${p.id}: el bioestimulante va con los foliares (paso 11)`);
+});
+{
+  const combo = PRODUCTOS.find((p) => p.presentaciones?.includes('Caja'));
+  if (combo) check(pasoDeCarga(combo).paso === null, `${combo.id}: sin formulación deducible no se inventa el paso`);
+}
+check(etiquetaDe('estres', 'objetivo') !== etiquetaDe('estres', 'momento'), 'estrés como objetivo y como momento tienen su propia etiqueta');
+check(
+  !/,\s*22$/.test(productoDesdeMolecula({ nombre: 'Paraquat', familia: 'bipiridilo, 22', grupo: 'HRAC:22' }).familia),
+  'la familia no repite el número de grupo'
+);
 
 // ────────────────────────────────────────────────────────────
 seccion('Presentación de cada producto: envases y fotos');

@@ -46,6 +46,7 @@ import { NumeroAnimado, useEnPantalla, llevarA } from './ui/Movimiento.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
 import { MiniaturaProducto } from './ui/Presentacion.jsx';
+import { usePasoConAtras } from './ui/Hoja.jsx';
 
 // Un icono por momento ayuda a ubicar la opción sin leerla entera
 const ICONO_MOMENTO = {
@@ -133,7 +134,7 @@ function Paso({ numero, titulo, nota, children, color }) {
           {titulo}
         </h3>
         {nota && (
-          <span className="text-[11px] font-medium" style={{ color: COLORES.textoSuave }}>
+          <span className="text-[0.6875rem] font-medium" style={{ color: COLORES.textoSuave }}>
             {nota}
           </span>
         )}
@@ -162,7 +163,7 @@ function Progreso({ etapa, color }) {
         {etapas.map((e, i) => (
           <span
             key={e}
-            className="flex-1 text-[10px] font-bold uppercase tracking-wide transition-colors"
+            className="flex-1 text-[0.625rem] font-bold uppercase tracking-wide transition-colors"
             style={{ color: i < etapa ? color : COLORES.textoSuave }}
           >
             {e}
@@ -273,7 +274,7 @@ function TarjetaInstalar() {
         </button>
         <button
           onClick={() => setDescartada(true)}
-          className="text-[11px] font-semibold"
+          className="text-[0.6875rem] font-semibold"
           style={{ color: COLORES.textoSuave }}
         >
           Ahora no
@@ -378,7 +379,7 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
               insignia={
                 r.sistema ? (
                   <span
-                    className="rounded px-2 py-0.5 font-mono text-[11px] font-bold"
+                    className="rounded px-2 py-0.5 font-mono text-[0.6875rem] font-bold"
                     style={{ backgroundColor: FONDO_CATEGORIA[cat], color: COLOR_CATEGORIA[cat] }}
                   >
                     {r.sistema}
@@ -424,7 +425,7 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
                   <span className="mt-2 block truncate text-sm font-bold" style={{ color: COLORES.tinta }}>
                     {p.nombre}
                   </span>
-                  <span className="block truncate text-[11px]" style={{ color: COLORES.textoSuave }}>
+                  <span className="block truncate text-[0.6875rem]" style={{ color: COLORES.textoSuave }}>
                     {p.sistema ? `${p.sistema} ${p.grupo}` : p.categoria}
                   </span>
                 </button>
@@ -459,13 +460,15 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
 }
 
 /** Asistente que traduce una situación de campo en una lista de productos. */
-export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
+export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar, activa = true }) {
   const [rama, setRama] = useState(null);
   const [objetivo, setObjetivo] = useState(null);
   const [escenario, setEscenario] = useState(null);
   const [momento, setMomento] = useState(null);
   const [ultimoId, setUltimoId] = useState('');
   const [cultivoId, setCultivoId] = useState(null);
+  // Pestaña (plagas, enfermedades, malezas) a la que vuelve "Cambiar"
+  const [tipoProblemaPrevio, setTipoProblemaPrevio] = useState('plagas');
   const [problema, setProblema] = useState(null);
   const [etapaCultivo, setEtapaCultivo] = useState(null);
   const cultivo = CULTIVOS.find((c) => c.id === cultivoId) || null;
@@ -502,6 +505,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
     setCultivoId(null);
     setProblema(null);
     setEtapaCultivo(null);
+    setTipoProblemaPrevio('plagas');
     window.scrollTo({ top: 0 });
   };
 
@@ -515,16 +519,28 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
     setObjetivo(x.objetivo);
     setEscenario(r.escenarios.some((e) => e.id === esc) ? esc : null);
     setMomento(null);
+    // Lo aplicado antes solo cuenta si es de la misma línea: un fungicida no
+    // es "lo último" para decidir un insecticida
+    setUltimoId((id) => {
+      const previo = PRODUCTOS.find((p) => p.id === id);
+      return previo && r.categorias.includes(previo.categoria) ? id : '';
+    });
     window.scrollTo({ top: 0 });
   };
 
   const volverAProblemas = () => {
+    setTipoProblemaPrevio(problema?.tipoProblema || 'plagas');
     setProblema(null);
     setRama(null);
     setObjetivo(null);
     setEscenario(null);
     window.scrollTo({ top: 0 });
   };
+
+  // Atrás en el teléfono deshace el último paso: del asistente a la lista de
+  // problemas del cultivo, y de ahí al inicio
+  usePasoConAtras(activa && cultivoId != null, reiniciar);
+  usePasoConAtras(activa && rama != null, () => (cultivoId ? volverAProblemas() : reiniciar()));
 
   const escogerObjetivo = (id) => {
     setObjetivo(id);
@@ -534,7 +550,14 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
 
   // ── Diagnóstico por cultivo: qué se está viendo ───────────────────
   if (!rama && cultivo) {
-    return <ProblemasDeCultivo cultivoId={cultivo.id} onEscoger={escogerProblema} onVolver={reiniciar} />;
+    return (
+      <ProblemasDeCultivo
+        cultivoId={cultivo.id}
+        tipoInicial={tipoProblemaPrevio}
+        onEscoger={escogerProblema}
+        onVolver={reiniciar}
+      />
+    );
   }
 
   // ── Pantalla inicial ────────────────────────────────────────────
@@ -614,7 +637,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
             <Check size={16} color="#fff" strokeWidth={3} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+            <span className="block text-[0.6875rem] font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
               {problema ? `${problema.comun} · ${problema.cientifico || problema.agente || ''}` : rama.pregunta.replace(/[¿?]/g, '')}
             </span>
             <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
@@ -636,6 +659,8 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
 
       {objetivo && (
         <div ref={refAfinar}>
+          {/* Con el cultivo escogido el escenario ya viene de él: no se pregunta otra vez */}
+          {!cultivo && (
           <Paso numero={2} titulo={rama.preguntaEscenario} nota="opcional" color={color}>
             <div className="flex flex-wrap gap-2">
               {rama.escenarios.map((e) => (
@@ -649,9 +674,10 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
               ))}
             </div>
           </Paso>
+          )}
 
           {cultivo && cultivo.etapas.length > 0 && (
-            <Paso numero={3} titulo="¿En qué etapa está el cultivo?" nota="opcional" color={color}>
+            <Paso numero={2} titulo="¿En qué etapa está el cultivo?" nota="opcional" color={color}>
               <div className="flex flex-wrap gap-2">
                 {cultivo.etapas.map((e) => (
                   <Chip
@@ -666,7 +692,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
             </Paso>
           )}
 
-          <Paso numero={cultivo ? 4 : 3} titulo={rama.preguntaMomento} nota="opcional" color={color}>
+          <Paso numero={3} titulo={rama.preguntaMomento} nota="opcional" color={color}>
             <div className="grid grid-cols-2 gap-2">
               {rama.momentos.map((m) => (
                 <Opcion
@@ -683,7 +709,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
           </Paso>
 
           {rama.sistema && (
-            <Paso numero={cultivo ? 5 : 4} titulo="¿Qué aplicaste la vez anterior?" nota="opcional" color={color}>
+            <Paso numero={4} titulo="¿Qué aplicaste la vez anterior?" nota="opcional" color={color}>
               <p className="mb-2 text-xs" style={{ color: COLORES.textoSuave }}>
                 Si lo indicas, la app baja los productos que repiten el mismo sitio de acción y arma la
                 rotación a partir de ahí.

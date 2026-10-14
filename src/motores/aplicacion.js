@@ -340,6 +340,20 @@ export function formulacionDe(producto) {
  * tipos se considera riesgo de incompatibilidad: más pasos delicados en el
  * orden de carga y más probabilidad de grumos o separación.
  */
+/**
+ * Paso del orden de carga (ORDEN_TANQUE) en el que entra un producto. Si la
+ * formulación no se puede deducir, paso es null: mejor decir "revisa la
+ * etiqueta" que ubicarlo donde no va.
+ */
+export function pasoDeCarga(producto) {
+  const f = formulacionDe(producto);
+  if (f) return { paso: f.ordenCarga, sigla: f.sigla, identificada: true };
+  // Los bioestimulantes y nutrientes van con los fertilizantes foliares, después
+  // de los plaguicidas, aunque su nombre comercial no traiga la sigla.
+  if (producto?.categoria === 'Bioestimulante') return { paso: 11, sigla: null, identificada: true };
+  return { paso: null, sigla: null, identificada: false };
+}
+
 export function analizarFormulaciones(productos) {
   const porSigla = new Map();
   (productos || []).forEach((p) => {
@@ -368,7 +382,12 @@ export function formatear(valor, decimales = 2) {
 export function partirCantidad(valor, base) {
   if (valor == null || Number.isNaN(valor)) return null;
   const chica = base === 'L' ? 'cc' : base === 'Kg' ? 'g' : null;
-  if (chica && valor < 1) return { numero: valor * 1000, unidad: chica, decimales: 0 };
+  if (chica && valor < 1) {
+    // Bajo 10 g o 10 cc un redondeo a entero cambia mucho la dosis real
+    // (0,6 g no son 1 g): se muestran uno o dos decimales.
+    const numero = valor * 1000;
+    return { numero, unidad: chica, decimales: numero < 1 ? 2 : numero < 10 ? 1 : 0 };
+  }
   return { numero: valor, unidad: base, decimales: 2 };
 }
 
@@ -572,9 +591,12 @@ export function recetaDeMezcla({ area, volumenHa, capacidadBomba, lineas }) {
   const total = calculadas.map(
     (l, i) => `${i + 1}. ${l.producto.nombre}: ${unidadAmigable(l.calculo.productoTotal, l.calculo.base)}`
   );
-  const orden = [...calculadas]
-    .sort((a, b) => (a.formulacion?.ordenCarga ?? 8) - (b.formulacion?.ordenCarga ?? 8))
-    .map((l) => (l.formulacion ? `${l.producto.nombre} (${l.formulacion.sigla})` : l.producto.nombre));
+  const conPaso = calculadas.map((l) => ({ ...l, carga: pasoDeCarga(l.producto) }));
+  const orden = conPaso
+    .filter((l) => l.carga.paso != null)
+    .sort((a, b) => a.carga.paso - b.carga.paso)
+    .map((l) => (l.carga.sigla ? `${l.producto.nombre} (${l.carga.sigla})` : l.producto.nombre));
+  const sinPaso = conPaso.filter((l) => l.carga.paso == null).map((l) => l.producto.nombre);
 
   return [
     'MEZCLA DE TANQUE',
@@ -587,7 +609,10 @@ export function recetaDeMezcla({ area, volumenHa, capacidadBomba, lineas }) {
     'PARA TODO EL LOTE',
     ...total,
     '',
-    `Orden de carga: agua a la mitad → ${orden.join(' → ')} → completar agua`,
+    `Orden de carga: agua al 70 % → ${orden.join(' → ')} → completar agua`,
+    ...(sinPaso.length
+      ? [`Revisar en la etiqueta en qué paso va: ${sinPaso.join(', ')} (formulación no identificada).`]
+      : []),
     'Prueba de compatibilidad en frasco antes de mezclar. Dosis según etiqueta ICA.',
     '— Calculado con CiboCAMPO',
   ].join('\n');

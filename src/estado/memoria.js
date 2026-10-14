@@ -109,6 +109,12 @@ export function crearAlmacenVolatil(inicial) {
  */
 export const INSTALACION = crearAlmacenVolatil(null);
 
+/** Productos en comparación: sobreviven a ir y volver entre Buscar y Comparar. */
+export const COMPARACION = crearAlmacenVolatil([]);
+
+/** Sub-vista de Mezcla (mezcla, calibración, orden, chequeo). */
+export const VISTA_MEZCLA = crearAlmacenVolatil('mezcla');
+
 export function escucharInstalacion() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();

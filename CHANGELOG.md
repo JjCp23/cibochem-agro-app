@@ -37,6 +37,31 @@ https://cibochem-campo.pages.dev (recuperada en el portátil, ramas
 - El pie aclara que la decisión final y la aplicación en campo son
   responsabilidad de quien las ejecuta.
 
+### Corregido (revisión completa en navegador)
+- Las dosis por bomba de menos de 10 g o 10 cc se mostraban redondeadas a
+  entero (0,6 g salía como «1 g»); ahora llevan decimales y, bajo 1 g o 1 cc,
+  un aviso para pesar o prediluir.
+- La caneca de 200 L mostraba la dosis por bomba del equipo; ahora muestra la
+  cantidad para los 200 L. Los bioestimulantes van al paso de foliares (11) y
+  lo que no tiene formulación deducible se avisa en vez de ubicarlo como SC.
+- Búsqueda: «HRAC 2», «IRAC 1», «FRAC 3» o «2,4-D» traían productos de otros
+  grupos; los ingredientes escritos en español («azoxistrobina»,
+  «tiametoxam», «mancoceb»…) no encontraban nada; «M3» no encontraba M03.
+- Diagnóstico por cultivo: lo aplicado antes ya no se arrastra a otra línea,
+  no se vuelve a preguntar el cultivo y «Cambiar» vuelve a la pestaña donde
+  se estaba.
+- El botón atrás del teléfono deshace los pasos internos (tema de Aprender,
+  ciclo de vida, pasos del diagnóstico) en vez de salir de la app.
+- Comparar conserva los productos al ir a Buscar y volver, y el botón
+  Comparar de la ficha los suma a la comparación en curso.
+- «A la mezcla» lleva a la vista de la mezcla aunque se estuviera en
+  Calibrar, Orden o Chequeo.
+- El modo campo agranda también los textos pequeños (tamaños fijos pasados a
+  rem) y los paneles fijos se cuelgan del alto real del encabezado.
+- «Solo disponibles» ya no oculta los productos «Nuevo»; «Controla: Bajo
+  estrés» decía el momento en vez del objetivo; textos menores (translaminar
+  en fungicidas, «agua al 70 %», coma decimal de la caneca, tuteo).
+
 ### Quitado
 - El service worker fijo y el aviso de instalación de la versión publicada:
   los reemplazan el service worker que genera el build (con la lista exacta de

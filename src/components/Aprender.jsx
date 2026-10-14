@@ -5,6 +5,7 @@ import { ILUSTRACIONES_POR_TEMA } from './ui/Ilustraciones.jsx';
 import { TEMAS, PREGUNTAS } from '../data/conocimiento.js';
 import { TRANSLOCACION } from '../data/gruposMoA.js';
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
+import { usePasoConAtras } from './ui/Hoja.jsx';
 
 // Cada tema se identifica con un icono y el color de la línea con la que se
 // relaciona, para que el módulo se lea igual que el resto de la app.
@@ -69,8 +70,10 @@ function Acordeon({ pregunta, respuesta }) {
 }
 
 /** Módulo de referencia: el "por qué" detrás de las recomendaciones. */
-export function Aprender() {
+export function Aprender({ activa = true }) {
   const [temaId, setTemaId] = useState(null);
+  // Atrás en el teléfono vuelve a la lista de temas
+  usePasoConAtras(activa && temaId != null, () => setTemaId(null));
   const tema = TEMAS.find((t) => t.id === temaId);
 
   const abrirTema = (id) => {
@@ -178,7 +181,7 @@ export function Aprender() {
             style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+              <span className="block text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
                 Siguiente tema
               </span>
               <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
@@ -220,7 +223,7 @@ export function Aprender() {
               descripcion={t.resumen}
               onClick={() => abrirTema(t.id)}
               insignia={
-                <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: COLORES.textoSuave }}>
+                <span className="flex items-center gap-1 text-[0.6875rem] font-semibold" style={{ color: COLORES.textoSuave }}>
                   <Clock size={11} /> {minutosDeLectura(t)} min · {t.secciones.length} apartados
                 </span>
               }
