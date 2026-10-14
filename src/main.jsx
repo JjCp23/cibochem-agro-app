@@ -17,27 +17,35 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 // Modo sin conexión: solo en el build publicado. En desarrollo el service
 // worker guardaría versiones viejas y confundiría al editar.
+function activarModoSinConexion() {
+  const yaHabiaVersion = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker
+    .register('./sw.js')
+    .then((registro) => {
+      registro.addEventListener('updatefound', () => {
+        const nuevo = registro.installing;
+        nuevo?.addEventListener('statechange', () => {
+          if (nuevo.state !== 'activated') return;
+          avisar(
+            yaHabiaVersion
+              ? 'Actualización descargada: se verá al volver a abrir la app'
+              : 'Lista para usar sin conexión',
+            'ok'
+          );
+        });
+      });
+    })
+    .catch(() => {
+      // Sin service worker la app funciona igual, solo que necesita señal
+    });
+}
+
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const yaHabiaVersion = Boolean(navigator.serviceWorker.controller);
-    navigator.serviceWorker
-      .register('./sw.js')
-      .then((registro) => {
-        registro.addEventListener('updatefound', () => {
-          const nuevo = registro.installing;
-          nuevo?.addEventListener('statechange', () => {
-            if (nuevo.state !== 'activated') return;
-            avisar(
-              yaHabiaVersion
-                ? 'Actualización descargada: se verá al volver a abrir la app'
-                : 'Lista para usar sin conexión',
-              'ok'
-            );
-          });
-        });
-      })
-      .catch(() => {
-        // Sin service worker la app funciona igual, solo que necesita señal
-      });
+    try {
+      activarModoSinConexion();
+    } catch {
+      // Vistas embebidas (vista previa, iframes) bloquean los service workers
+    }
   });
 }
