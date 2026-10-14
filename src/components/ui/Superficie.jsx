@@ -1,13 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { COLORES } from '../../data/taxonomia.js';
+import { Icono3D } from './Iconos.jsx';
 
 /**
  * Insignia hexagonal, el elemento gráfico que identifica cada línea del
  * portafolio. Se dibuja en SVG para que escale sin perder nitidez y para poder
  * teñirla con el color de la categoría.
  */
-export function Hexagono({ icono: Icono, color = COLORES.azul, tamano = 56, relleno = true }) {
+export function Hexagono({ icono: Icono, imagen, color = COLORES.azul, tamano = 56, relleno = true }) {
   const iconoTam = Math.round(tamano * 0.4);
+  // Con imagen: hexágono claro con el ícono 3D adentro, como una medalla
+  if (imagen) {
+    return (
+      <span
+        className="cc-medalla relative inline-flex shrink-0 items-center justify-center"
+        style={{ width: tamano, height: tamano }}
+      >
+        <svg viewBox="0 0 100 100" width={tamano} height={tamano} aria-hidden="true" style={{ overflow: 'visible' }}>
+          <polygon
+            points="50,3 93,27 93,73 50,97 7,73 7,27"
+            fill="#fff"
+            stroke={color}
+            strokeOpacity=".35"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            style={{ filter: `drop-shadow(0 3px 4px ${color}33)` }}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <Icono3D nombre={imagen} tamano={Math.round(tamano * 0.64)} respaldo={Icono} color={color} />
+        </span>
+      </span>
+    );
+  }
   return (
     <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: tamano, height: tamano }}>
       <svg viewBox="0 0 100 100" width={tamano} height={tamano} aria-hidden="true">
@@ -52,7 +77,7 @@ export function Logotipo({ tamano = 34, animado = false }) {
  * Fila de menú al estilo del portafolio: panel de color con el hexágono a la
  * izquierda, texto al centro y flecha a la derecha.
  */
-export function FilaMenu({ icono, color, fondo, titulo, descripcion, onClick, insignia, contador }) {
+export function FilaMenu({ icono, imagen, color, fondo, titulo, descripcion, onClick, insignia, contador }) {
   return (
     <button
       onClick={onClick}
@@ -63,7 +88,7 @@ export function FilaMenu({ icono, color, fondo, titulo, descripcion, onClick, in
         className="flex w-20 shrink-0 items-center justify-center py-5 sm:w-24"
         style={{ backgroundColor: fondo }}
       >
-        <Hexagono icono={icono} color={color} tamano={48} />
+        <Hexagono icono={icono} imagen={imagen} color={color} tamano={imagen ? 56 : 48} />
       </span>
       <span className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-4">
         <span className="min-w-0">
@@ -192,7 +217,7 @@ export function Chip({ label, icono: Icono, activo, onClick, color = COLORES.tin
 }
 
 /** Estado vacío con icono flotante: dice qué falta y cómo seguir. */
-export function EstadoVacio({ icono: Icono, titulo, texto, accion, color = COLORES.azul }) {
+export function EstadoVacio({ icono: Icono, imagen, titulo, texto, accion, color = COLORES.azul }) {
   return (
     <div
       className="cc-entrada mt-6 flex flex-col items-center rounded-3xl border border-dashed px-6 py-9 text-center"
@@ -202,7 +227,11 @@ export function EstadoVacio({ icono: Icono, titulo, texto, accion, color = COLOR
         className="cc-flotar flex h-16 w-16 items-center justify-center rounded-full"
         style={{ backgroundColor: `${color}14` }}
       >
-        <Icono size={28} style={{ color }} strokeWidth={1.8} />
+        {imagen ? (
+          <Icono3D nombre={imagen} tamano={44} respaldo={Icono} color={color} />
+        ) : (
+          <Icono size={28} style={{ color }} strokeWidth={1.8} />
+        )}
       </span>
       {titulo && (
         <p className="mt-4 text-base font-bold" style={{ color: COLORES.tinta }}>

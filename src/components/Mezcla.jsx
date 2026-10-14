@@ -36,6 +36,7 @@ import { Segmentado, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
 import { compartirTexto, avisar } from './ui/Avisos.jsx';
+import { Icono3D } from './ui/Iconos.jsx';
 
 const entrada = 'w-full rounded-xl border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2';
 
@@ -53,15 +54,15 @@ const PRESETS_BOMBA = [
  * e intoxicaciones. No reemplaza lo que diga la etiqueta.
  */
 const ITEMS_CHEQUEO = [
-  { id: 'etiqueta', titulo: 'Leí la etiqueta ICA', detalle: 'Dosis, cultivo registrado, periodo de carencia y de reentrada.' },
-  { id: 'epp', titulo: 'Equipo de protección completo', detalle: 'Guantes de nitrilo, careta o gafas, respirador, overol y botas.' },
-  { id: 'equipo', titulo: 'Equipo calibrado y sin fugas', detalle: 'Boquillas revisadas y del tipo correcto; filtros limpios.' },
-  { id: 'viento', titulo: 'Viento suave', detalle: 'Se mueven las hojas, no las ramas. Con viento fuerte hay deriva; con calma total puede haber inversión térmica.' },
-  { id: 'lluvia', titulo: 'Sin lluvia cercana', detalle: 'Revisa en la etiqueta cuántas horas sin lluvia necesita el producto.' },
-  { id: 'hora', titulo: 'Horas frescas', detalle: 'Temprano o al final de la tarde: con calor fuerte y aire seco la gota se evapora antes de llegar.' },
-  { id: 'frasco', titulo: 'Prueba de compatibilidad', detalle: 'Si mezclas, prueba en un frasco con la misma proporción y espera 15 minutos.' },
-  { id: 'agua', titulo: 'Agua limpia', detalle: 'Sin barro ni materia orgánica; corrige pH o dureza si la etiqueta lo pide.' },
-  { id: 'envases', titulo: 'Plan para envases y sobrantes', detalle: 'Triple lavado, perforar el envase y entregarlo al punto de acopio.' },
+  { id: 'etiqueta', imagen: 'etiqueta', titulo: 'Leí la etiqueta ICA', detalle: 'Dosis, cultivo registrado, periodo de carencia y de reentrada.' },
+  { id: 'epp', imagen: 'epp', titulo: 'Equipo de protección completo', detalle: 'Guantes de nitrilo, careta o gafas, respirador, overol y botas.' },
+  { id: 'equipo', imagen: 'equipo', titulo: 'Equipo calibrado y sin fugas', detalle: 'Boquillas revisadas y del tipo correcto; filtros limpios.' },
+  { id: 'viento', imagen: 'viento', titulo: 'Viento suave', detalle: 'Se mueven las hojas, no las ramas. Con viento fuerte hay deriva; con calma total puede haber inversión térmica.' },
+  { id: 'lluvia', imagen: 'lluvia', titulo: 'Sin lluvia cercana', detalle: 'Revisa en la etiqueta cuántas horas sin lluvia necesita el producto.' },
+  { id: 'hora', imagen: 'hora', titulo: 'Horas frescas', detalle: 'Temprano o al final de la tarde: con calor fuerte y aire seco la gota se evapora antes de llegar.' },
+  { id: 'frasco', imagen: 'frasco', titulo: 'Prueba de compatibilidad', detalle: 'Si mezclas, prueba en un frasco con la misma proporción y espera 15 minutos.' },
+  { id: 'agua', imagen: 'agua', titulo: 'Agua limpia', detalle: 'Sin barro ni materia orgánica; corrige pH o dureza si la etiqueta lo pide.' },
+  { id: 'envases', imagen: 'envases', titulo: 'Plan para envases y sobrantes', detalle: 'Triple lavado, perforar el envase y entregarlo al punto de acopio.' },
 ];
 
 function nuevaLinea(producto = null) {
@@ -324,6 +325,7 @@ function ChequeoPrevio() {
                 >
                   {hecho && <Check key="hecho" size={15} color="#fff" strokeWidth={3} className="cc-pop" />}
                 </span>
+                <Icono3D nombre={item.imagen} tamano={34} className="shrink-0" />
                 <span className="min-w-0">
                   <span
                     className="block text-sm font-semibold transition-colors"
@@ -516,6 +518,7 @@ export function Mezcla({ onAbrirProducto }) {
           {items.length === 0 ? (
             <EstadoVacio
               icono={FlaskConical}
+              imagen="bidon"
               titulo="Tu mezcla está vacía"
               texto="Agrega los productos que vas a aplicar. También puedes hacerlo desde la ficha de cualquier producto."
               accion={
@@ -665,6 +668,7 @@ export function Mezcla({ onAbrirProducto }) {
           ) : (
             <EstadoVacio
               icono={Ruler}
+              imagen="calibrar"
               titulo="Faltan datos de la prueba"
               texto="Completa los tres datos para calcular el volumen real de tu equipo."
             />

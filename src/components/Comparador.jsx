@@ -148,6 +148,7 @@ export function Comparador({ onAbrirProducto }) {
       {elegidos.length === 0 && (
         <EstadoVacio
           icono={Scale}
+          imagen="comparar"
           titulo="Pon dos o tres productos frente a frente"
           texto="Cuando varios productos sirven, aquí ves lado a lado lo que de verdad los diferencia."
         />

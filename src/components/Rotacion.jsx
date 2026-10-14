@@ -9,6 +9,7 @@ import { SelloGrupo } from './ui/Etiqueta.jsx';
 import { Hexagono, EstadoVacio } from './ui/Superficie.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { iconoDeProducto } from '../data/iconos3d.js';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
 
 const VISIBLES_AL_INICIO = 8;
@@ -74,6 +75,7 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
       {!producto && (
         <EstadoVacio
           icono={RotateCcw}
+          imagen="rotacion"
           titulo="Rota el sitio de acción, no la marca"
           texto="Selecciona un producto para ver con qué puedes rotar sin repetir modo de acción."
         />
@@ -90,7 +92,7 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
               Ya aplicaste
             </p>
             <div className="mt-2 flex items-center gap-3">
-              <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} color={color} tamano={40} />
+              <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} imagen={iconoDeProducto(producto)} color={color} tamano={48} />
               <div className="min-w-0">
                 <button
                   onClick={() => onAbrirProducto(producto)}

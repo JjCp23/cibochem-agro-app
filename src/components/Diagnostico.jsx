@@ -39,7 +39,8 @@ import {
 } from '../estado/memoria.js';
 import { FilaMenu, Hexagono, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
-import { ICONO_RAMA, ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { ICONO_RAMA, ICONO_CATEGORIA, Icono3D } from './ui/Iconos.jsx';
+import { iconoDeProducto } from '../data/iconos3d.js';
 import { NumeroAnimado, useEnPantalla, llevarA } from './ui/Movimiento.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
@@ -73,7 +74,7 @@ function saludoDelDia(fecha = new Date()) {
   return 'Buenas noches';
 }
 
-function Opcion({ label, ayuda, activo, onClick, color, icono: Icono }) {
+function Opcion({ label, ayuda, activo, onClick, color, icono: Icono, imagen }) {
   return (
     <button
       onClick={onClick}
@@ -85,7 +86,8 @@ function Opcion({ label, ayuda, activo, onClick, color, icono: Icono }) {
         boxShadow: activo ? `inset 0 0 0 1px ${color}` : undefined,
       }}
     >
-      {Icono && (
+      {imagen && <Icono3D nombre={imagen} tamano={38} respaldo={Icono} color={color} className="shrink-0" />}
+      {Icono && !imagen && (
         <span
           className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
           style={{ backgroundColor: activo ? color : `${color}14` }}
@@ -340,6 +342,7 @@ function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProduct
             <FilaMenu
               key={r.id}
               icono={ICONO_RAMA[r.id]}
+              imagen={r.id}
               color={COLOR_CATEGORIA[cat]}
               fondo={FONDO_CATEGORIA[cat]}
               titulo={r.titulo}
@@ -363,6 +366,7 @@ function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProduct
         {onVerCiclo && (
           <FilaMenu
             icono={Activity}
+            imagen="ciclo"
             color={COLORES.gris}
             fondo={COLORES.grisClaro}
             titulo="Ciclo de vida"
@@ -390,7 +394,7 @@ function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProduct
                   className="cc-presionable w-36 shrink-0 rounded-2xl bg-white p-3 text-left"
                   style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.09)' }}
                 >
-                  <Hexagono icono={ICONO_CATEGORIA[p.categoria]} color={color} tamano={34} />
+                  <Hexagono icono={ICONO_CATEGORIA[p.categoria]} imagen={iconoDeProducto(p)} color={color} tamano={40} />
                   <span className="mt-2 block truncate text-sm font-bold" style={{ color: COLORES.tinta }}>
                     {p.nombre}
                   </span>
@@ -500,7 +504,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
       </button>
 
       <div className="mt-3 flex items-center gap-3">
-        <Hexagono icono={ICONO_RAMA[rama.id]} color={color} tamano={44} />
+        <Hexagono icono={ICONO_RAMA[rama.id]} imagen={rama.id} color={color} tamano={52} />
         <div className="min-w-0">
           <h2 className="text-lg font-bold leading-tight" style={{ color: COLORES.tinta }}>
             {rama.titulo}
@@ -523,6 +527,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
                 label={o.label}
                 ayuda={o.ayuda}
                 color={color}
+                imagen={o.id}
                 activo={false}
                 onClick={() => escogerObjetivo(o.id)}
               />

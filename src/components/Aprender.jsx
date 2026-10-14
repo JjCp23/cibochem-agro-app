@@ -9,15 +9,15 @@ import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js'
 // Cada tema se identifica con un icono y el color de la línea con la que se
 // relaciona, para que el módulo se lea igual que el resto de la app.
 const ESTILO_TEMA = {
-  resistencia: { icono: ShieldCheck, color: COLORES.tinta, fondo: COLORES.grisClaro },
-  translocacion: { icono: Move, color: COLORES.azul, fondo: COLORES.azulClaro },
-  arvenses: { icono: Sprout, color: COLORES.naranja, fondo: COLORES.naranjaClaro },
-  hongos: { icono: Leaf, color: COLORES.teal, fondo: COLORES.tealClaro },
-  insectos: { icono: Bug, color: COLORES.azul, fondo: COLORES.azulClaro },
-  aplicacion: { icono: SprayCan, color: COLORES.verde, fondo: COLORES.verdeClaro },
-  etiqueta: { icono: FileText, color: COLORES.ambar, fondo: COLORES.ambarClaro },
-  umbrales: { icono: Target, color: COLORES.gris, fondo: COLORES.grisClaro },
-  estres: { icono: Stethoscope, color: COLORES.ambar, fondo: COLORES.ambarClaro },
+  resistencia: { icono: ShieldCheck, imagen: 'resistencia', color: COLORES.tinta, fondo: COLORES.grisClaro },
+  translocacion: { icono: Move, imagen: 'translocacion', color: COLORES.azul, fondo: COLORES.azulClaro },
+  arvenses: { icono: Sprout, imagen: 'arvenses', color: COLORES.naranja, fondo: COLORES.naranjaClaro },
+  hongos: { icono: Leaf, imagen: 'hongos', color: COLORES.teal, fondo: COLORES.tealClaro },
+  insectos: { icono: Bug, imagen: 'insectos', color: COLORES.azul, fondo: COLORES.azulClaro },
+  aplicacion: { icono: SprayCan, imagen: 'aplicacion', color: COLORES.verde, fondo: COLORES.verdeClaro },
+  etiqueta: { icono: FileText, imagen: 'etiqueta', color: COLORES.ambar, fondo: COLORES.ambarClaro },
+  umbrales: { icono: Target, imagen: 'umbrales', color: COLORES.gris, fondo: COLORES.grisClaro },
+  estres: { icono: Stethoscope, imagen: 'estres', color: COLORES.ambar, fondo: COLORES.ambarClaro },
 };
 
 /** Minutos de lectura de un tema, a unas 200 palabras por minuto. */
@@ -91,7 +91,7 @@ export function Aprender() {
         </button>
 
         <div className="mt-3 flex items-start gap-3">
-          <Hexagono icono={estilo.icono} color={estilo.color} tamano={46} />
+          <Hexagono icono={estilo.icono} imagen={estilo.imagen} color={estilo.color} tamano={54} />
           <div className="min-w-0">
             <h2 className="text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
               {tema.titulo}
@@ -211,6 +211,7 @@ export function Aprender() {
             <FilaMenu
               key={t.id}
               icono={e.icono}
+              imagen={e.imagen}
               color={e.color}
               fondo={e.fondo}
               titulo={t.titulo}

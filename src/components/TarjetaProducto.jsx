@@ -5,6 +5,7 @@ import { FAVORITOS, useAlmacen } from '../estado/memoria.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
 import { Hexagono } from './ui/Superficie.jsx';
 import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { iconoDeProducto } from '../data/iconos3d.js';
 
 /**
  * Tarjeta de producto. Se usa en resultados, catálogo y rotación, así que
@@ -28,7 +29,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
         className="relative flex w-[68px] shrink-0 flex-col items-center justify-center gap-1 py-4"
         style={{ backgroundColor: fondo }}
       >
-        <Hexagono icono={Icono} color={color} tamano={40} />
+        <Hexagono icono={Icono} imagen={iconoDeProducto(producto)} color={color} tamano={46} />
         {orden != null && (
           <span className="cc-num font-mono text-[10px] font-bold" style={{ color }}>
             {String(orden).padStart(2, '0')}

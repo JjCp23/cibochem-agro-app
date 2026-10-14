@@ -20,6 +20,7 @@ import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
 import { HojaInferior } from './ui/Hoja.jsx';
 import { Hexagono } from './ui/Superficie.jsx';
 import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { iconoDeProducto } from '../data/iconos3d.js';
 import { avisar, compartirTexto } from './ui/Avisos.jsx';
 import {
   alternativasDeRotacion,
@@ -134,7 +135,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
       fondo={COLORES.papel}
       cabecera={
         <div className="flex items-start gap-3">
-          <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} color={color} tamano={46} />
+          <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} imagen={iconoDeProducto(producto)} color={color} tamano={54} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <Etiqueta texto={producto.categoria} color={color} tono="solido" />
