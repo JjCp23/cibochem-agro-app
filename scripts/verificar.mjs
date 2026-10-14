@@ -10,7 +10,7 @@
  * las cuentas de mezcla cuadren.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { PRODUCTOS } from '../src/data/productos.js';
 import { RAMAS } from '../src/data/taxonomia.js';
 import {
@@ -427,6 +427,20 @@ check(
   plantillaSw.includes('__VERSION__') && plantillaSw.includes('__ARCHIVOS__'),
   'la plantilla del service worker debe tener los marcadores que llena el build'
 );
+
+// ────────────────────────────────────────────────────────────
+seccion('Artefacto de un solo archivo: todos los módulos en la lista del generador');
+{
+  const generador = readFileSync('scripts/generar-artefacto.mjs', 'utf8');
+  const listados = new Set([...generador.matchAll(/'(src\/[^']+)'/g)].map((m) => m[1]));
+  const recorrer = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? recorrer(`${dir}/${e.name}`) : [`${dir}/${e.name}`]
+    );
+  recorrer('src')
+    .filter((f) => /\.(js|jsx)$/.test(f) && !['src/main.jsx', 'src/motores/index.js'].includes(f))
+    .forEach((f) => check(listados.has(f), `${f} no está en la lista de módulos de generar-artefacto.mjs`));
+}
 
 // ────────────────────────────────────────────────────────────
 seccion('Artefacto de un solo archivo: nada usado sin importar');
