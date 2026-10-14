@@ -2,18 +2,45 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
-## [Sin publicar]
+## [1.7.0]
+
+Unión de las dos líneas de desarrollo: la versión publicada en
+https://cibochem-campo.pages.dev (recuperada en el portátil, ramas
+`portatil-recuperada` y `portatil-v2`) y la 1.6.0 de este repositorio.
 
 ### Agregado
-- **Presentación de cada producto.** La ficha muestra «Se vende en» con los
-  envases dibujados a escala (frasco, botella, garrafa, bidón, sobre, bolsa,
-  saco) y su tamaño, tomados de las presentaciones comerciales. Las tarjetas
-  del catálogo llevan la misma línea con el envase principal.
-- **Lugar para la foto real del envase** (`public/productos/` y
-  `src/data/fotosProductos.js`): cuando un producto tiene foto, aparece en la
-  ficha, en las tarjetas, en el selector de producto y en una vista «Fotos»
-  del catálogo para reconocer el producto aunque no se sepa el nombre. Solo
-  se aceptan fotos de la ficha oficial en cibochem.com.co, con su fuente.
+- **Caneca de 200 L como guía del orden de mezcla** (de la versión publicada).
+  La pestaña Orden muestra una caneca que se llena paso a paso: cada paso deja
+  su capa, dice qué formulaciones entran ahí, qué productos de tu mezcla van
+  en ese paso con su dosis por bomba y por qué. El orden de carga pasó de 7 a
+  13 pasos, cada uno con su explicación plegable.
+- **Repaso rápido** de cinco ideas para que no se corte la mezcla, y
+  **coadyuvantes: qué hace cada tipo**.
+- **Semáforo de la mezcla** y aviso de **formulaciones distintas**: desde tres
+  tipos de formulación en el tanque se marca riesgo de incompatibilidad.
+  `formulacionDe` reconoce más siglas (WSB, WSP, DF, SP, SE, FL, EW) y
+  `analizarFormulaciones` cuenta los tipos.
+- **Fotos de empaque** de 64 de los 80 productos (WebP de 480 px, 1 MB en
+  total): en la ficha, las tarjetas, el selector de producto y la vista
+  «Fotos» del catálogo.
+- **Presentaciones dibujadas**: la ficha muestra «Se vende en» con cada envase
+  a escala (frasco, botella, garrafa, bidón, sobre, bolsa, saco) y su tamaño.
+- **Íconos propios de cada objetivo** del diagnóstico (12 plagas, 7 tipos de
+  maleza, 8 enfermedades), que reemplazan los emoji genéricos en esos casos.
+- **Modo campo**: el sol del encabezado agranda texto y botones para leer bajo
+  el sol o tocar con guantes. Se recuerda entre visitas.
+- Atajos del ícono instalado y de URL: `?vista=diagnostico`, `?vista=mezcla`.
+
+### Cambiado
+- Los modos de acción repetidos en la mezcla se muestran en ámbar; el rojo
+  queda para la incompatibilidad de formulaciones.
+- El pie aclara que la decisión final y la aplicación en campo son
+  responsabilidad de quien las ejecuta.
+
+### Quitado
+- El service worker fijo y el aviso de instalación de la versión publicada:
+  los reemplazan el service worker que genera el build (con la lista exacta de
+  archivos, fotos incluidas) y la invitación a instalar de la portada.
 
 ## [1.6.0]
 

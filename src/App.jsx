@@ -25,8 +25,21 @@ const PESTANAS = [
   { id: 'aprender', label: 'Aprender', icono: GraduationCap, titulo: 'El porqué de cada recomendación' },
 ];
 
+/**
+ * Pestaña con la que abre la app. Los atajos del ícono instalado
+ * (manifest.webmanifest) entran con ?vista=diagnostico o ?vista=mezcla.
+ */
+function vistaInicial() {
+  try {
+    const vista = new URLSearchParams(window.location.search).get('vista');
+    return PESTANAS.some((p) => p.id === vista) ? vista : 'diagnostico';
+  } catch {
+    return 'diagnostico';
+  }
+}
+
 export default function App() {
-  const [pestana, setPestana] = useState('diagnostico');
+  const [pestana, setPestana] = useState(vistaInicial);
   const [productoAbierto, setProductoAbierto] = useState(null);
   const [productoRotacion, setProductoRotacion] = useState(null);
   const [verCiclo, setVerCiclo] = useState(false);
@@ -187,7 +200,8 @@ export default function App() {
           style={{ borderColor: COLORES.borde, color: COLORES.textoSuave }}
         >
           Herramienta de apoyo a la decisión sobre el portafolio Cibochem 2026.
-          No reemplaza la etiqueta ICA ni la visita técnica.
+          No reemplaza la etiqueta ICA ni la visita técnica: la decisión final y la aplicación en campo son
+          responsabilidad del profesional o usuario que las ejecuta.
         </p>
       </main>
 

@@ -20,7 +20,7 @@ encajan, ordenada y explicada.
 | **Catálogo** | Búsqueda por nombre comercial, ingrediente activo, familia química, código de grupo o **nombre de la plaga** ("mosca blanca", "coquito"), sin importar tildes. Filtros por línea, favoritos y disponibilidad, y comparador lado a lado. |
 | **Rotación** | Escoges lo que acabas de aplicar —un producto Cibochem o **la molécula de otra casa**— y separa el portafolio en lo que **repite** el sitio de acción y lo que **sí sirve** para rotar, explicando por qué importa rotar ese grupo. |
 | **Ciclo de vida** | Matriz de qué estadio de la plaga alcanza cada insecticida. Muchos fracasos de campo son el producto correcto en el estadio equivocado. |
-| **Mezcla** | Calculadora multiproducto que **queda guardada en el teléfono**, calibración real del equipo, orden de carga, detección de modos de acción repetidos, **receta para enviar al operario** por WhatsApp y **lista de chequeo antes de aplicar**. |
+| **Mezcla** | Calculadora multiproducto que **queda guardada en el teléfono**, calibración real del equipo, orden de carga guiado sobre una **caneca de 200 L** que se llena paso a paso, detección de modos de acción repetidos y de formulaciones incompatibles, **receta para enviar al operario** por WhatsApp y **lista de chequeo antes de aplicar**. |
 | **Aprender** | El razonamiento agronómico completo: resistencia, translocación, biología de arvenses, hongos frente a oomicetos, ciclo de vida y calidad de aplicación. |
 
 ### Pensada para usarse en el lote
@@ -159,6 +159,8 @@ en un subdirectorio de Pages o en un dominio propio.
 │   ├── ISSUE_TEMPLATE/
 │   └── pull_request_template.md
 ├── public/                  ← manifiesto e iconos de la app instalable
+│   ├── iconos/              ← íconos ilustrados (Fluent Emoji, MIT)
+│   └── productos/           ← fotos de empaque, <id>.webp
 ├── scripts/
 │   ├── verificar.mjs        ← suite de pruebas, sin framework
 │   ├── sw-plantilla.js      ← service worker; el build le escribe la lista de archivos
@@ -172,7 +174,8 @@ en un subdirectorio de Pages o en un dominio propio.
     │   ├── campo.js         ← ficha de campo por producto (guía + fichas técnicas)
     │   ├── gruposQuimicos.js← grupos, moléculas de otras casas, gemelos funcionales
     │   ├── cultivos.js      ← 18 cultivos con sus problemas y nombre científico
-    │   └── iconosIlustrados.js ← qué ícono representa cada concepto
+    │   ├── iconosIlustrados.js ← qué ícono representa cada concepto
+    │   └── fotosProductos.js← qué productos tienen foto de empaque
     ├── motores/
     │   ├── resistencia.js   ← cerebro 1
     │   ├── diagnostico.js   ← cerebro 2 (incluye la búsqueda)
@@ -185,12 +188,16 @@ en un subdirectorio de Pages o en un dominio propio.
     │   ├── CicloVida.jsx    · Mezcla.jsx     · Aprender.jsx
     │   ├── Buscador.jsx     · Comparador.jsx
     │   ├── FichaProducto.jsx · TarjetaProducto.jsx
+    │   ├── Caneca.jsx       ← caneca de 200 L del orden de carga
+    │   ├── TutorialMezcla.jsx ← repaso rápido para que no se corte la mezcla
     │   └── ui/
     │       ├── Movimiento.jsx       ← animaciones y estilos globales
     │       ├── Hoja.jsx             ← hoja inferior (ficha, buscador, selector)
     │       ├── SelectorProducto.jsx ← selector con búsqueda
     │       ├── Avisos.jsx           ← avisos breves y compartir
     │       ├── Superficie.jsx       ← encabezado, barra inferior, chips, logotipo
+    │       ├── Presentacion.jsx     ← foto del empaque y envases dibujados
+    │       ├── iconos/              ← dibujos propios de plagas, malezas y enfermedades
     │       ├── Iconos.jsx · Etiqueta.jsx · Ilustraciones.jsx
     └── App.jsx
 ```

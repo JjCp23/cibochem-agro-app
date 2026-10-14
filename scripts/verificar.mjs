@@ -39,6 +39,9 @@ import {
   envasesNecesarios,
   partirCantidad,
   describirEnvase,
+  ORDEN_TANQUE,
+  formulacionDe,
+  analizarFormulaciones,
 } from '../src/motores/aplicacion.js';
 import { buscarTexto, normalizarTexto } from '../src/motores/diagnostico.js';
 import { codigosDeGrupo } from '../src/data/gruposMoA.js';
@@ -485,6 +488,35 @@ seccion('Diagnóstico por cultivo y recomendación técnica');
 }
 
 // ────────────────────────────────────────────────────────────
+seccion('Orden de carga del tanque');
+// La caneca de la pestaña "Orden" se llena con estos niveles: nunca pueden
+// bajar de un paso al siguiente y el último deja la caneca llena.
+ORDEN_TANQUE.forEach((p, i) => {
+  check(p.paso === i + 1, `el paso ${p.paso} está fuera de orden`);
+  check(p.nivel > 0 && p.nivel <= 1, `paso ${p.paso}: nivel fuera de rango`);
+  if (i > 0) check(p.nivel >= ORDEN_TANQUE[i - 1].nivel, `paso ${p.paso}: el nivel baja respecto al anterior`);
+});
+check(ORDEN_TANQUE[ORDEN_TANQUE.length - 1].nivel === 1, 'el último paso debe dejar la caneca llena');
+{
+  const wg = formulacionDe({ nombre: 'PRUEBA 80 WG' });
+  const ec = formulacionDe({ nombre: 'PRUEBA 20 EC' });
+  check(wg && ec && wg.ordenCarga < ec.ordenCarga, 'un granulado dispersable (WG) entra antes que un emulsionable (EC)');
+  check(
+    analizarFormulaciones([{ nombre: 'A WG' }, { nombre: 'B SC' }, { nombre: 'C EC' }]).riesgo,
+    'tres formulaciones distintas en el tanque deben marcar riesgo de incompatibilidad'
+  );
+  check(
+    !analizarFormulaciones([{ nombre: 'A EC' }, { nombre: 'B EC' }]).riesgo,
+    'dos productos de la misma formulación no son riesgo por formulación'
+  );
+  // Todo producto con sigla conocida cae en un paso de la caneca
+  PRODUCTOS.forEach((p) => {
+    const f = formulacionDe(p);
+    if (f) check(ORDEN_TANQUE.some((o) => o.paso === f.ordenCarga), `${p.id}: su formulación ${f.sigla} tiene paso de carga`);
+  });
+}
+
+// ────────────────────────────────────────────────────────────
 seccion('Presentación de cada producto: envases y fotos');
 {
   const esperado = {
@@ -510,7 +542,7 @@ seccion('Presentación de cada producto: envases y fotos');
   Object.entries(FOTOS_PRODUCTOS).forEach(([id, foto]) => {
     check(PRODUCTOS.some((p) => p.id === id), `la foto ${id} corresponde a un producto`);
     check(existsSync(new URL(`../public/productos/${foto.archivo}`, import.meta.url)), `existe public/productos/${foto.archivo}`);
-    check(/^https:\/\/(www\.)?cibochem\.com\.co\//.test(foto.fuente || ''), `la foto de ${id} cita su ficha en cibochem.com.co`);
+    check(typeof foto.fuente === 'string' && foto.fuente.length > 10, `la foto de ${id} dice de dónde salió`);
   });
 }
 

@@ -19,6 +19,10 @@ import {
   Calculator,
   Lightbulb,
   Package,
+  CircleCheck,
+  GraduationCap,
+  Info,
+  OctagonAlert,
 } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
 import { PRODUCTOS } from '../data/productos.js';
@@ -29,6 +33,8 @@ import {
   calcularCalibracion,
   formulacionDe,
   ORDEN_TANQUE,
+  COADYUVANTES,
+  analizarFormulaciones,
   formatear,
   unidadAmigable,
   partirCantidad,
@@ -44,6 +50,8 @@ import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
 import { compartirTexto, avisar } from './ui/Avisos.jsx';
 import { IconoIlustrado } from './ui/Iconos.jsx';
+import { TutorialMezcla } from './TutorialMezcla.jsx';
+import { Caneca } from './Caneca.jsx';
 
 const entrada = 'w-full rounded-xl border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2';
 
@@ -653,8 +661,48 @@ function ChequeoPrevio() {
 }
 
 /** Calculadora de mezcla, calibración, orden de carga y chequeo previo. */
+/**
+ * Paso plegable del orden de carga: muestra qué hacer y despliega el porqué al
+ * tocar. Así la lista se lee de un vistazo y la explicación está a un toque.
+ */
+function PasoPlegable({ titulo, subtitulo, children }) {
+  const [abierta, setAbierta] = useState(false);
+  return (
+    <div className="rounded-2xl bg-white" style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}>
+      <button
+        onClick={() => setAbierta((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 p-3 text-left"
+        aria-expanded={abierta}
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
+            {titulo}
+          </span>
+          {subtitulo && (
+            <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
+              {subtitulo}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          size={18}
+          className="shrink-0 transition-transform"
+          style={{ color: COLORES.textoSuave, transform: abierta ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+      {abierta && (
+        <div className="cc-entrada border-t px-3 pb-3 pt-2.5" style={{ borderColor: COLORES.borde }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Mezcla({ onAbrirProducto }) {
   const [vista, setVista] = useState('mezcla');
+  const [verTutorial, setVerTutorial] = useState(false);
+  const [pasoCaneca, setPasoCaneca] = useState(0);
   const [condiciones, setCondiciones] = usePersistente('cibo:mezcla:condiciones', {
     area: '1',
     volumenHa: '200',
@@ -687,6 +735,73 @@ export function Mezcla({ onAbrirProducto }) {
     }
     return lista;
   }, [productosElegidos]);
+
+  // Tipos de formulación distintos en el tanque
+  const formulaciones = useMemo(() => analizarFormulaciones(productosElegidos), [productosElegidos]);
+
+  // Semáforo de la mezcla: con dos o más productos dice de un vistazo si hay
+  // riesgo de incompatibilidad física, choque de modo de acción o nada que
+  // reportar. La incompatibilidad física va primero porque corta el tanque.
+  const estadoMezcla = useMemo(() => {
+    if (productosElegidos.length < 2) return null;
+    if (formulaciones.riesgo) {
+      const siglas = formulaciones.tipos.map((t) => t.sigla).join(', ');
+      return {
+        Icono: OctagonAlert,
+        fondo: '#FDF3EE',
+        borde: '#F0C9B4',
+        texto: '#C2410C',
+        mensaje: `Riesgo de incompatibilidad: ${formulaciones.distintas} formulaciones distintas en el tanque (${siglas})`,
+      };
+    }
+    if (choques.length > 0) {
+      return {
+        Icono: AlertTriangle,
+        fondo: COLORES.ambarClaro,
+        borde: COLORES.ambar,
+        texto: COLORES.ambar,
+        mensaje: 'Hay modos de acción repetidos en la mezcla',
+      };
+    }
+    return {
+      Icono: CircleCheck,
+      fondo: COLORES.verdeClaro,
+      borde: COLORES.verde,
+      texto: COLORES.verde,
+      mensaje: 'Sin conflictos detectados entre los productos de la mezcla',
+    };
+  }, [productosElegidos.length, formulaciones, choques.length]);
+
+  // Pasos de la caneca de 200 L con los productos de la mezcla ubicados en su
+  // paso. Un paso de formulación sin productos queda como "no aplica"; los
+  // pasos generales (agua, acondicionador, cierre) siempre aplican.
+  const pasosCaneca = useMemo(() => {
+    const porPaso = new Map();
+    items.forEach((item) => {
+      const producto = PRODUCTOS.find((p) => p.id === item.productoId);
+      if (!producto) return;
+      const f = formulacionDe(producto);
+      const paso = f?.ordenCarga || 8;
+      const calculo = calcularMezcla({
+        dosis: item.dosis,
+        unidad: item.unidad,
+        area: condiciones.area,
+        volumenHa: condiciones.volumenHa,
+        capacidadBomba: condiciones.capacidadBomba,
+      });
+      if (!porPaso.has(paso)) porPaso.set(paso, []);
+      porPaso.get(paso).push({
+        id: producto.id,
+        nombre: producto.nombre,
+        sigla: f?.sigla || '—',
+        dosis: calculo ? `${unidadAmigable(calculo.productoPorBomba, calculo.base)} por bomba` : 'falta la dosis',
+      });
+    });
+    return ORDEN_TANQUE.map((p) => {
+      const productos = porPaso.get(p.paso) || [];
+      return { ...p, productos, aplica: p.siglas.length === 0 || productos.length > 0 };
+    });
+  }, [items, condiciones]);
 
   // Orden de carga sugerido para los productos elegidos
   const ordenCarga = useMemo(
@@ -883,6 +998,20 @@ export function Mezcla({ onAbrirProducto }) {
             />
           ) : (
             <>
+              {estadoMezcla && (
+                <div
+                  className="cc-entrada mt-4 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold"
+                  style={{
+                    backgroundColor: estadoMezcla.fondo,
+                    border: `1px solid ${estadoMezcla.borde}`,
+                    color: estadoMezcla.texto,
+                  }}
+                >
+                  <estadoMezcla.Icono size={16} className="shrink-0" />
+                  {estadoMezcla.mensaje}
+                </div>
+              )}
+
               <div className="mt-5 space-y-3">
                 {items.map((item, i) => (
                   <LineaProducto
@@ -919,9 +1048,9 @@ export function Mezcla({ onAbrirProducto }) {
           {choques.length > 0 && (
             <div
               className="cc-entrada mt-4 rounded-2xl p-3"
-              style={{ backgroundColor: '#FDF3EE', border: '1px solid #F0C9B4' }}
+              style={{ backgroundColor: COLORES.ambarClaro, border: `1px solid ${COLORES.ambar}` }}
             >
-              <p className="flex items-center gap-2 text-sm font-bold" style={{ color: '#C2410C' }}>
+              <p className="flex items-center gap-2 text-sm font-bold" style={{ color: COLORES.ambar }}>
                 <AlertTriangle size={15} /> Modos de acción repetidos en la mezcla
               </p>
               <ul className="mt-2 space-y-1">
@@ -934,6 +1063,23 @@ export function Mezcla({ onAbrirProducto }) {
               <p className="mt-2 text-xs" style={{ color: COLORES.textoSuave }}>
                 Mezclar dos productos del mismo sitio de acción no amplía el espectro y sí duplica la
                 presión de selección sobre ese blanco.
+              </p>
+            </div>
+          )}
+
+          {formulaciones.riesgo && (
+            <div
+              className="cc-entrada mt-4 rounded-2xl p-3"
+              style={{ backgroundColor: '#FDF3EE', border: '1px solid #F0C9B4' }}
+            >
+              <p className="flex items-center gap-2 text-sm font-bold" style={{ color: '#C2410C' }}>
+                <OctagonAlert size={15} /> Formulaciones distintas en la misma mezcla
+              </p>
+              <p className="mt-2 text-sm" style={{ color: COLORES.tinta }}>
+                Estás combinando {formulaciones.distintas} tipos de formulación:{' '}
+                {formulaciones.tipos.map((t) => `${t.nombre} (${t.sigla})`).join(', ')}. Mientras más tipos
+                entran al mismo tanque, más pasos delicados hay en el orden de carga y más riesgo de grumos o
+                separación: revisa el orden de carga y no te saltes la prueba de frasco.
               </p>
             </div>
           )}
@@ -1027,68 +1173,86 @@ export function Mezcla({ onAbrirProducto }) {
       {/* ───────────── ORDEN DE CARGA ───────────── */}
       {vista === 'orden' && (
         <div key="orden" className="cc-entrada">
-          {ordenCarga.length > 0 && (
-            <div className="mt-5">
-              <h3 className="text-sm font-bold" style={{ color: COLORES.tinta }}>
-                Orden para tu mezcla
-              </h3>
-              <ol className="cc-escalonado mt-2 space-y-2">
-                {ordenCarga.map(({ producto, f }, i) => (
-                  <li
-                    key={producto.id}
-                    className="flex items-center gap-3 rounded-2xl bg-white p-3"
-                    style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
-                  >
-                    <span
-                      className="cc-num flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: COLORES.naranja }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
-                        {producto.nombre}
-                      </span>
-                      <span className="text-xs" style={{ color: COLORES.textoSuave }}>
-                        {f.nombre} ({f.sigla})
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
+          <button
+            onClick={() => setVerTutorial(true)}
+            className="cc-presionable mt-5 flex w-full items-center gap-3 rounded-2xl p-4 text-left"
+            style={{ backgroundColor: COLORES.tinta }}
+          >
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+            >
+              <GraduationCap size={22} color="#fff" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-bold text-white">Repaso rápido: que no se corte la mezcla</span>
+              <span className="mt-0.5 block text-xs" style={{ color: '#9DB8C9' }}>
+                Cinco ideas clave en un minuto
+              </span>
+            </span>
+          </button>
+
+          {/* La caneca de 200 L se llena paso a paso con los productos de la mezcla */}
+          <div className="mt-5">
+            <Caneca
+              pasos={pasosCaneca}
+              indiceActivo={pasoCaneca}
+              onCambiarPaso={setPasoCaneca}
+              capacidadLitros={200}
+              color={COLORES.azul}
+            />
+          </div>
 
           <h3 className="mt-6 text-sm font-bold" style={{ color: COLORES.tinta }}>
             Regla general de carga
           </h3>
-          <ol className="cc-escalonado mt-3">
-            {ORDEN_TANQUE.map((p, i) => (
-              <li key={p.paso} className="relative flex gap-3 pb-4 last:pb-0">
-                {i < ORDEN_TANQUE.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute bottom-0 left-[11px] top-7 w-0.5"
-                    style={{ backgroundColor: COLORES.azulClaro }}
-                  />
-                )}
-                <span
-                  className="cc-num relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                  style={{ backgroundColor: COLORES.azulClaro, color: COLORES.tinta }}
-                >
-                  {p.paso}
-                </span>
-                <span>
-                  <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
-                    {p.que}
-                  </span>
-                  <span className="text-xs" style={{ color: COLORES.textoSuave }}>
-                    {p.detalle}
-                  </span>
-                </span>
-              </li>
+          <p className="mt-1 text-xs" style={{ color: COLORES.textoSuave }}>
+            Toca cada paso para ver por qué importa, no solo qué hacer.
+          </p>
+          <div className="cc-escalonado mt-2 space-y-2">
+            {ORDEN_TANQUE.map((p) => (
+              <PasoPlegable key={p.paso} titulo={`${p.paso}. ${p.que}`} subtitulo={p.detalle}>
+                <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  <strong>¿Por qué?</strong> {p.porque}
+                </p>
+              </PasoPlegable>
             ))}
-          </ol>
+          </div>
+
+          <h3 className="mt-6 text-sm font-bold" style={{ color: COLORES.tinta }}>
+            Coadyuvantes: qué hace cada tipo
+          </h3>
+          <p className="mt-1 text-xs" style={{ color: COLORES.textoSuave }}>
+            No son el ingrediente activo: cambian cómo se comporta la mezcla o la gota.
+          </p>
+          <div className="mt-2 space-y-2">
+            {COADYUVANTES.map((c) => (
+              <PasoPlegable key={c.categoria} titulo={c.categoria}>
+                <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  {c.quePasa}
+                </p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                  Cuándo se usa
+                </p>
+                <p className="mt-0.5 text-sm" style={{ color: COLORES.tinta }}>
+                  {c.cuando}
+                </p>
+              </PasoPlegable>
+            ))}
+          </div>
+
+          <div className="mt-6 flex gap-2 rounded-2xl p-3" style={{ backgroundColor: COLORES.azulClaro }}>
+            <Info size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.azul }} />
+            <p className="text-xs leading-relaxed" style={{ color: COLORES.tinta }}>
+              <strong>Por qué se corta una mezcla aun siguiendo el orden:</strong> puede haber antagonismo
+              físico-químico (un producto desestabiliza la formulación del otro) o antagonismo biológico (uno reduce
+              la eficacia del otro sin que se note a simple vista). La etiqueta ICA es la fuente autorizada sobre
+              mezclas conocidas; para lo que no está documentado, la prueba de frasco del chequeo es la única forma
+              confiable de detectarlo en campo.
+            </p>
+          </div>
+
+          {verTutorial && <TutorialMezcla onCerrar={() => setVerTutorial(false)} />}
         </div>
       )}
 

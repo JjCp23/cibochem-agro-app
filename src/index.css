@@ -16,3 +16,9 @@ body {
     "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Modo campo: sube el tamaño base para leer bajo el sol o tocar con guantes.
+   Todo lo que está en rem (texto, rellenos, botones) crece en proporción. */
+html.modo-campo {
+  font-size: 118%;
+}

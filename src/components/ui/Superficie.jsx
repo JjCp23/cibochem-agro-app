@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Sun } from 'lucide-react';
 import { COLORES } from '../../data/taxonomia.js';
 import { IconoIlustrado } from './Iconos.jsx';
 
@@ -338,10 +339,57 @@ export function Encabezado({ titulo, acciones, children }) {
             </p>
           )}
         </div>
-        {acciones && <div className="flex shrink-0 items-center gap-1.5">{acciones}</div>}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <BotonModoCampo />
+          {acciones}
+        </div>
       </div>
       {children && <div className="mx-auto max-w-3xl px-4 pb-3">{children}</div>}
     </header>
+  );
+}
+
+const CLAVE_MODO_CAMPO = 'cibochem-modo-campo';
+
+/**
+ * Modo campo: agranda la interfaz (texto y botones) para leer bajo el sol o
+ * tocar con guantes. Pone una clase en <html> que sube el tamaño de letra base
+ * (ver index.css), así todo lo medido en rem crece en proporción. La
+ * preferencia se recuerda en el teléfono entre visitas.
+ */
+function useModoCampo() {
+  const [activo, setActivo] = useState(() => {
+    try {
+      return window.localStorage.getItem(CLAVE_MODO_CAMPO) === '1';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle('modo-campo', activo);
+    try {
+      window.localStorage.setItem(CLAVE_MODO_CAMPO, activo ? '1' : '0');
+    } catch {
+      // Sin almacenamiento: el modo dura mientras la app esté abierta
+    }
+  }, [activo]);
+  return [activo, setActivo];
+}
+
+/** Sol del encabezado: activa y desactiva el modo campo. */
+function BotonModoCampo() {
+  const [activo, setActivo] = useModoCampo();
+  return (
+    <button
+      onClick={() => setActivo((v) => !v)}
+      aria-pressed={activo}
+      aria-label={activo ? 'Desactivar modo campo' : 'Modo campo: letra y botones grandes para el sol o con guantes'}
+      title={activo ? 'Desactivar modo campo' : 'Modo campo: letra y botones grandes'}
+      className="cc-presionable relative flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+      style={{ backgroundColor: activo ? '#fff' : 'rgba(255,255,255,0.16)' }}
+    >
+      <Sun size={19} color={activo ? COLORES.azul : '#fff'} strokeWidth={2.2} />
+    </button>
   );
 }
 
