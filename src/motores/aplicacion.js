@@ -187,6 +187,24 @@ function leerPresentacionEnvase(texto) {
   return { etiqueta: `${m[1]} ${m[2]}`, base: unidad.base, mili };
 }
 
+/**
+ * Qué envase es cada presentación comercial, para dibujarla: así quien no
+ * recuerda el nombre del producto reconoce al menos el tamaño que compra.
+ * "250 cc" → frasco, "1 L" → botella, "4 L" → garrafa, "20 L" → bidón,
+ * "100 g" → sobre, "1 Kg" → bolsa, "5 Kg" → saco.
+ */
+export function describirEnvase(texto) {
+  const envase = leerPresentacionEnvase(texto);
+  if (!envase) {
+    return { etiqueta: String(texto ?? '').trim(), tipo: 'caja', base: null, mili: null };
+  }
+  const { base, mili } = envase;
+  let tipo;
+  if (base === 'L') tipo = mili <= 500 ? 'frasco' : mili <= 1000 ? 'botella' : mili <= 10000 ? 'garrafa' : 'bidon';
+  else tipo = mili <= 250 ? 'sobre' : mili <= 1000 ? 'bolsa' : 'saco';
+  return { ...envase, tipo };
+}
+
 function maximoComunDivisor(a, b) {
   return b === 0 ? a : maximoComunDivisor(b, a % b);
 }

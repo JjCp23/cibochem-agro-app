@@ -1,14 +1,48 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, SearchX, X, Star, CheckCircle2, Scale, LayoutList } from 'lucide-react';
+import { Search, SearchX, X, Star, CheckCircle2, Scale, LayoutList, Images, List } from 'lucide-react';
 import { PRODUCTOS } from '../data/productos.js';
 import { buscarTexto } from '../motores/index.js';
-import { COLORES, COLOR_CATEGORIA, CATEGORIAS } from '../data/taxonomia.js';
-import { FAVORITOS, useAlmacen } from '../estado/memoria.js';
+import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA, CATEGORIAS } from '../data/taxonomia.js';
+import { FAVORITOS, useAlmacen, usePersistente } from '../estado/memoria.js';
+import { HAY_FOTOS, fotoDeProducto } from '../data/fotosProductos.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
 import { Segmentado, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
 import { Comparador } from './Comparador.jsx';
+import { FotoProducto, EnvaseDibujo, envasePrincipal } from './ui/Presentacion.jsx';
+
+/** Tarjeta de la vista de fotos: se reconoce el envase aunque no se sepa el nombre. */
+function TarjetaGaleria({ producto, onAbrir }) {
+  const [sinFoto, setSinFoto] = useState(!fotoDeProducto(producto));
+  const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
+  return (
+    <button
+      onClick={() => onAbrir(producto)}
+      className="cc-presionable flex min-w-0 flex-col overflow-hidden rounded-2xl bg-white text-left"
+      style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.09)' }}
+    >
+      <span
+        className="flex h-36 items-center justify-center p-2"
+        style={{ backgroundColor: sinFoto ? FONDO_CATEGORIA[producto.categoria] || COLORES.azulClaro : '#fff' }}
+      >
+        {sinFoto ? (
+          <EnvaseDibujo tipo={envasePrincipal(producto).tipo} color={color} alto={78} />
+        ) : (
+          <FotoProducto producto={producto} alto={128} onFalla={() => setSinFoto(true)} />
+        )}
+      </span>
+      <span className="block border-t px-3 py-2.5" style={{ borderColor: COLORES.borde }}>
+        <span className="block truncate text-sm font-bold" style={{ color: COLORES.tinta }}>
+          {producto.nombre}
+        </span>
+        <span className="mt-0.5 block truncate font-mono text-[11px]" style={{ color: COLORES.textoSuave }}>
+          {(producto.presentaciones || []).join(' · ')}
+        </span>
+      </span>
+    </button>
+  );
+}
 
 /** Catálogo completo del portafolio con búsqueda y filtros. */
 export function Catalogo({ onAbrirProducto, pedidoComparar }) {
@@ -22,6 +56,9 @@ export function Catalogo({ onAbrirProducto, pedidoComparar }) {
   const [soloDisponibles, setSoloDisponibles] = useState(false);
   const [soloFavoritos, setSoloFavoritos] = useState(false);
   const [favoritos] = useAlmacen(FAVORITOS);
+  // Lista o fotos de los envases (solo se ofrece cuando ya hay fotos cargadas)
+  const [modo, setModo] = usePersistente('cibo:catalogo:modo', 'lista');
+  const conFotos = HAY_FOTOS && modo === 'fotos';
 
   // Lo que coincide con el texto y los filtros de estado, antes de la línea:
   // así cada chip de categoría muestra cuántos encontraría.
@@ -158,11 +195,36 @@ export function Catalogo({ onAbrirProducto, pedidoComparar }) {
             <p className="font-mono text-xs" style={{ color: COLORES.textoSuave }}>
               <NumeroAnimado valor={lista.length} /> de {PRODUCTOS.length} productos
             </p>
-            {hayFiltros && (
-              <button onClick={limpiar} className="text-xs font-semibold" style={{ color: COLORES.azul }}>
-                Limpiar filtros
-              </button>
-            )}
+            <span className="flex items-center gap-3">
+              {hayFiltros && (
+                <button onClick={limpiar} className="text-xs font-semibold" style={{ color: COLORES.azul }}>
+                  Limpiar filtros
+                </button>
+              )}
+              {HAY_FOTOS && (
+                <span className="flex rounded-full p-0.5" style={{ backgroundColor: COLORES.grisClaro }}>
+                  {[
+                    { id: 'lista', icono: List, etiqueta: 'Ver en lista' },
+                    { id: 'fotos', icono: Images, etiqueta: 'Ver fotos de los envases' },
+                  ].map(({ id, icono: Icono, etiqueta }) => (
+                    <button
+                      key={id}
+                      onClick={() => setModo(id)}
+                      aria-label={etiqueta}
+                      aria-pressed={modo === id}
+                      className="rounded-full px-2.5 py-1 transition-colors"
+                      style={{
+                        backgroundColor: modo === id ? '#fff' : 'transparent',
+                        color: modo === id ? COLORES.azul : COLORES.textoSuave,
+                        boxShadow: modo === id ? '0 1px 2px rgba(11,36,49,0.12)' : 'none',
+                      }}
+                    >
+                      <Icono size={15} />
+                    </button>
+                  ))}
+                </span>
+              )}
+            </span>
           </div>
 
           {lista.length === 0 ? (
@@ -198,11 +260,19 @@ export function Catalogo({ onAbrirProducto, pedidoComparar }) {
                     >
                       <Icono size={14} /> {cat} · {items.length}
                     </h3>
-                    <div className="cc-escalonado space-y-3">
-                      {items.map((p) => (
-                        <TarjetaProducto key={p.id} producto={p} onAbrir={onAbrirProducto} />
-                      ))}
-                    </div>
+                    {conFotos ? (
+                      <div className="cc-escalonado grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {items.map((p) => (
+                          <TarjetaGaleria key={p.id} producto={p} onAbrir={onAbrirProducto} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="cc-escalonado space-y-3">
+                        {items.map((p) => (
+                          <TarjetaProducto key={p.id} producto={p} onAbrir={onAbrirProducto} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

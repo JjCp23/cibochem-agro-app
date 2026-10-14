@@ -42,10 +42,10 @@ import {
 import { FilaMenu, Hexagono, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
 import { ICONO_RAMA, ICONO_CATEGORIA, IconoIlustrado } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconosIlustrados.js';
 import { NumeroAnimado, useEnPantalla, llevarA } from './ui/Movimiento.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
+import { MiniaturaProducto } from './ui/Presentacion.jsx';
 
 // Un icono por momento ayuda a ubicar la opción sin leerla entera
 const ICONO_MOMENTO = {
@@ -420,7 +420,7 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
                   className="cc-presionable w-36 shrink-0 rounded-2xl bg-white p-3 text-left"
                   style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.09)' }}
                 >
-                  <Hexagono icono={ICONO_CATEGORIA[p.categoria]} imagen={iconoDeProducto(p)} color={color} tamano={40} />
+                  <MiniaturaProducto producto={p} color={color} tamano={40} />
                   <span className="mt-2 block truncate text-sm font-bold" style={{ color: COLORES.tinta }}>
                     {p.nombre}
                   </span>

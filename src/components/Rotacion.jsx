@@ -14,12 +14,11 @@ import { fichasDeProducto } from '../data/gruposMoA.js';
 import { COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
-import { Hexagono, EstadoVacio, Segmentado, Chip } from './ui/Superficie.jsx';
+import { EstadoVacio, Segmentado, Chip } from './ui/Superficie.jsx';
 import { HojaInferior } from './ui/Hoja.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
-import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconosIlustrados.js';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
+import { MiniaturaProducto } from './ui/Presentacion.jsx';
 
 const VISIBLES_AL_INICIO = 8;
 const NOMBRE_SISTEMA = { IRAC: 'Insecticidas', FRAC: 'Fungicidas', HRAC: 'Herbicidas' };
@@ -257,7 +256,7 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
               Ya aplicaste
             </p>
             <div className="mt-2 flex items-center gap-3">
-              <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} imagen={iconoDeProducto(producto)} color={color} tamano={48} />
+              <MiniaturaProducto producto={producto} color={color} tamano={48} />
               <div className="min-w-0">
                 <button
                   onClick={() => !producto.externo && onAbrirProducto(producto)}

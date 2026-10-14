@@ -31,9 +31,7 @@ import { CULTIVOS } from '../data/cultivos.js';
 import { GRUPOS_FUNCIONALES } from '../data/gruposQuimicos.js';
 import { PRODUCTOS } from '../data/productos.js';
 import { HojaInferior } from './ui/Hoja.jsx';
-import { Hexagono } from './ui/Superficie.jsx';
-import { ICONO_CATEGORIA, IconoIlustrado } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconosIlustrados.js';
+import { IconoIlustrado } from './ui/Iconos.jsx';
 import { avisar, compartirTexto } from './ui/Avisos.jsx';
 import {
   alternativasDeRotacion,
@@ -45,6 +43,7 @@ import {
   gemelosDe,
   mismaMoleculaDe,
 } from '../motores/index.js';
+import { MiniaturaProducto, PresentacionesProducto, FotoProducto } from './ui/Presentacion.jsx';
 
 function Bloque({ icono: Icono, titulo, children, color = COLORES.tinta }) {
   return (
@@ -185,7 +184,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
       fondo={COLORES.papel}
       cabecera={
         <div className="flex items-start gap-3">
-          <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} imagen={iconoDeProducto(producto)} color={color} tamano={54} />
+          <MiniaturaProducto producto={producto} color={color} tamano={54} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <Etiqueta texto={producto.categoria} color={color} tono="solido" />
@@ -230,6 +229,19 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
             <AccionFicha icono={RotateCcw} etiqueta="Rotación" onClick={() => onVerRotacion(producto)} />
           )}
           {onComparar && <AccionFicha icono={Scale} etiqueta="Comparar" onClick={() => onComparar(producto)} />}
+        </div>
+
+        {/* Presentación: el envase es lo que se reconoce en la bodega aunque no se recuerde el nombre */}
+        <div className="px-5 pt-3">
+          <div className="cc-entrada flex items-center gap-4 rounded-2xl bg-white p-4" style={tarjeta}>
+            <FotoProducto producto={producto} alto={128} className="max-w-[40%] shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                Se vende en
+              </p>
+              <PresentacionesProducto producto={producto} color={color} alto={54} />
+            </div>
+          </div>
         </div>
 
         {/* Lo esencial de un vistazo */}

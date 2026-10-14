@@ -5,10 +5,10 @@ import { COLORES, COLOR_CATEGORIA, CATEGORIAS } from '../../data/taxonomia.js';
 import { buscarTexto } from '../../motores/index.js';
 import { RECIENTES, useAlmacen, productosDeIds } from '../../estado/memoria.js';
 import { HojaInferior } from './Hoja.jsx';
-import { Hexagono, Chip } from './Superficie.jsx';
+import { Chip } from './Superficie.jsx';
 import { SelloGrupo } from './Etiqueta.jsx';
 import { ICONO_CATEGORIA } from './Iconos.jsx';
-import { iconoDeProducto } from '../../data/iconosIlustrados.js';
+import { MiniaturaProducto } from './Presentacion.jsx';
 
 /** ¿Pantalla táctil? Ahí no se abre el teclado solo: tapa media lista. */
 function esTactil() {
@@ -22,14 +22,13 @@ function esTactil() {
 /** Fila compacta de producto para listas de selección y búsqueda. */
 export function FilaProductoCompacta({ producto, activo, onClick }) {
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
-  const Icono = ICONO_CATEGORIA[producto.categoria];
   return (
     <button
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors"
       style={{ backgroundColor: activo ? `${color}14` : 'transparent' }}
     >
-      <Hexagono icono={Icono} imagen={iconoDeProducto(producto)} color={color} tamano={38} />
+      <MiniaturaProducto producto={producto} color={color} tamano={38} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-bold" style={{ color: COLORES.tinta }}>
           {producto.nombre}
@@ -96,7 +95,7 @@ export function SelectorProducto({
         style={{ borderColor: elegido ? `${color}66` : COLORES.borde }}
       >
         {elegido ? (
-          <Hexagono icono={ICONO_CATEGORIA[elegido.categoria]} imagen={iconoDeProducto(elegido)} color={color} tamano={36} />
+          <MiniaturaProducto producto={elegido} color={color} tamano={36} />
         ) : (
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"

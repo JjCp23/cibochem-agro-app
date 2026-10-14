@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [Sin publicar]
+
+### Agregado
+- **Presentación de cada producto.** La ficha muestra «Se vende en» con los
+  envases dibujados a escala (frasco, botella, garrafa, bidón, sobre, bolsa,
+  saco) y su tamaño, tomados de las presentaciones comerciales. Las tarjetas
+  del catálogo llevan la misma línea con el envase principal.
+- **Lugar para la foto real del envase** (`public/productos/` y
+  `src/data/fotosProductos.js`): cuando un producto tiene foto, aparece en la
+  ficha, en las tarjetas, en el selector de producto y en una vista «Fotos»
+  del catálogo para reconocer el producto aunque no se sepa el nombre. Solo
+  se aceptan fotos de la ficha oficial en cibochem.com.co, con su fuente.
+
 ## [1.6.0]
 
 ### Agregado

@@ -38,6 +38,7 @@ import {
   unidadAmigable,
   envasesNecesarios,
   partirCantidad,
+  describirEnvase,
 } from '../src/motores/aplicacion.js';
 import { buscarTexto, normalizarTexto } from '../src/motores/diagnostico.js';
 import { codigosDeGrupo } from '../src/data/gruposMoA.js';
@@ -46,6 +47,7 @@ import { CAMPO } from '../src/data/campo.js';
 import { CULTIVOS } from '../src/data/cultivos.js';
 import { GRUPOS_QUIMICOS, GRUPOS_FUNCIONALES } from '../src/data/gruposQuimicos.js';
 import { ICONO_ILUSTRADO } from '../src/data/iconosIlustrados.js';
+import { FOTOS_PRODUCTOS } from '../src/data/fotosProductos.js';
 import { recomendacionTecnica, recomendar as recomendarConCultivo } from '../src/motores/diagnostico.js';
 import {
   gemelosDe,
@@ -480,6 +482,36 @@ seccion('Diagnóstico por cultivo y recomendación técnica');
   const papa = recomendarConCultivo({ categorias: ['Insecticida'], objetivo: 'masticadores', cultivo: 'papa' });
   const metomil = papa.find((p) => p.id === 'metomil40');
   check(!metomil || metomil.razones.some((r) => /papa/.test(r)), 'el cultivo de la ficha técnica aparece como razón');
+}
+
+// ────────────────────────────────────────────────────────────
+seccion('Presentación de cada producto: envases y fotos');
+{
+  const esperado = {
+    '100 cc': 'frasco', '250 cc': 'frasco', '500 cc': 'frasco', '1 L': 'botella', '4 L': 'garrafa',
+    '20 L': 'bidon', '10 g': 'sobre', '250 g': 'sobre', '500 g': 'bolsa', '1 Kg': 'bolsa', '5 Kg': 'saco', '20 Kg': 'saco',
+  };
+  Object.entries(esperado).forEach(([texto, tipo]) => {
+    check(describirEnvase(texto).tipo === tipo, `${texto} se dibuja como ${tipo} (salió ${describirEnvase(texto).tipo})`);
+  });
+  check(describirEnvase('Caja').tipo === 'caja', 'una presentación sin medida se dibuja como caja');
+
+  const tipos = ['sobre', 'bolsa', 'saco', 'frasco', 'botella', 'garrafa', 'bidon', 'caja'];
+  PRODUCTOS.forEach((p) => {
+    check(p.presentaciones?.length > 0, `${p.id} tiene al menos una presentación`);
+    (p.presentaciones || []).forEach((t) => {
+      const e = describirEnvase(t);
+      check(tipos.includes(e.tipo), `${p.id}: «${t}» tiene un envase dibujable`);
+      check(e.tipo !== 'caja' || /^caja$/i.test(t.trim()), `${p.id}: «${t}» no se entiende como medida`);
+    });
+  });
+
+  // Solo fotos reales: cada una apunta a un producto, existe y cita su fuente
+  Object.entries(FOTOS_PRODUCTOS).forEach(([id, foto]) => {
+    check(PRODUCTOS.some((p) => p.id === id), `la foto ${id} corresponde a un producto`);
+    check(existsSync(new URL(`../public/productos/${foto.archivo}`, import.meta.url)), `existe public/productos/${foto.archivo}`);
+    check(/^https:\/\/(www\.)?cibochem\.com\.co\//.test(foto.fuente || ''), `la foto de ${id} cita su ficha en cibochem.com.co`);
+  });
 }
 
 // ────────────────────────────────────────────────────────────

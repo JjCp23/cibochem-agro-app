@@ -3,11 +3,11 @@ import { ArrowLeft, Info, Share2, RotateCcw, Shield, Move, Eye, BadgeCheck, Aler
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA, etiquetaDe } from '../data/taxonomia.js';
 import { CULTIVOS } from '../data/cultivos.js';
 import { nombreCultivo } from '../motores/index.js';
-import { Segmentado, Hexagono } from './ui/Superficie.jsx';
-import { IconoIlustrado, ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { Segmentado } from './ui/Superficie.jsx';
+import { IconoIlustrado } from './ui/Iconos.jsx';
 import { SelloGrupo, TextoMarcado } from './ui/Etiqueta.jsx';
 import { compartirTexto } from './ui/Avisos.jsx';
-import { iconoDeProducto } from '../data/iconosIlustrados.js';
+import { MiniaturaProducto } from './ui/Presentacion.jsx';
 
 // Qué rama del diagnóstico atiende cada tipo de problema del cultivo
 export const RAMA_DE_PROBLEMA = { plagas: 'insectos', enfermedades: 'enfermedades', malezas: 'malezas' };
@@ -217,7 +217,7 @@ export function TarjetaRecomendacion({ rec, contexto, onAbrirProducto }) {
   return (
     <div className="cc-entrada mt-4 overflow-hidden rounded-3xl bg-white" style={{ boxShadow: '0 4px 18px rgba(11,36,49,0.10)' }}>
       <div className="flex items-center gap-3 px-4 pb-3 pt-4" style={{ backgroundColor: FONDO_CATEGORIA[p.categoria] }}>
-        <Hexagono icono={ICONO_CATEGORIA[p.categoria]} imagen={iconoDeProducto(p)} color={color} tamano={52} />
+        <MiniaturaProducto producto={p} color={color} tamano={52} />
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color }}>
             Recomendación técnica

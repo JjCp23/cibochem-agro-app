@@ -1,11 +1,9 @@
 import React from 'react';
-import { Check, AlertTriangle, Bug, Star, ChevronRight } from 'lucide-react';
+import { Check, AlertTriangle, Star, ChevronRight } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
 import { FAVORITOS, useAlmacen } from '../estado/memoria.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
-import { Hexagono } from './ui/Superficie.jsx';
-import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconosIlustrados.js';
+import { MiniaturaProducto, EnvaseDibujo, envasePrincipal } from './ui/Presentacion.jsx';
 
 /**
  * Tarjeta de producto. Se usa en resultados, catálogo y rotación, así que
@@ -15,7 +13,6 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
   const [favoritos] = useAlmacen(FAVORITOS);
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
   const fondo = FONDO_CATEGORIA[producto.categoria] || COLORES.azulClaro;
-  const Icono = ICONO_CATEGORIA[producto.categoria] || Bug;
   const esFavorito = favoritos.includes(producto.id);
 
   return (
@@ -29,7 +26,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
         className="relative flex w-[68px] shrink-0 flex-col items-center justify-center gap-1 py-4"
         style={{ backgroundColor: fondo }}
       >
-        <Hexagono icono={Icono} imagen={iconoDeProducto(producto)} color={color} tamano={46} />
+        <MiniaturaProducto producto={producto} color={color} tamano={46} />
         {orden != null && (
           <span className="cc-num font-mono text-[10px] font-bold" style={{ color }}>
             {String(orden).padStart(2, '0')}
@@ -61,6 +58,13 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
           <SelloGrupo sistema={producto.sistema} grupo={producto.grupo} color={color} />
           <Etiqueta texto={producto.movimiento} color={COLORES.gris} />
         </span>
+
+        {producto.presentaciones?.length > 0 && (
+          <span className="mt-2 flex items-end gap-1.5 text-[11px]" style={{ color: COLORES.textoSuave }}>
+            <EnvaseDibujo tipo={envasePrincipal(producto).tipo} color={color} alto={16} />
+            <span className="font-mono leading-none">{producto.presentaciones.join(' · ')}</span>
+          </span>
+        )}
 
         {producto.razones?.length > 0 && (
           <span className="mt-2.5 block space-y-1">
