@@ -22,11 +22,18 @@ const MODULOS = [
   'src/motores/resistencia.js',
   'src/motores/diagnostico.js',
   'src/motores/aplicacion.js',
+  'src/estado/memoria.js',
+  'src/components/ui/Movimiento.jsx',
   'src/components/ui/Etiqueta.jsx',
   'src/components/ui/Superficie.jsx',
+  'src/components/ui/Iconos.jsx',
+  'src/components/ui/Hoja.jsx',
+  'src/components/ui/Avisos.jsx',
+  'src/components/ui/SelectorProducto.jsx',
   'src/components/ui/Ilustraciones.jsx',
   'src/components/TarjetaProducto.jsx',
   'src/components/FichaProducto.jsx',
+  'src/components/Buscador.jsx',
   'src/components/Diagnostico.jsx',
   'src/components/Comparador.jsx',
   'src/components/Catalogo.jsx',
@@ -61,13 +68,14 @@ const partes = MODULOS.map((ruta) => {
 
   // recolecta los iconos de lucide-react usados en todo el proyecto
   const m = bruto.match(/import\s*\{([^}]+)\}\s*from\s*'lucide-react'/);
-  if (m) m[1].split(',').forEach((i) => iconos.add(i.trim()));
+  // (filter: los imports en varias líneas terminan en coma y dejarían un vacío)
+  if (m) m[1].split(',').map((i) => i.trim()).filter(Boolean).forEach((i) => iconos.add(i));
 
   // recolecta los hooks de React. Antes esta lista estaba escrita a mano en el
   // encabezado y bastaba con que un módulo estrenara un hook para que el
   // artefacto fallara en tiempo de ejecución con "Can't find variable".
   const h = bruto.match(/import\s+React\s*,\s*\{([^}]+)\}\s*from\s*'react'/);
-  if (h) h[1].split(',').forEach((x) => hooks.add(x.trim()));
+  if (h) h[1].split(',').map((x) => x.trim()).filter(Boolean).forEach((x) => hooks.add(x));
 
   return `// ${'═'.repeat(66)}\n// ${ruta}\n// ${'═'.repeat(66)}\n\n${aplanar(bruto)}`;
 });

@@ -1,8 +1,26 @@
-import React, { useEffect, useRef } from 'react';
-import { X, AlertTriangle, RotateCcw, Info, Target, Compass, ShieldAlert, ArrowLeft } from 'lucide-react';
+import React from 'react';
+import {
+  AlertTriangle,
+  RotateCcw,
+  Info,
+  Target,
+  Compass,
+  ShieldAlert,
+  Star,
+  Share2,
+  FlaskConical,
+  Move,
+  Zap,
+  Users,
+} from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, COLOR_RIESGO, etiquetaDe } from '../data/taxonomia.js';
 import { TRANSLOCACION, ESTADIOS, fichasDeProducto } from '../data/gruposMoA.js';
+import { FAVORITOS, useAlmacen, alternarEnLista } from '../estado/memoria.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
+import { HojaInferior } from './ui/Hoja.jsx';
+import { Hexagono } from './ui/Superficie.jsx';
+import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { avisar, compartirTexto } from './ui/Avisos.jsx';
 import {
   alternativasDeRotacion,
   mismosModoDeAccion,
@@ -40,41 +58,60 @@ function Dato({ etiqueta, children }) {
   );
 }
 
+/** Texto plano de la ficha para mandarlo por WhatsApp o correo. */
+export function resumenParaCompartir(producto) {
+  const lineas = [
+    `${producto.nombre} — ${producto.categoria}`,
+    producto.ia,
+    producto.sistema ? `Modo de acción: ${producto.sistema} ${producto.grupo} (${producto.familia})` : producto.familia,
+    producto.objetivos?.length ? `Controla: ${producto.objetivos.map(etiquetaDe).join(', ')}` : null,
+    producto.momento?.length ? `Momento: ${producto.momento.map(etiquetaDe).join(', ')}` : null,
+    `Movimiento: ${producto.movimiento}`,
+    producto.riesgo ? `Riesgo de resistencia: ${producto.riesgo}` : null,
+    producto.presentaciones?.length ? `Presentaciones: ${producto.presentaciones.join(' · ')}` : null,
+    '',
+    'Confirma dosis, cultivo registrado y periodos de carencia y reentrada en la etiqueta ICA.',
+    '— Enviado desde CiboCAMPO',
+  ];
+  return lineas.filter((l) => l != null).join('\n');
+}
+
+/** Dato clave en mosaico, para leer la ficha de un vistazo. */
+function DatoClave({ icono: Icono, etiqueta, valor, color }) {
+  return (
+    <div className="rounded-2xl bg-white p-3" style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.07)' }}>
+      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+        <Icono size={12} /> {etiqueta}
+      </span>
+      <span className="mt-1 block text-[13px] font-semibold leading-snug" style={{ color: color || COLORES.tinta }}>
+        {valor}
+      </span>
+    </div>
+  );
+}
+
+/** Botón de acción rápida de la ficha. */
+function AccionFicha({ icono: Icono, etiqueta, onClick, activo, color }) {
+  return (
+    <button
+      onClick={onClick}
+      className="cc-presionable flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[11px] font-semibold"
+      style={{
+        backgroundColor: activo ? `${color}1A` : COLORES.papel,
+        color: activo ? color : COLORES.tinta,
+      }}
+    >
+      <span key={String(activo)} className={activo ? 'cc-pop' : undefined}>
+        <Icono size={19} fill={activo ? color : 'none'} color={activo ? color : COLORES.tinta} strokeWidth={2} />
+      </span>
+      {etiqueta}
+    </button>
+  );
+}
+
 /** Ficha técnica completa. Combina datos del producto con la ficha de su grupo. */
-export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
-  const panel = useRef(null);
-
-  // La ficha se abre sobre toda la pantalla, así que tiene que poder cerrarse
-  // sin buscar el botón: tecla Escape, botón físico de atrás del teléfono, o
-  // tocando fuera del panel.
-  useEffect(() => {
-    if (!producto) return undefined;
-
-    const conEscape = (e) => {
-      if (e.key === 'Escape') onCerrar();
-    };
-    const conAtras = () => onCerrar();
-
-    document.addEventListener('keydown', conEscape);
-    window.addEventListener('popstate', conAtras);
-    // Entrada en el historial para que el botón atrás cierre la ficha en vez
-    // de sacar al usuario de la aplicación.
-    window.history.pushState({ ficha: true }, '');
-
-    // Bloquear el desplazamiento del fondo mientras la ficha está abierta
-    const desplazamientoPrevio = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    panel.current?.focus();
-
-    return () => {
-      document.removeEventListener('keydown', conEscape);
-      window.removeEventListener('popstate', conAtras);
-      document.body.style.overflow = desplazamientoPrevio;
-      // Si se cerró con el botón y no con "atrás", limpiar la entrada añadida
-      if (window.history.state?.ficha) window.history.back();
-    };
-  }, [producto, onCerrar]);
-
+export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMezcla }) {
+  const [favoritos, setFavoritos] = useAlmacen(FAVORITOS);
   if (!producto) return null;
 
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
@@ -82,61 +119,82 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
   const conflictos = mismosModoDeAccion(producto);
   const alternativas = alternativasDeRotacion(producto);
   const estadios = estadiosDeProducto(producto);
+  const esFavorito = favoritos.includes(producto.id);
+  const tr = fichas[0] && TRANSLOCACION[fichas[0].ficha.translocacion];
+
+  const alternarFavorito = () => {
+    setFavoritos((l) => alternarEnLista(l, producto.id));
+    avisar(esFavorito ? 'Quitado de favoritos' : 'Guardado en favoritos', esFavorito ? 'info' : 'favorito');
+  };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"
-      onClick={onCerrar}
-      role="presentation"
-    >
-      <div
-        ref={panel}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Ficha de ${producto.nombre}`}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white outline-none sm:rounded-2xl"
-      >
-        {/* Encabezado */}
-        <div
-          className="sticky top-0 z-10 border-b bg-white px-5 py-4"
-          style={{ borderColor: COLORES.borde }}
-        >
-          <button
-            onClick={onCerrar}
-            className="mb-2 flex items-center gap-1.5 text-sm font-semibold transition hover:opacity-70"
-            style={{ color: COLORES.azul }}
-          >
-            <ArrowLeft size={16} /> Volver
-          </button>
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Etiqueta texto={producto.categoria} color={color} tono="solido" />
-                {producto.estado !== 'Disponible' && (
-                  <Etiqueta
-                    texto={producto.estado}
-                    color={producto.estado === 'Nuevo' ? COLORES.verde : COLORES.naranja}
-                  />
-                )}
-                {producto.todera && <Etiqueta texto="Producto ancla" color={COLORES.verde} />}
-              </div>
-              <h2 className="mt-2 text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
-                {producto.nombre}
-              </h2>
-              <p className="text-sm" style={{ color: COLORES.textoSuave }}>
-                {producto.ia}
-              </p>
+    <HojaInferior
+      etiqueta={`Ficha de ${producto.nombre}`}
+      onCerrar={onCerrar}
+      fondo={COLORES.papel}
+      cabecera={
+        <div className="flex items-start gap-3">
+          <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} color={color} tamano={46} />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Etiqueta texto={producto.categoria} color={color} tono="solido" />
+              {producto.estado !== 'Disponible' && (
+                <Etiqueta
+                  texto={producto.estado}
+                  color={producto.estado === 'Nuevo' ? COLORES.verde : COLORES.naranja}
+                />
+              )}
+              {producto.todera && <Etiqueta texto="Producto ancla" color={COLORES.verde} />}
             </div>
-            <button
-              onClick={onCerrar}
-              className="shrink-0 rounded-full p-2 transition hover:bg-slate-100"
-              aria-label="Cerrar ficha"
-            >
-              <X size={20} style={{ color: COLORES.textoSuave }} />
-            </button>
+            <h2 className="mt-1.5 text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
+              {producto.nombre}
+            </h2>
+            <p className="text-sm" style={{ color: COLORES.textoSuave }}>
+              {producto.ia}
+            </p>
           </div>
+        </div>
+      }
+    >
+      {(cerrar) => (
+        <>
+        {/* Acciones rápidas */}
+        <div className="flex gap-2 px-5 pt-4">
+          <AccionFicha
+            icono={Star}
+            etiqueta={esFavorito ? 'Guardado' : 'Favorito'}
+            activo={esFavorito}
+            color="#F5A524"
+            onClick={alternarFavorito}
+          />
+          <AccionFicha
+            icono={Share2}
+            etiqueta="Compartir"
+            onClick={() => compartirTexto(producto.nombre, resumenParaCompartir(producto))}
+          />
+          {onAgregarAMezcla && (
+            <AccionFicha icono={FlaskConical} etiqueta="A la mezcla" onClick={() => onAgregarAMezcla(producto)} />
+          )}
+          {producto.sistema && onVerRotacion && (
+            <AccionFicha icono={RotateCcw} etiqueta="Rotación" onClick={() => onVerRotacion(producto)} />
+          )}
+        </div>
+
+        {/* Lo esencial de un vistazo */}
+        <div className="cc-escalonado grid grid-cols-2 gap-2 px-5 pt-3">
+          <DatoClave
+            icono={Move}
+            etiqueta="Movimiento"
+            valor={tr ? `${tr.icono} ${tr.nombre}` : producto.movimiento}
+          />
+          <DatoClave
+            icono={ShieldAlert}
+            etiqueta="Riesgo de resistencia"
+            valor={producto.riesgo || '—'}
+            color={COLOR_RIESGO[producto.riesgo]}
+          />
+          <DatoClave icono={Zap} etiqueta="Velocidad" valor={fichas[0]?.ficha?.velocidad || producto.sintoma || '—'} />
+          <DatoClave icono={Users} etiqueta="Benéficos" valor={producto.beneficos || '—'} />
         </div>
 
         <div className="px-5 pb-8">
@@ -146,8 +204,8 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
             return (
               <div
                 key={codigo}
-                className="mt-4 rounded-lg p-4"
-                style={{ backgroundColor: `${color}0D`, border: `1px solid ${color}30` }}
+                className="cc-entrada mt-4 rounded-2xl bg-white p-4"
+                style={{ borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(11,36,49,0.07)' }}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <SelloGrupo sistema={producto.sistema} grupo={codigo} color={color} tamano="lg" />
@@ -169,7 +227,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
                   {ficha.mecanismo}
                 </p>
 
-                <div className="mt-3 rounded p-2.5" style={{ backgroundColor: '#ffffffAA' }}>
+                <div className="mt-3 rounded-xl p-2.5" style={{ backgroundColor: `${color}0D` }}>
                   <p className="text-xs" style={{ color: COLORES.textoSuave }}>
                     <strong style={{ color: COLORES.tinta }}>Sitio de acción:</strong> {ficha.sitioAccion}
                   </p>
@@ -181,7 +239,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
 
                 {/* Translocación */}
                 {tr && (
-                  <div className="mt-3 flex gap-3 rounded p-2.5" style={{ backgroundColor: '#ffffffAA' }}>
+                  <div className="mt-3 flex gap-3 rounded-xl p-2.5" style={{ backgroundColor: `${color}0D` }}>
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded font-mono"
                       style={{ backgroundColor: `${color}1F`, color }}
@@ -205,8 +263,8 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
           {/* Si no hay ficha de grupo (bioestimulantes y reguladores) */}
           {fichas.length === 0 && (
             <div
-              className="mt-4 rounded-lg p-4"
-              style={{ backgroundColor: `${color}0D`, border: `1px solid ${color}30` }}
+              className="cc-entrada mt-4 rounded-2xl bg-white p-4"
+              style={{ borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(11,36,49,0.07)' }}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <SelloGrupo sistema={producto.sistema} grupo={producto.grupo} color={color} tamano="lg" />
@@ -258,7 +316,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
                   ficha.decision && (
                     <p
                       key={codigo}
-                      className="mb-2 rounded-lg p-3 text-sm leading-relaxed"
+                      className="mb-2 rounded-2xl p-3 text-sm leading-relaxed"
                       style={{ backgroundColor: COLORES.verdeClaro, color: COLORES.tinta }}
                     >
                       {ficha.decision}
@@ -276,7 +334,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
                   ficha.rotacionMotivo && (
                     <div
                       key={codigo}
-                      className="mb-2 rounded-lg border p-3"
+                      className="mb-2 rounded-2xl border bg-white p-3"
                       style={{ borderColor: COLORES.borde }}
                     >
                       <div className="flex items-center gap-2">
@@ -302,19 +360,21 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
                 . En el portafolio hay {conflictos.length} productos que lo repiten y{' '}
                 {alternativas.length} que sirven para rotar.
               </p>
-              <button
-                onClick={() => onVerRotacion(producto)}
-                className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                style={{ backgroundColor: COLORES.tinta }}
-              >
-                Ver plan de rotación
-              </button>
+              {onVerRotacion && (
+                <button
+                  onClick={() => onVerRotacion(producto)}
+                  className="cc-presionable mt-3 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                  style={{ backgroundColor: COLORES.tinta }}
+                >
+                  <RotateCcw size={15} /> Ver plan de rotación
+                </button>
+              )}
             </Bloque>
           )}
 
           {/* ── Datos agronómicos ── */}
           <Bloque icono={Info} titulo="Datos">
-            <dl>
+            <dl className="rounded-2xl bg-white px-4 pb-1" style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.07)' }}>
               <Dato etiqueta="Controla">
                 <div className="flex flex-wrap gap-1.5">
                   {producto.objetivos?.map((o) => (
@@ -351,7 +411,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
                   ficha.precaucion && (
                     <p
                       key={codigo}
-                      className="mb-2 rounded-lg p-3 text-sm"
+                      className="mb-2 rounded-2xl p-3 text-sm"
                       style={{ backgroundColor: '#FDF3EE', color: COLORES.tinta }}
                     >
                       {ficha.precaucion}
@@ -373,7 +433,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
             </div>
           )}
 
-          <div className="mt-5 flex gap-2 rounded-xl p-3" style={{ backgroundColor: COLORES.papel }}>
+          <div className="mt-5 flex gap-2 rounded-2xl bg-white p-3">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.textoSuave }} />
             <p className="text-xs leading-relaxed" style={{ color: COLORES.textoSuave }}>
               Confirma el cultivo registrado, la dosis, el periodo de carencia y el de reentrada en la
@@ -383,15 +443,16 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
 
           {/* Cierre al final: tras una ficha larga, el botón de arriba queda lejos */}
           <button
-            onClick={onCerrar}
-            className="mt-5 w-full rounded-xl py-3 text-sm font-bold text-white transition hover:opacity-90"
+            onClick={cerrar}
+            className="cc-presionable mt-5 w-full rounded-2xl py-3.5 text-sm font-bold text-white"
             style={{ backgroundColor: COLORES.tinta }}
           >
             Cerrar ficha
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </HojaInferior>
   );
 }
 

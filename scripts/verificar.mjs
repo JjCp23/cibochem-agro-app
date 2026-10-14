@@ -33,7 +33,13 @@ import {
   calcularCalibracion,
   unidadesSugeridas,
   UNIDADES,
+  recetaDeMezcla,
+  formatear,
+  unidadAmigable,
 } from '../src/motores/aplicacion.js';
+import { buscarTexto, normalizarTexto } from '../src/motores/diagnostico.js';
+import { codigosDeGrupo } from '../src/data/gruposMoA.js';
+import { alternarEnLista, anteponerReciente, productosDeIds } from '../src/estado/memoria.js';
 
 let fallos = 0;
 let pruebas = 0;
@@ -257,6 +263,83 @@ TEMAS.forEach((t) => {
 PREGUNTAS.forEach((q) => check(q.p && q.r, 'pregunta frecuente incompleta'));
 
 // ────────────────────────────────────────────────────────────
+seccion('Búsqueda: sin tildes, varias palabras, nombres comunes y códigos');
+check(normalizarTexto('Ácaros ÑAME') === 'acaros name', 'normalizar quita tildes y pasa a minúsculas');
+check(buscarTexto('').length === PRODUCTOS.length, 'una búsqueda vacía devuelve todo');
+check(buscarTexto('tioxam')[0]?.id === 'tioxam', 'el nombre comercial va primero');
+check(
+  buscarTexto('antranilicas').some((p) => p.familia === 'Diamidas antranílicas'),
+  'buscar sin tilde encuentra la familia con tilde'
+);
+const moscaBlanca = buscarTexto('mosca blanca');
+check(moscaBlanca.length > 0, '"mosca blanca" debe encontrar productos por su objetivo');
+moscaBlanca.forEach((p) =>
+  check(p.objetivos.includes('chupadores'), `${p.nombre} apareció en "mosca blanca" sin controlar chupadores`)
+);
+const grupo4A = buscarTexto('4a');
+check(grupo4A.length > 0, 'buscar "4a" debe devolver neonicotinoides');
+grupo4A.forEach((p) =>
+  check(
+    codigosDeGrupo(p.grupo).some((c) => c.toUpperCase() === '4A'),
+    `buscar "4a" no debe traer ${p.nombre} (${p.grupo})`
+  )
+);
+check(
+  buscarTexto('3').some((p) => codigosDeGrupo(p.grupo).includes('3A')),
+  'buscar el grupo 3 debe incluir el subgrupo 3A'
+);
+check(buscarTexto('zzzz').length === 0, 'una búsqueda sin sentido no devuelve nada');
+
+// ────────────────────────────────────────────────────────────
+seccion('Programa de rotación: arranca después de lo último aplicado');
+const ultimo = buscar('lambdox');
+const programaTrasUltimo = construirPrograma(
+  { categoria: 'Insecticida', objetivo: 'chupadores', ultimoUsado: ultimo },
+  3
+);
+check(programaTrasUltimo.length > 0, 'debe haber programa tras un piretroide');
+programaTrasUltimo.forEach((p) =>
+  check(!compartenModoDeAccion(p, ultimo), `${p.nombre} repite el sitio de acción de ${ultimo.nombre}`)
+);
+
+// ────────────────────────────────────────────────────────────
+seccion('Receta de mezcla para compartir');
+const receta = recetaDeMezcla({
+  area: 2,
+  volumenHa: 200,
+  capacidadBomba: 20,
+  lineas: [
+    { producto: buscar('cyper'), dosis: 300, unidad: 'cc/ha' },
+    { producto: buscar('tioxam'), dosis: 200, unidad: 'g/ha' },
+    { producto: null, dosis: 1, unidad: 'L/ha' },
+  ],
+});
+check(typeof receta === 'string', 'con productos y dosis válidos debe haber receta');
+check(receta.includes('30 cc'), '300 cc/ha con bomba de 20 L a 200 L/ha son 30 cc por bomba');
+check(receta.includes('400 g'), '200 g/ha en 2 ha son 400 g para el lote');
+check(
+  receta.indexOf('TIOXAM 250 WG (WG)') < receta.indexOf('CYPER West 200 EC (EC)'),
+  'en el orden de carga el granulado (WG) va antes que el emulsionable (EC)'
+);
+check(
+  recetaDeMezcla({ area: 1, volumenHa: 200, capacidadBomba: 20, lineas: [] }) === null,
+  'sin líneas no hay receta'
+);
+check(formatear(20) === '20' && formatear(1.5) === '1.5', 'los números no llevan ceros sobrantes');
+check(unidadAmigable(0.35, 'L') === '350 cc', '0.35 L se muestra como 350 cc');
+
+// ────────────────────────────────────────────────────────────
+seccion('Memoria local: favoritos y recientes');
+check(alternarEnLista(['a'], 'b').join() === 'a,b', 'alternar agrega lo que no está');
+check(alternarEnLista(['a', 'b'], 'a').join() === 'b', 'alternar quita lo que ya está');
+check(anteponerReciente(['a', 'b', 'c'], 'c').join() === 'c,a,b', 'lo reciente va primero sin duplicarse');
+check(anteponerReciente(['a', 'b', 'c'], 'd', 3).join() === 'd,a,b', 'la lista de recientes tiene tope');
+check(
+  productosDeIds(['tioxam', 'ya-no-existe'], PRODUCTOS).length === 1,
+  'los ids de productos retirados del portafolio se ignoran'
+);
+
+// ────────────────────────────────────────────────────────────
 seccion('Artefacto de un solo archivo: nada usado sin importar');
 const rutaArtefacto = 'dist-artefacto/CibochemCampo.jsx';
 if (!existsSync(rutaArtefacto)) {
@@ -266,6 +349,12 @@ if (!existsSync(rutaArtefacto)) {
   const importados = new Set(['React']);
   for (const m of src.matchAll(/import\s+(?:React\s*,\s*)?\{([^}]+)\}\s*from/g)) {
     m[1].split(',').forEach((x) => importados.add(x.trim()));
+  }
+  for (const m of src.matchAll(/import\s+(?:React\s*,\s*)?\{([^}]+)\}\s*from/g)) {
+    check(
+      m[1].split(',').every((x) => x.trim()),
+      'el encabezado del artefacto tiene un nombre vacío en un import'
+    );
   }
   const declarados = new Set();
   for (const m of src.matchAll(/^(?:export\s+)?(?:function|const|let|class)\s+(\w+)/gm)) {

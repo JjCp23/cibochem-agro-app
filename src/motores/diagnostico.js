@@ -9,6 +9,7 @@
  */
 
 import { PRODUCTOS } from '../data/productos.js';
+import { RAMAS } from '../data/taxonomia.js';
 import { compartenModoDeAccion, explicarConflicto, gruposDeRotacion } from './resistencia.js';
 
 const PESOS = {
@@ -95,15 +96,78 @@ export function recomendar(criterio) {
   return evaluados.filter((p) => p.puntaje > 0).sort((a, b) => b.puntaje - a.puntaje);
 }
 
-/** Búsqueda libre por texto sobre los campos identificatorios del producto. */
-export function buscarTexto(termino, lista = PRODUCTOS) {
-  const t = termino.trim().toLowerCase();
-  if (!t) return lista;
-  return lista.filter((p) =>
-    [p.nombre, p.ia, p.familia, p.grupo, p.categoria, p.mecanismo, p.sistema]
-      .filter(Boolean)
-      .some((campo) => campo.toLowerCase().includes(t))
+/** Minúsculas y sin tildes: en campo se escribe rápido y sin acentos. */
+export function normalizarTexto(texto) {
+  return String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+// Texto de búsqueda de cada objetivo: su nombre y la ayuda, que es donde viven
+// los nombres comunes ("mosca blanca", "arañita roja", "coquito").
+const TEXTO_OBJETIVO = (() => {
+  const mapa = {};
+  RAMAS.forEach((r) =>
+    r.objetivos.forEach((o) => {
+      mapa[o.id] = `${mapa[o.id] || ''} ${o.label} ${o.ayuda || ''}`;
+    })
   );
+  return mapa;
+})();
+
+// Un código de grupo ("4a", "m03", "22") se compara por palabra completa al
+// inicio, para que buscar el 4A no traiga el 14A.
+const PARECE_CODIGO = /^m?\d+[a-z]?$/;
+
+// "3" encuentra el 3A y el 3B (mismo sitio de acción), pero no el 30
+function coincideCodigo(palabra, t) {
+  return palabra === t || (palabra.startsWith(t) && /^[a-z]$/.test(palabra.slice(t.length)));
+}
+
+function palabrasDe(texto) {
+  return normalizarTexto(texto).split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+/**
+ * Búsqueda libre por texto. Acepta varias palabras (todas deben aparecer),
+ * ignora tildes y mayúsculas, y entiende nombres comunes de plagas y
+ * enfermedades a través de los objetivos del producto. Devuelve la lista
+ * ordenada por relevancia: primero lo que coincide con el nombre comercial.
+ */
+export function buscarTexto(termino, lista = PRODUCTOS) {
+  const consulta = palabrasDe(termino);
+  if (consulta.length === 0) return lista;
+
+  const evaluados = [];
+  lista.forEach((p, orden) => {
+    const nombre = palabrasDe(p.nombre);
+    const ia = palabrasDe(p.ia);
+    const grupo = palabrasDe(p.grupo);
+    const resto = palabrasDe(
+      [p.familia, p.categoria, p.mecanismo, p.sistema, ...(p.objetivos || []).map((o) => TEXTO_OBJETIVO[o])]
+        .filter(Boolean)
+        .join(' ')
+    );
+    const textoCompleto = [...nombre, ...ia, ...grupo, ...resto].join(' ');
+
+    let puntaje = 0;
+    const todas = consulta.every((t, i) => {
+      if (i === 0 && normalizarTexto(p.nombre).startsWith(t)) puntaje += 100;
+      if (PARECE_CODIGO.test(t) && grupo.some((w) => coincideCodigo(w, t))) puntaje += 80;
+      else if (nombre.some((w) => w.startsWith(t))) puntaje += 60;
+      else if (grupo.includes(t)) puntaje += 50;
+      else if (ia.some((w) => w.startsWith(t))) puntaje += 40;
+      else if (resto.some((w) => w.startsWith(t))) puntaje += 20;
+      else if (!PARECE_CODIGO.test(t) && textoCompleto.includes(t)) puntaje += 5;
+      else return false;
+      return true;
+    });
+
+    if (todas) evaluados.push({ p, puntaje, orden });
+  });
+
+  return evaluados.sort((a, b) => b.puntaje - a.puntaje || a.orden - b.orden).map((x) => x.p);
 }
 
 /**
@@ -112,7 +176,9 @@ export function buscarTexto(termino, lista = PRODUCTOS) {
  * Es la unión de los dos cerebros: recomendación + resistencia.
  */
 export function construirPrograma(criterio, pases = 3) {
-  const usados = [];
+  // Si se sabe qué se aplicó antes, el programa arranca después de eso y
+  // tampoco puede repetir su sitio de acción.
+  const usados = criterio.ultimoUsado ? [criterio.ultimoUsado] : [];
   const programa = [];
 
   for (let i = 0; i < pases; i += 1) {

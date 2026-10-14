@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, Lightbulb, ArrowLeft, ShieldCheck, Move, Sprout, Leaf, Bug, SprayCan, FileText, Target, Stethoscope } from 'lucide-react';
-import { FilaMenu } from './ui/Superficie.jsx';
+import { ChevronDown, Lightbulb, ArrowLeft, ArrowRight, ShieldCheck, Move, Sprout, Leaf, Bug, SprayCan, FileText, Target, Stethoscope, Clock } from 'lucide-react';
+import { FilaMenu, Hexagono } from './ui/Superficie.jsx';
 import { ILUSTRACIONES_POR_TEMA } from './ui/Ilustraciones.jsx';
 import { TEMAS, PREGUNTAS } from '../data/conocimiento.js';
 import { TRANSLOCACION } from '../data/gruposMoA.js';
@@ -20,31 +20,48 @@ const ESTILO_TEMA = {
   estres: { icono: Stethoscope, color: COLORES.ambar, fondo: COLORES.ambarClaro },
 };
 
+/** Minutos de lectura de un tema, a unas 200 palabras por minuto. */
+export function minutosDeLectura(tema) {
+  const palabras = [tema.resumen, ...tema.secciones.map((x) => `${x.titulo} ${x.texto}`)]
+    .join(' ')
+    .split(/\s+/)
+    .filter(Boolean).length;
+  return Math.max(1, Math.round(palabras / 200));
+}
+
 function Acordeon({ pregunta, respuesta }) {
   const [abierto, setAbierto] = useState(false);
   return (
     <div className="border-b" style={{ borderColor: COLORES.borde }}>
       <button
         onClick={() => setAbierto(!abierto)}
-        className="flex w-full items-start justify-between gap-3 py-3 text-left"
+        aria-expanded={abierto}
+        className="flex w-full items-start justify-between gap-3 py-3.5 text-left"
       >
         <span className="text-sm font-semibold" style={{ color: COLORES.tinta }}>
           {pregunta}
         </span>
-        <ChevronDown
-          size={16}
-          className="mt-0.5 shrink-0 transition"
-          style={{
-            color: COLORES.textoSuave,
-            transform: abierto ? 'rotate(180deg)' : 'none',
-          }}
-        />
+        <span
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors duration-300"
+          style={{ backgroundColor: abierto ? COLORES.naranjaClaro : COLORES.grisClaro }}
+        >
+          <ChevronDown
+            size={15}
+            className="transition-transform duration-300"
+            style={{
+              color: abierto ? COLORES.naranja : COLORES.textoSuave,
+              transform: abierto ? 'rotate(180deg)' : 'none',
+            }}
+          />
+        </span>
       </button>
-      {abierto && (
-        <p className="pb-3 text-sm leading-relaxed" style={{ color: COLORES.textoSuave }}>
-          {respuesta}
-        </p>
-      )}
+      <div className="cc-pliegue" data-abierto={abierto}>
+        <div>
+          <p className="pb-4 text-sm leading-relaxed" style={{ color: COLORES.textoSuave }}>
+            {respuesta}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -54,25 +71,41 @@ export function Aprender() {
   const [temaId, setTemaId] = useState(null);
   const tema = TEMAS.find((t) => t.id === temaId);
 
+  const abrirTema = (id) => {
+    setTemaId(id);
+    window.scrollTo({ top: 0 });
+  };
+
   if (tema) {
+    const estilo = ESTILO_TEMA[tema.id] || ESTILO_TEMA.resistencia;
+    const indice = TEMAS.findIndex((t) => t.id === tema.id);
+    const siguiente = TEMAS[indice + 1];
     return (
-      <div>
+      <div key={tema.id} className="cc-entrada">
         <button
-          onClick={() => setTemaId(null)}
+          onClick={() => abrirTema(null)}
           className="flex items-center gap-1.5 text-sm font-medium transition hover:opacity-70"
           style={{ color: COLORES.textoSuave }}
         >
           <ArrowLeft size={15} /> Todos los temas
         </button>
 
-        <h2 className="mt-3 text-xl font-bold" style={{ color: COLORES.tinta }}>
-          {tema.titulo}
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: COLORES.textoSuave }}>
+        <div className="mt-3 flex items-start gap-3">
+          <Hexagono icono={estilo.icono} color={estilo.color} tamano={46} />
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
+              {tema.titulo}
+            </h2>
+            <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold" style={{ color: COLORES.textoSuave }}>
+              <Clock size={12} /> {minutosDeLectura(tema)} min de lectura · {tema.secciones.length} apartados
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-sm" style={{ color: COLORES.textoSuave }}>
           {tema.resumen}
         </p>
 
-        <div className="mt-5 space-y-4">
+        <div className="cc-escalonado mt-5 space-y-4">
           {tema.secciones.map((s, i) => (
             <React.Fragment key={s.titulo}>
               <div
@@ -83,7 +116,10 @@ export function Aprender() {
                   border: s.destacado ? `1px solid ${COLORES.naranja}55` : 'none',
                 }}
               >
-                <h3 className="text-sm font-bold" style={{ color: COLORES.tinta }}>
+                <h3 className="flex items-baseline gap-2 text-sm font-bold" style={{ color: COLORES.tinta }}>
+                  <span className="cc-num font-mono text-xs" style={{ color: estilo.color }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   {s.titulo}
                 </h3>
                 <p className="mt-1.5 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
@@ -132,6 +168,29 @@ export function Aprender() {
             </div>
           </div>
         )}
+
+        {siguiente && (
+          <button
+            onClick={() => abrirTema(siguiente.id)}
+            className="cc-presionable mt-8 flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left"
+            style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                Siguiente tema
+              </span>
+              <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
+                {siguiente.titulo}
+              </span>
+            </span>
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: COLORES.azul }}
+            >
+              <ArrowRight size={17} color="#fff" />
+            </span>
+          </button>
+        )}
       </div>
     );
   }
@@ -145,7 +204,7 @@ export function Aprender() {
         El razonamiento agronómico detrás de cada recomendación de la app.
       </p>
 
-      <div className="mt-5 space-y-3">
+      <div className="cc-escalonado mt-5 space-y-3">
         {TEMAS.map((t) => {
           const e = ESTILO_TEMA[t.id] || ESTILO_TEMA.resistencia;
           return (
@@ -156,10 +215,10 @@ export function Aprender() {
               fondo={e.fondo}
               titulo={t.titulo}
               descripcion={t.resumen}
-              onClick={() => setTemaId(t.id)}
+              onClick={() => abrirTema(t.id)}
               insignia={
-                <span className="text-[11px] font-semibold" style={{ color: COLORES.textoSuave }}>
-                  {t.secciones.length} apartados
+                <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: COLORES.textoSuave }}>
+                  <Clock size={11} /> {minutosDeLectura(t)} min · {t.secciones.length} apartados
                 </span>
               }
             />

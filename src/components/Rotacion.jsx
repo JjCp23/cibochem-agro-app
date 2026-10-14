@@ -1,11 +1,31 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Ban, Check, RotateCcw } from 'lucide-react';
+import { Ban, Check, RotateCcw, ChevronDown } from 'lucide-react';
 import { PRODUCTOS } from '../data/productos.js';
 import { alternativasDeRotacion, mismosModoDeAccion, gruposDeRotacion } from '../motores/index.js';
 import { fichasDeProducto } from '../data/gruposMoA.js';
 import { COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
+import { Hexagono, EstadoVacio } from './ui/Superficie.jsx';
+import { SelectorProducto } from './ui/SelectorProducto.jsx';
+import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { NumeroAnimado } from './ui/Movimiento.jsx';
+
+const VISIBLES_AL_INICIO = 8;
+
+/** Contador grande de la decisión: cuántos repiten y cuántos sirven. */
+function Contador({ icono: Icono, valor, etiqueta, color, fondo }) {
+  return (
+    <div className="flex-1 rounded-2xl p-3" style={{ backgroundColor: fondo }}>
+      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color }}>
+        <Icono size={13} strokeWidth={2.6} /> {etiqueta}
+      </span>
+      <span className="mt-0.5 block font-mono text-3xl font-bold" style={{ color }}>
+        <NumeroAnimado valor={valor} />
+      </span>
+    </div>
+  );
+}
 
 /**
  * Planificador de rotación.
@@ -15,17 +35,21 @@ import { SelloGrupo } from './ui/Etiqueta.jsx';
  */
 export function Rotacion({ onAbrirProducto, productoInicial }) {
   const [id, setId] = useState(productoInicial?.id || '');
+  const [verTodas, setVerTodas] = useState(false);
 
   useEffect(() => {
     if (productoInicial?.id) setId(productoInicial.id);
   }, [productoInicial]);
 
+  useEffect(() => setVerTodas(false), [id]);
+
   const producto = useMemo(() => PRODUCTOS.find((p) => p.id === id) || null, [id]);
   const bloqueados = useMemo(() => mismosModoDeAccion(producto), [producto]);
   const alternativas = useMemo(() => alternativasDeRotacion(producto), [producto]);
+  const rotables = useMemo(() => PRODUCTOS.filter((p) => p.sistema), []);
 
-  const rotables = PRODUCTOS.filter((p) => p.sistema);
   const color = producto ? COLOR_CATEGORIA[producto.categoria] : COLORES.tinta;
+  const visibles = verTodas ? alternativas : alternativas.slice(0, VISIBLES_AL_INICIO);
 
   return (
     <div>
@@ -37,67 +61,77 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
         acción y lo que sirve para rotar.
       </p>
 
-      <select
-        value={id}
-        onChange={(e) => setId(e.target.value)}
-        className="mt-4 w-full rounded-xl border bg-white px-3 py-2.5 text-sm"
-        style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
-      >
-        <option value="">Selecciona el producto aplicado…</option>
-        {rotables.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.categoria} · {p.nombre} — {p.sistema} {p.grupo}
-          </option>
-        ))}
-      </select>
+      <div className="mt-4">
+        <SelectorProducto
+          valor={id}
+          onCambio={setId}
+          productos={rotables}
+          titulo="¿Qué acabas de aplicar?"
+          marcador="Selecciona el producto aplicado…"
+        />
+      </div>
 
       {!producto && (
-        <div className="mt-8 rounded-2xl border border-dashed p-8 text-center" style={{ borderColor: COLORES.borde }}>
-          <RotateCcw size={26} className="mx-auto" style={{ color: COLORES.borde }} />
-          <p className="mt-3 text-sm" style={{ color: COLORES.textoSuave }}>
-            Selecciona un producto para ver con qué puedes rotar sin repetir modo de acción.
-          </p>
-        </div>
+        <EstadoVacio
+          icono={RotateCcw}
+          titulo="Rota el sitio de acción, no la marca"
+          texto="Selecciona un producto para ver con qué puedes rotar sin repetir modo de acción."
+        />
       )}
 
       {producto && (
-        <>
+        <div key={producto.id} className="cc-entrada">
           {/* Resumen del producto aplicado */}
           <div
-            className="mt-5 rounded-lg p-4"
-            style={{ backgroundColor: `${color}0F`, border: `1px solid ${color}33` }}
+            className="mt-5 rounded-3xl bg-white p-4"
+            style={{ borderTop: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
           >
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
               Ya aplicaste
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <span className="text-base font-bold" style={{ color: COLORES.tinta }}>
-                {producto.nombre}
-              </span>
-              <SelloGrupo sistema={producto.sistema} grupo={producto.grupo} color={color} />
+            <div className="mt-2 flex items-center gap-3">
+              <Hexagono icono={ICONO_CATEGORIA[producto.categoria]} color={color} tamano={40} />
+              <div className="min-w-0">
+                <button
+                  onClick={() => onAbrirProducto(producto)}
+                  className="block text-left text-base font-bold leading-tight hover:underline"
+                  style={{ color: COLORES.tinta }}
+                >
+                  {producto.nombre}
+                </button>
+                <span className="mt-1 inline-block">
+                  <SelloGrupo sistema={producto.sistema} grupo={producto.grupo} color={color} />
+                </span>
+              </div>
             </div>
-            <p className="mt-2 text-sm" style={{ color: COLORES.tinta }}>
+            <p className="mt-3 text-sm" style={{ color: COLORES.tinta }}>
               Sitio de acción ocupado:{' '}
               <span className="font-mono font-semibold">
-                {gruposDeRotacion(producto).join(' y ')}
+                {producto.sistema} {gruposDeRotacion(producto).join(' y ')}
               </span>{' '}
               ({producto.familia}).
             </p>
+
+            <div className="mt-3 flex gap-2">
+              <Contador icono={Ban} valor={bloqueados.length} etiqueta="Repiten" color="#C2410C" fondo="#FDF3EE" />
+              <Contador icono={Check} valor={alternativas.length} etiqueta="Sirven" color={COLORES.verde} fondo={COLORES.verdeClaro} />
+            </div>
           </div>
 
           {/* Motivo del grupo */}
-          {fichasDeProducto(producto).map(({ codigo, ficha }) => (
-            ficha.rotacionMotivo && (
-              <div key={codigo} className="mt-3 rounded-lg border p-3" style={{ borderColor: COLORES.borde, backgroundColor: '#fff' }}>
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
-                  Por qué importa rotar el grupo {codigo}
-                </p>
-                <p className="mt-1.5 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
-                  {ficha.rotacionMotivo}
-                </p>
-              </div>
-            )
-          ))}
+          {fichasDeProducto(producto).map(
+            ({ codigo, ficha }) =>
+              ficha.rotacionMotivo && (
+                <div key={codigo} className="mt-3 rounded-2xl bg-white p-3" style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.06)' }}>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                    Por qué importa rotar el grupo {codigo}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                    {ficha.rotacionMotivo}
+                  </p>
+                </div>
+              )
+          )}
 
           {/* No rotar con */}
           <section className="mt-6">
@@ -113,12 +147,12 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
                 Ningún otro producto del portafolio usa este sitio de acción.
               </p>
             ) : (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="cc-escalonado mt-3 flex flex-wrap gap-2">
                 {bloqueados.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => onAbrirProducto(p)}
-                    className="rounded-lg border px-3 py-1.5 text-left text-xs transition hover:shadow-sm"
+                    className="cc-presionable rounded-xl border px-3 py-1.5 text-left text-xs"
                     style={{ borderColor: '#F0C9B4', backgroundColor: '#FDF3EE' }}
                   >
                     <span className="block font-semibold line-through" style={{ color: '#C2410C' }}>
@@ -141,13 +175,27 @@ export function Rotacion({ onAbrirProducto, productoInicial }) {
             <p className="mt-1 text-sm" style={{ color: COLORES.textoSuave }}>
               Ordenados por menor riesgo de resistencia primero.
             </p>
-            <div className="mt-3 space-y-3">
-              {alternativas.slice(0, 12).map((p) => (
+            <div className="cc-escalonado mt-3 space-y-3">
+              {visibles.map((p) => (
                 <TarjetaProducto key={p.id} producto={p} onAbrir={onAbrirProducto} />
               ))}
             </div>
+            {alternativas.length > VISIBLES_AL_INICIO && (
+              <button
+                onClick={() => setVerTodas(!verTodas)}
+                className="cc-presionable mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border bg-white py-3 text-sm font-semibold"
+                style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+              >
+                {verTodas ? 'Mostrar menos' : `Ver las ${alternativas.length} alternativas`}
+                <ChevronDown
+                  size={16}
+                  className="transition-transform duration-300"
+                  style={{ transform: verTodas ? 'rotate(180deg)' : 'none' }}
+                />
+              </button>
+            )}
           </section>
-        </>
+        </div>
       )}
     </div>
   );

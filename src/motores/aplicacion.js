@@ -129,12 +129,14 @@ export function formulacionDe(producto) {
   return { sigla: f, nombre: mapa[f] || f, ordenCarga: ordenCarga[f] || 4 };
 }
 
-/** Formatea a una cantidad legible en campo. */
+/**
+ * Formatea a una cantidad legible en campo, sin ceros sobrantes: "20 bombas"
+ * y no "20.0 bombas", "1.5 L" y no "1.50 L".
+ */
 export function formatear(valor, decimales = 2) {
   if (valor == null || Number.isNaN(valor)) return '—';
-  if (valor >= 100) return valor.toFixed(0);
-  if (valor >= 10) return valor.toFixed(1);
-  return valor.toFixed(decimales);
+  const d = valor >= 100 ? 0 : valor >= 10 ? Math.min(1, decimales) : decimales;
+  return String(Number(valor.toFixed(d)));
 }
 
 /** Convierte a la unidad más cómoda de leer: 0.35 L → "350 cc". */
@@ -143,4 +145,57 @@ export function unidadAmigable(valor, base) {
   if (base === 'L') return valor < 1 ? `${formatear(valor * 1000, 0)} cc` : `${formatear(valor)} L`;
   if (base === 'Kg') return valor < 1 ? `${formatear(valor * 1000, 0)} g` : `${formatear(valor)} Kg`;
   return formatear(valor);
+}
+
+/**
+ * Receta de la mezcla en texto plano, lista para mandar por WhatsApp al
+ * operario: condiciones del lote, cuánto va por bomba y en el lote completo,
+ * y en qué orden se carga el tanque. Devuelve null si no hay ninguna línea con
+ * producto y dosis válidos.
+ *
+ * @param {object} datos
+ * @param {Array<{producto: object, dosis: number|string, unidad: string}>} datos.lineas
+ */
+export function recetaDeMezcla({ area, volumenHa, capacidadBomba, lineas }) {
+  const calculadas = (lineas || [])
+    .filter((l) => l.producto)
+    .map((l) => ({
+      ...l,
+      calculo: calcularMezcla({ dosis: l.dosis, unidad: l.unidad, area, volumenHa, capacidadBomba }),
+      formulacion: formulacionDe(l.producto),
+    }))
+    .filter((l) => l.calculo);
+  if (calculadas.length === 0) return null;
+
+  const general = calculadas[0].calculo;
+  const ultima =
+    general.fraccionUltimaBomba > 0.01 ? ` (la última al ${Math.round(general.fraccionUltimaBomba * 100)}%)` : '';
+
+  const porBomba = calculadas.map(
+    (l, i) =>
+      `${i + 1}. ${l.producto.nombre}: ${unidadAmigable(l.calculo.productoPorBomba, l.calculo.base)} ` +
+      `(dosis ${l.dosis} ${UNIDADES[l.unidad]?.etiqueta || l.unidad})`
+  );
+  const total = calculadas.map(
+    (l, i) => `${i + 1}. ${l.producto.nombre}: ${unidadAmigable(l.calculo.productoTotal, l.calculo.base)}`
+  );
+  const orden = [...calculadas]
+    .sort((a, b) => (a.formulacion?.ordenCarga ?? 4) - (b.formulacion?.ordenCarga ?? 4))
+    .map((l) => (l.formulacion ? `${l.producto.nombre} (${l.formulacion.sigla})` : l.producto.nombre));
+
+  return [
+    'MEZCLA DE TANQUE',
+    `Lote: ${formatear(Number(area))} ha · ${formatear(Number(volumenHa), 0)} L de agua/ha · bomba de ${formatear(Number(capacidadBomba), 0)} L`,
+    `Agua total: ${formatear(general.aguaTotal, 0)} L · ${formatear(general.numeroBombas, 1)} bombas${ultima}`,
+    '',
+    'POR BOMBA',
+    ...porBomba,
+    '',
+    'PARA TODO EL LOTE',
+    ...total,
+    '',
+    `Orden de carga: agua a la mitad → ${orden.join(' → ')} → completar agua`,
+    'Prueba de compatibilidad en frasco antes de mezclar. Dosis según etiqueta ICA.',
+    '— Calculado con CiboCAMPO',
+  ].join('\n');
 }

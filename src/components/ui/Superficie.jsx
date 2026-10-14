@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { COLORES } from '../../data/taxonomia.js';
 
 /**
@@ -27,23 +27,45 @@ export function Hexagono({ icono: Icono, color = COLORES.azul, tamano = 56, rell
 }
 
 /**
+ * Logotipo: el hexágono de las líneas con un brote. Es el mismo dibujo del
+ * icono de la app instalada en el teléfono.
+ */
+export function Logotipo({ tamano = 34, animado = false }) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      width={tamano}
+      height={tamano}
+      aria-hidden="true"
+      className={animado ? 'cc-brote' : undefined}
+    >
+      <polygon points="50,3 93,27 93,73 50,97 7,73 7,27" fill="#fff" />
+      <path d="M50 80 V50" stroke="#4E8A31" strokeWidth="7" strokeLinecap="round" />
+      <path d="M50 54 C49 38 38 29 22 30 C22 46 33 55 50 54 Z" fill="#5C9A3D" />
+      <path d="M50 48 C51 32 63 23 79 24 C79 40 67 49 50 48 Z" fill="#8CC152" />
+      <circle cx="50" cy="80" r="4" fill="#E8722C" />
+    </svg>
+  );
+}
+
+/**
  * Fila de menú al estilo del portafolio: panel de color con el hexágono a la
  * izquierda, texto al centro y flecha a la derecha.
  */
-export function FilaMenu({ icono, color, fondo, titulo, descripcion, onClick, insignia }) {
+export function FilaMenu({ icono, color, fondo, titulo, descripcion, onClick, insignia, contador }) {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-stretch overflow-hidden rounded-2xl bg-white text-left shadow-sm transition active:scale-[0.99]"
+      className="cc-presionable group flex w-full items-stretch overflow-hidden rounded-2xl bg-white text-left"
       style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
     >
       <span
-        className="flex w-24 shrink-0 items-center justify-center py-6 sm:w-28"
+        className="flex w-20 shrink-0 items-center justify-center py-5 sm:w-24"
         style={{ backgroundColor: fondo }}
       >
-        <Hexagono icono={icono} color={color} tamano={52} />
+        <Hexagono icono={icono} color={color} tamano={48} />
       </span>
-      <span className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-5">
+      <span className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-4">
         <span className="min-w-0">
           <span className="block text-base font-bold leading-tight" style={{ color: COLORES.tinta }}>
             {titulo}
@@ -53,9 +75,24 @@ export function FilaMenu({ icono, color, fondo, titulo, descripcion, onClick, in
               {descripcion}
             </span>
           )}
-          {insignia && <span className="mt-2 inline-block">{insignia}</span>}
+          {(insignia || contador != null) && (
+            <span className="mt-2 flex flex-wrap items-center gap-2">
+              {insignia}
+              {contador != null && (
+                <span className="text-[11px] font-semibold" style={{ color: COLORES.textoSuave }}>
+                  {contador}
+                </span>
+              )}
+            </span>
+          )}
         </span>
-        <svg width="10" height="18" viewBox="0 0 10 18" fill="none" className="shrink-0">
+        <svg
+          width="10"
+          height="18"
+          viewBox="0 0 10 18"
+          fill="none"
+          className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+        >
           <path d="M1 1l8 8-8 8" stroke={COLORES.borde} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
@@ -63,27 +100,59 @@ export function FilaMenu({ icono, color, fondo, titulo, descripcion, onClick, in
   );
 }
 
-/** Control segmentado en píldora, como el selector Productos / Datos de interés. */
-export function Segmentado({ opciones, valor, onCambio, sobreOscuro = false }) {
+/**
+ * Control segmentado en píldora. La pieza blanca se desliza hasta la opción
+ * escogida, así se ve de dónde a dónde cambió la vista. La variante vertical
+ * pone el icono sobre el texto, para cuatro opciones o más en un teléfono.
+ */
+export function Segmentado({ opciones, valor, onCambio, sobreOscuro = false, vertical = false }) {
+  const indice = Math.max(0, opciones.findIndex((o) => o.id === valor));
+  const redondeo = vertical ? 'rounded-2xl' : 'rounded-full';
   return (
     <div
-      className="flex rounded-full p-1"
+      className={`relative flex p-1 ${redondeo}`}
+      role="tablist"
       style={{ backgroundColor: sobreOscuro ? 'rgba(255,255,255,0.18)' : '#E6EDF2' }}
     >
+      <span
+        aria-hidden="true"
+        className={`cc-deslizar absolute bottom-1 left-1 top-1 bg-white ${vertical ? 'rounded-xl' : 'rounded-full'}`}
+        style={{
+          width: `calc((100% - 8px) / ${opciones.length})`,
+          transform: `translateX(${indice * 100}%)`,
+          boxShadow: '0 1px 3px rgba(11,36,49,0.14)',
+        }}
+      />
       {opciones.map((o) => {
         const activo = valor === o.id;
+        const Icono = o.icono;
         return (
           <button
             key={o.id}
+            role="tab"
+            aria-selected={activo}
             onClick={() => onCambio(o.id)}
-            className="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition"
+            className={`relative z-10 flex flex-1 items-center justify-center font-semibold transition-colors ${
+              vertical
+                ? 'flex-col gap-0.5 rounded-xl px-1 py-1.5 text-[11px]'
+                : 'gap-1.5 rounded-full px-2 py-2 text-sm'
+            }`}
             style={{
-              backgroundColor: activo ? '#fff' : 'transparent',
-              color: activo ? COLORES.tinta : sobreOscuro ? 'rgba(255,255,255,0.85)' : COLORES.textoSuave,
-              boxShadow: activo ? '0 1px 3px rgba(11,36,49,0.12)' : 'none',
+              color: activo
+                ? vertical
+                  ? COLORES.azul
+                  : COLORES.tinta
+                : sobreOscuro
+                ? 'rgba(255,255,255,0.85)'
+                : COLORES.textoSuave,
             }}
           >
-            {o.label}
+            {Icono && (
+              <span key={activo ? 'activo' : 'inactivo'} className={activo ? 'cc-pop' : undefined}>
+                <Icono size={vertical ? 18 : 15} strokeWidth={activo ? 2.4 : 2} />
+              </span>
+            )}
+            <span className="truncate">{o.label}</span>
           </button>
         );
       })}
@@ -91,18 +160,88 @@ export function Segmentado({ opciones, valor, onCambio, sobreOscuro = false }) {
   );
 }
 
-/** Barra de navegación inferior flotante. */
-export function BarraInferior({ pestanas, activa, onCambio }) {
+/** Ficha de filtro en píldora, con icono y conteo opcionales. */
+export function Chip({ label, icono: Icono, activo, onClick, color = COLORES.tinta, cuenta }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 pt-2">
+    <button
+      onClick={onClick}
+      aria-pressed={activo}
+      className="cc-presionable flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold"
+      style={{
+        borderColor: activo ? color : COLORES.borde,
+        backgroundColor: activo ? color : '#fff',
+        color: activo ? '#fff' : COLORES.textoSuave,
+        boxShadow: activo ? `0 2px 8px ${color}40` : 'none',
+      }}
+    >
+      {Icono && <Icono size={13} strokeWidth={2.2} />}
+      {label}
+      {cuenta != null && (
+        <span
+          className="cc-num rounded-full px-1.5 text-[10px] leading-4"
+          style={{
+            backgroundColor: activo ? 'rgba(255,255,255,0.25)' : COLORES.grisClaro,
+            color: activo ? '#fff' : COLORES.textoSuave,
+          }}
+        >
+          {cuenta}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** Estado vacío con icono flotante: dice qué falta y cómo seguir. */
+export function EstadoVacio({ icono: Icono, titulo, texto, accion, color = COLORES.azul }) {
+  return (
+    <div
+      className="cc-entrada mt-6 flex flex-col items-center rounded-3xl border border-dashed px-6 py-9 text-center"
+      style={{ borderColor: COLORES.borde, backgroundColor: '#ffffff99' }}
+    >
+      <span
+        className="cc-flotar flex h-16 w-16 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${color}14` }}
+      >
+        <Icono size={28} style={{ color }} strokeWidth={1.8} />
+      </span>
+      {titulo && (
+        <p className="mt-4 text-base font-bold" style={{ color: COLORES.tinta }}>
+          {titulo}
+        </p>
+      )}
+      {texto && (
+        <p className="mt-1.5 max-w-xs text-sm leading-relaxed" style={{ color: COLORES.textoSuave }}>
+          {texto}
+        </p>
+      )}
+      {accion && <div className="mt-4">{accion}</div>}
+    </div>
+  );
+}
+
+/** Barra de navegación inferior flotante, con indicador que se desliza. */
+export function BarraInferior({ pestanas, activa, onCambio }) {
+  const indice = Math.max(0, pestanas.findIndex((p) => p.id === activa));
+  return (
+    <nav className="cc-abajo-seguro pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pt-2" aria-label="Secciones">
       <div
-        className="mx-auto flex max-w-md items-center justify-around rounded-full p-1.5"
+        className="pointer-events-auto relative mx-auto flex max-w-md items-center rounded-full p-1.5"
         style={{
-          backgroundColor: '#E6EDF2',
-          boxShadow: '0 4px 16px rgba(11,36,49,0.14)',
-          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(230,237,242,0.92)',
+          boxShadow: '0 6px 24px rgba(11,36,49,0.18)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
         }}
       >
+        <span
+          aria-hidden="true"
+          className="cc-deslizar absolute bottom-1.5 left-1.5 top-1.5 rounded-full bg-white"
+          style={{
+            width: `calc((100% - 12px) / ${pestanas.length})`,
+            transform: `translateX(${indice * 100}%)`,
+            boxShadow: '0 2px 6px rgba(11,36,49,0.12)',
+          }}
+        />
         {pestanas.map((p) => {
           const Icono = p.icono;
           const activo = activa === p.id;
@@ -112,12 +251,17 @@ export function BarraInferior({ pestanas, activa, onCambio }) {
               onClick={() => onCambio(p.id)}
               aria-label={p.label}
               aria-current={activo ? 'page' : undefined}
-              className="flex flex-1 flex-col items-center justify-center rounded-full py-2 transition"
-              style={{ backgroundColor: activo ? '#fff' : 'transparent' }}
+              className="relative z-10 flex flex-1 flex-col items-center justify-center rounded-full py-2"
             >
-              <Icono size={20} strokeWidth={activo ? 2.4 : 1.9} color={activo ? COLORES.azul : '#8FA3B0'} />
+              <span key={activo ? 'activo' : 'inactivo'} className={activo ? 'cc-pop' : undefined}>
+                <Icono
+                  size={21}
+                  strokeWidth={activo ? 2.4 : 1.9}
+                  color={activo ? COLORES.azul : '#8FA3B0'}
+                />
+              </span>
               <span
-                className="mt-0.5 text-[10px] font-semibold leading-none"
+                className="mt-0.5 text-[10px] font-semibold leading-none transition-colors"
                 style={{ color: activo ? COLORES.azul : '#8FA3B0' }}
               >
                 {p.label}
@@ -130,24 +274,69 @@ export function BarraInferior({ pestanas, activa, onCambio }) {
   );
 }
 
-/** Encabezado azul con el logotipo y, opcionalmente, un control segmentado. */
-export function Encabezado({ titulo, subtitulo, children }) {
+/**
+ * Encabezado fijo y compacto: logotipo, nombre de la sección y acciones
+ * rápidas (buscar, favoritos). Toma sombra al desplazarse para separarse del
+ * contenido.
+ */
+export function Encabezado({ titulo, acciones, children }) {
+  const [conSombra, setConSombra] = useState(false);
+
+  useEffect(() => {
+    const alDesplazar = () => setConSombra(window.scrollY > 4);
+    alDesplazar();
+    window.addEventListener('scroll', alDesplazar, { passive: true });
+    return () => window.removeEventListener('scroll', alDesplazar);
+  }, []);
+
   return (
-    <header style={{ backgroundColor: COLORES.azul }}>
-      <div className="mx-auto max-w-3xl px-4 pb-4 pt-5 text-center">
-        <p className="text-2xl font-extrabold tracking-tight text-white">
-          Cibo<span className="font-light">CAMPO</span>
-          <span className="ml-0.5 align-super text-xs">🌱</span>
-        </p>
-        {titulo && <p className="mt-1 text-lg font-bold text-white">{titulo}</p>}
-        {subtitulo && (
-          <p className="mt-0.5 text-xs" style={{ color: 'rgba(255,255,255,0.75)' }}>
-            {subtitulo}
+    <header
+      className="cc-arriba-seguro sticky top-0 z-30 transition-shadow duration-300"
+      style={{
+        background: `linear-gradient(135deg, ${COLORES.azul} 0%, #1F6FA5 100%)`,
+        boxShadow: conSombra ? '0 4px 18px rgba(11,36,49,0.22)' : 'none',
+      }}
+    >
+      <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
+        <Logotipo tamano={36} animado />
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="text-[15px] font-extrabold tracking-tight text-white">
+            Cibo<span className="font-light">CAMPO</span>
           </p>
-        )}
-        {children && <div className="mt-3">{children}</div>}
+          {titulo && (
+            <p key={titulo} className="cc-entrada truncate text-xs font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              {titulo}
+            </p>
+          )}
+        </div>
+        {acciones && <div className="flex shrink-0 items-center gap-1.5">{acciones}</div>}
       </div>
+      {children && <div className="mx-auto max-w-3xl px-4 pb-3">{children}</div>}
     </header>
+  );
+}
+
+/** Botón redondo traslúcido para las acciones del encabezado. */
+export function BotonEncabezado({ icono: Icono, etiqueta, onClick, contador }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={etiqueta}
+      title={etiqueta}
+      className="cc-presionable relative flex h-10 w-10 items-center justify-center rounded-full"
+      style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}
+    >
+      <Icono size={19} color="#fff" strokeWidth={2.2} />
+      {contador > 0 && (
+        <span
+          key={contador}
+          className="cc-pop cc-num absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+          style={{ backgroundColor: COLORES.naranja, boxShadow: '0 0 0 2px #2179B0' }}
+        >
+          {contador}
+        </span>
+      )}
+    </button>
   );
 }
 

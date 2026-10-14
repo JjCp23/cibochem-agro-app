@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { X, Plus, AlertTriangle, Check, Minus } from 'lucide-react';
+import { X, AlertTriangle, Check, Minus, Scale } from 'lucide-react';
 import { PRODUCTOS } from '../data/productos.js';
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA, COLOR_RIESGO } from '../data/taxonomia.js';
 import { TRANSLOCACION, ESTADIOS, fichasDeProducto } from '../data/gruposMoA.js';
 import { compartenModoDeAccion, explicarConflicto, estadiosDeProducto } from '../motores/index.js';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
+import { SelectorProducto } from './ui/SelectorProducto.jsx';
+import { EstadoVacio } from './ui/Superficie.jsx';
 
 const MAXIMO = 3;
 
@@ -128,33 +130,27 @@ export function Comparador({ onAbrirProducto }) {
 
       {/* Selector */}
       {ids.length < MAXIMO && (
-        <select
-          value=""
-          onChange={(e) => agregar(e.target.value)}
-          className="mt-4 w-full rounded-xl border bg-white px-3 py-2.5 text-sm"
-          style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
-        >
-          <option value="">
-            {ids.length === 0 ? 'Escoge el primer producto…' : 'Agregar otro para comparar…'}
-          </option>
-          {disponibles.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.categoria} · {p.nombre}
-            </option>
-          ))}
-        </select>
+        <div className="mt-4">
+          <SelectorProducto
+            valor=""
+            onCambio={agregar}
+            productos={disponibles}
+            titulo={ids.length === 0 ? 'Primer producto a comparar' : 'Agregar a la comparación'}
+            marcador={
+              ids.length === 0
+                ? 'Escoge el primer producto…'
+                : `Agregar otro ${categoriaFijada?.toLowerCase() || 'producto'} (${ids.length}/${MAXIMO})…`
+            }
+          />
+        </div>
       )}
 
       {elegidos.length === 0 && (
-        <div
-          className="mt-6 rounded-2xl border border-dashed p-8 text-center"
-          style={{ borderColor: COLORES.borde }}
-        >
-          <Plus size={26} className="mx-auto" style={{ color: COLORES.borde }} />
-          <p className="mt-3 text-sm" style={{ color: COLORES.textoSuave }}>
-            Escoge dos o tres productos para verlos enfrentados.
-          </p>
-        </div>
+        <EstadoVacio
+          icono={Scale}
+          titulo="Pon dos o tres productos frente a frente"
+          texto="Cuando varios productos sirven, aquí ves lado a lado lo que de verdad los diferencia."
+        />
       )}
 
       {elegidos.length > 0 && (
@@ -170,7 +166,7 @@ export function Comparador({ onAbrirProducto }) {
                     return (
                       <th key={p.id} className="p-1 align-top" style={{ width: `${70 / elegidos.length}%` }}>
                         <div
-                          className="relative rounded-xl p-3 text-left"
+                          className="cc-pop relative rounded-xl p-3 text-left"
                           style={{ backgroundColor: FONDO_CATEGORIA[p.categoria] }}
                         >
                           <button

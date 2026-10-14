@@ -1,30 +1,26 @@
 import React from 'react';
-import { Check, AlertTriangle, Bug, Sprout, Leaf, Droplets, Gauge } from 'lucide-react';
+import { Check, AlertTriangle, Bug, Star, ChevronRight } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
+import { FAVORITOS, useAlmacen } from '../estado/memoria.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
 import { Hexagono } from './ui/Superficie.jsx';
-
-const ICONO_CATEGORIA = {
-  Insecticida: Bug,
-  Herbicida: Sprout,
-  Fungicida: Leaf,
-  Bioestimulante: Droplets,
-  Regulador: Gauge,
-};
+import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
 
 /**
  * Tarjeta de producto. Se usa en resultados, catálogo y rotación, así que
  * muestra razones y alertas solo cuando el motor de búsqueda las entrega.
  */
 export function TarjetaProducto({ producto, onAbrir, orden }) {
+  const [favoritos] = useAlmacen(FAVORITOS);
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
   const fondo = FONDO_CATEGORIA[producto.categoria] || COLORES.azulClaro;
   const Icono = ICONO_CATEGORIA[producto.categoria] || Bug;
+  const esFavorito = favoritos.includes(producto.id);
 
   return (
     <button
       onClick={() => onAbrir(producto)}
-      className="flex w-full items-stretch overflow-hidden rounded-2xl bg-white text-left transition active:scale-[0.995]"
+      className="cc-presionable flex w-full items-stretch overflow-hidden rounded-2xl bg-white text-left"
       style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.09)' }}
     >
       {/* Panel de color con el hexágono de la línea */}
@@ -34,7 +30,7 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
       >
         <Hexagono icono={Icono} color={color} tamano={40} />
         {orden != null && (
-          <span className="font-mono text-[10px] font-bold" style={{ color }}>
+          <span className="cc-num font-mono text-[10px] font-bold" style={{ color }}>
             {String(orden).padStart(2, '0')}
           </span>
         )}
@@ -45,6 +41,9 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
           <span className="text-[15px] font-bold leading-tight" style={{ color: COLORES.tinta }}>
             {producto.nombre}
           </span>
+          {esFavorito && (
+            <Star size={14} className="cc-pop shrink-0" fill="#F5A524" color="#F5A524" aria-label="Favorito" />
+          )}
           {producto.estado !== 'Disponible' && (
             <Etiqueta
               texto={producto.estado}
@@ -83,6 +82,10 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
             ))}
           </span>
         )}
+      </span>
+
+      <span className="flex shrink-0 items-center pr-3">
+        <ChevronRight size={18} style={{ color: COLORES.borde }} />
       </span>
     </button>
   );

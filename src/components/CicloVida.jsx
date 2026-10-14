@@ -6,6 +6,7 @@ import { estadiosDeProducto } from '../motores/index.js';
 import { COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
 import { IlustracionCicloVida } from './ui/Ilustraciones.jsx';
+import { Chip } from './ui/Superficie.jsx';
 
 /**
  * Matriz de ciclo de vida.
@@ -49,31 +50,16 @@ export function CicloVida({ onAbrirProducto, onVolver }) {
       <IlustracionCicloVida />
 
       {/* Filtro por estadio */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          onClick={() => setFiltro(null)}
-          className="rounded-full border px-3 py-1.5 text-xs font-semibold transition"
-          style={{
-            borderColor: !filtro ? COLORES.tinta : COLORES.borde,
-            backgroundColor: !filtro ? COLORES.tinta : '#fff',
-            color: !filtro ? '#fff' : COLORES.textoSuave,
-          }}
-        >
-          Todos
-        </button>
+      <div className="cc-sin-barra -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        <Chip label="Todos" activo={!filtro} onClick={() => setFiltro(null)} />
         {ESTADIOS.map((e) => (
-          <button
+          <Chip
             key={e.id}
+            label={e.nombre}
+            color={color}
+            activo={filtro === e.id}
             onClick={() => setFiltro(filtro === e.id ? null : e.id)}
-            className="rounded-full border px-3 py-1.5 text-xs font-semibold transition"
-            style={{
-              borderColor: filtro === e.id ? color : COLORES.borde,
-              backgroundColor: filtro === e.id ? color : '#fff',
-              color: filtro === e.id ? '#fff' : COLORES.textoSuave,
-            }}
-          >
-            {e.nombre}
-          </button>
+          />
         ))}
       </div>
 
@@ -86,12 +72,12 @@ export function CicloVida({ onAbrirProducto, onVolver }) {
       )}
 
       {/* Matriz */}
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 overflow-x-auto rounded-2xl bg-white" style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}>
         <table className="w-full min-w-[36rem] border-collapse text-sm">
           <thead>
             <tr>
               <th
-                className="sticky left-0 bg-white p-2 text-left text-xs font-bold uppercase tracking-wide"
+                className="sticky left-0 z-10 bg-white p-2 text-left text-xs font-bold uppercase tracking-wide"
                 style={{ color: COLORES.textoSuave }}
               >
                 Producto
@@ -115,7 +101,10 @@ export function CicloVida({ onAbrirProducto, onVolver }) {
                 onClick={() => onAbrirProducto(producto)}
                 style={{ backgroundColor: i % 2 ? '#FAFCFD' : '#fff' }}
               >
-                <td className="p-2" style={{ borderTop: `1px solid ${COLORES.borde}` }}>
+                <td
+                  className="sticky left-0 z-10 p-2"
+                  style={{ borderTop: `1px solid ${COLORES.borde}`, backgroundColor: i % 2 ? '#FAFCFD' : '#fff' }}
+                >
                   <span className="block font-semibold" style={{ color: COLORES.tinta }}>
                     {producto.nombre}
                   </span>
@@ -133,7 +122,7 @@ export function CicloVida({ onAbrirProducto, onVolver }) {
                     >
                       {activo ? (
                         <span
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                          className="cc-pop inline-flex h-6 w-6 items-center justify-center rounded-full"
                           style={{ backgroundColor: `${color}1F` }}
                         >
                           <Check size={13} style={{ color }} />
