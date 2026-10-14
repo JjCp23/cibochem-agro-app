@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [Sin publicar]
+
+### Agregado
+- **Guía de campo con grupos químicos** (`docs/Portafolio_Cibochem_en_Campo.html`).
+  Ubica cada producto en su grupo químico y sitio de acción IRAC/FRAC/HRAC,
+  ordenados por modo de acción y con las moléculas y marcas de cada grupo. Cada
+  tarjeta dice cuándo recomendar y cuándo no. Trae además un verificador
+  "¿Se cruzan?" que acepta productos del portafolio o moléculas de otras casas,
+  y la ficha de cada producto muestra con qué se cruza y hacia qué grupos rotar.
+
 ## [1.4.1]
 
 ### Corregido
