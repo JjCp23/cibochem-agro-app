@@ -33,6 +33,9 @@ import {
   calcularCalibracion,
   unidadesSugeridas,
   UNIDADES,
+  ORDEN_TANQUE,
+  formulacionDe,
+  analizarFormulaciones,
 } from '../src/motores/aplicacion.js';
 
 let fallos = 0;
@@ -245,6 +248,28 @@ PRODUCTOS.forEach((p) => {
   check(u.length > 0, `${p.nombre}: sin unidades sugeridas`);
   u.forEach((x) => check(UNIDADES[x], `${p.nombre}: unidad inválida "${x}"`));
 });
+
+// ────────────────────────────────────────────────────────────
+seccion('Orden de carga del tanque');
+// La caneca de la pestaña "Orden de carga" se llena con estos niveles: nunca
+// pueden bajar de un paso al siguiente y el último deja la caneca llena.
+ORDEN_TANQUE.forEach((p, i) => {
+  check(p.paso === i + 1, `el paso ${p.paso} está fuera de orden`);
+  check(p.nivel > 0 && p.nivel <= 1, `paso ${p.paso}: nivel fuera de rango`);
+  if (i > 0) check(p.nivel >= ORDEN_TANQUE[i - 1].nivel, `paso ${p.paso}: el nivel baja respecto al anterior`);
+});
+check(ORDEN_TANQUE[ORDEN_TANQUE.length - 1].nivel === 1, 'el último paso debe dejar la caneca llena');
+const wg = formulacionDe({ nombre: 'PRUEBA 80 WG' });
+const ec = formulacionDe({ nombre: 'PRUEBA 20 EC' });
+check(wg && ec && wg.ordenCarga < ec.ordenCarga, 'un granulado dispersable (WG) entra antes que un emulsionable (EC)');
+check(
+  analizarFormulaciones([{ nombre: 'A WG' }, { nombre: 'B SC' }, { nombre: 'C EC' }]).riesgo,
+  'tres formulaciones distintas en el tanque deben marcar riesgo de incompatibilidad'
+);
+check(
+  !analizarFormulaciones([{ nombre: 'A EC' }, { nombre: 'B EC' }]).riesgo,
+  'dos productos de la misma formulación no son riesgo por formulación'
+);
 
 // ────────────────────────────────────────────────────────────
 seccion('Contenido de referencia');
