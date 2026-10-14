@@ -6,8 +6,8 @@
  *   node scripts/generar-artefacto.mjs
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, AlertTriangle, ArrowLeft, Ban, Beaker, Bug, Calculator, Check, ChevronDown, Compass, Droplets, FileText, Gauge, GraduationCap, Info, LayoutList, Leaf, Lightbulb, ListOrdered, Minus, Move, Plus, RotateCcw, Ruler, Search, SearchX, ShieldAlert, ShieldCheck, SprayCan, Sprout, Stethoscope, Target, Trash2, X } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Activity, AlertTriangle, ArrowLeft, Ban, Beaker, Bug, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, CircleCheck, Compass, Download, Droplet, Droplets, FileText, FlaskConical, Gauge, GraduationCap, Info, LayoutList, Leaf, Lightbulb, ListOrdered, Minus, Move, OctagonAlert, Package, Plus, RefreshCw, RotateCcw, Ruler, Search, SearchX, ShieldAlert, ShieldCheck, Sparkles, SprayCan, Sprout, Stethoscope, Sun, Target, Trash2, WifiOff, X } from 'lucide-react';
 
 // ══════════════════════════════════════════════════════════════════
 // src/data/productos.js
@@ -3168,37 +3168,258 @@ function calcularCalibracion({ gastoLitros, anchoFranja, distancia }) {
 }
 
 /**
+ * Capacidad de la caneca de referencia con la que se explica el orden de
+ * carga. Los litros de cada paso están pensados sobre esta caneca.
+ */
+const CAPACIDAD_CANECA = 200;
+
+/**
  * Orden recomendado de carga del tanque.
  * El orden correcto evita grumos, floculación y boquillas tapadas.
+ *
+ * Cada paso dice qué hacer (que, detalle), por qué (porque), qué
+ * formulaciones entran en él (siglas), a qué familia pertenece (categoria) y
+ * hasta dónde llega el agua en la caneca de referencia al terminarlo
+ * (litros). Con eso la caneca de la pestaña "Orden de carga" sube de nivel
+ * paso a paso.
  */
-const ORDEN_TANQUE = [
-  { paso: 1, que: 'Agua', detalle: 'Llenar la mitad del tanque con el agitador funcionando.' },
-  { paso: 2, que: 'Acondicionador de agua', detalle: 'Corregir pH o dureza antes de agregar cualquier producto.' },
-  { paso: 3, que: 'Polvos y granulados (WP, WG, SG)', detalle: 'Prediluir aparte en un balde y verter lentamente.' },
-  { paso: 4, que: 'Suspensiones (SC, SL)', detalle: 'Agregar con el agitador andando.' },
-  { paso: 5, que: 'Emulsionables (EC)', detalle: 'Van casi al final porque pueden romper suspensiones.' },
-  { paso: 6, que: 'Coadyuvantes y aceites', detalle: 'Siempre de últimos, con el tanque casi lleno.' },
-  { paso: 7, que: 'Completar agua', detalle: 'Terminar de llenar y mantener la agitación hasta terminar de aplicar.' },
+const PASOS_CARGA = [
+  {
+    paso: 1,
+    que: 'Agua hasta el 70%',
+    detalle: 'Llenar la caneca hasta unos 140 L con el agitador ya funcionando.',
+    porque:
+      'Empezar con agua en movimiento evita que el primer producto que cae quede concentrado en el fondo sin diluir, que es la forma más común de generar el primer grumo. Se arranca al 70% para tener sitio de sobra: los productos suman poco volumen y el resto se completa con agua al final.',
+    siglas: [],
+    categoria: 'agua',
+    litros: 140,
+  },
+  {
+    paso: 2,
+    que: 'Acondicionador de agua: dureza y pH',
+    detalle: 'Corregir dureza y pH antes de agregar cualquier producto.',
+    porque:
+      'El agua dura (con calcio y magnesio disueltos) se une a moléculas de varios herbicidas —el caso más conocido es el glifosato— y baja su absorción por la planta. Un pH alto, por su parte, acelera la hidrólisis de insecticidas organofosforados y carbamatos: el ingrediente activo empieza a degradarse dentro del propio tanque antes de salir por la boquilla. Corregir esto primero evita perder eficacia sin que se note a simple vista.',
+    siglas: [],
+    categoria: 'acondicionador',
+    litros: 140.2,
+  },
+  {
+    paso: 3,
+    que: 'Antiespumante, si hace falta',
+    detalle: 'Un chorrito antes de los sólidos si el agua tiende a hacer espuma.',
+    porque:
+      'La agitación con productos que ya traen tensioactivos genera espuma. Si el tanque se llena de espuma, la bomba empieza a mover aire en vez de mezcla, el volumen real por hectárea deja de coincidir con el calculado y llenar el tanque se vuelve lento.',
+    siglas: [],
+    categoria: 'acondicionador',
+    litros: 140.3,
+  },
+  {
+    paso: 4,
+    que: 'Bolsas hidrosolubles (WSB)',
+    detalle: 'Echarlas enteras y esperar a que se disuelvan por completo.',
+    porque:
+      'La película de la bolsa necesita agua limpia y agitación para disolverse. Si entran cuando el caldo ya tiene sales, aceites o coadyuvantes, la película no abre bien y quedan restos de plástico y producto sin dispersar.',
+    siglas: ['WSB', 'WSP'],
+    categoria: 'solido',
+    litros: 140.7,
+  },
+  {
+    paso: 5,
+    que: 'Granulados dispersables (WG, WDG, DF)',
+    detalle: 'Prediluir en un balde aparte y verter lentamente, colando.',
+    porque:
+      'Están diseñados para dispersarse en agua abundante y limpia. Si caen secos sobre un caldo cargado se aglomeran en grumos que después tapan boquillas o quedan sin aplicar en el fondo.',
+    siglas: ['WG', 'WDG', 'DF'],
+    categoria: 'solido',
+    litros: 141.2,
+  },
+  {
+    paso: 6,
+    que: 'Polvos mojables (WP)',
+    detalle: 'También prediluidos en balde, nunca secos al tanque.',
+    porque:
+      'Son los más propensos a formar grumos porque su partícula no se disuelve, solo queda suspendida. Necesitan agua en movimiento y espacio para hidratarse antes de que entren los productos que aumentan la carga del caldo.',
+    siglas: ['WP'],
+    categoria: 'solido',
+    litros: 141.7,
+  },
+  {
+    paso: 7,
+    que: 'Granulados y polvos solubles (SG, SP)',
+    detalle: 'Agregar directo con el agitador andando.',
+    porque:
+      'Se disuelven de verdad en el agua, no quedan en suspensión, así que toleran entrar después de los que sí necesitan dispersarse. Aun así van antes que los líquidos para no competir con ellos por el agua disponible.',
+    siglas: ['SG', 'SP', 'TB'],
+    categoria: 'solido',
+    litros: 142.1,
+  },
+  {
+    paso: 8,
+    que: 'Suspensiones concentradas (SC, SE, FL)',
+    detalle: 'Agitar bien el envase antes de verter.',
+    porque:
+      'Vienen estables de fábrica, pero su estabilidad depende de que nada rompa la suspensión. Entran después de los sólidos para no competir con su dispersión y antes de los emulsionables, cuyo surfactante puede desestabilizarlas.',
+    siglas: ['SC', 'SE', 'FL'],
+    categoria: 'liquido',
+    litros: 143.1,
+  },
+  {
+    paso: 9,
+    que: 'Concentrados solubles (SL)',
+    detalle: 'Verter con el agitador funcionando.',
+    porque:
+      'Ya vienen disueltos, así que se integran sin esfuerzo. Se ubican después de las suspensiones porque algunos traen sales que, en agua muy cargada, pueden hacer flocular las partículas que ya están suspendidas.',
+    siglas: ['SL'],
+    categoria: 'liquido',
+    litros: 144.3,
+  },
+  {
+    paso: 10,
+    que: 'Emulsiones y emulsionables (EW, EC)',
+    detalle: 'Casi al final: pueden romper lo que ya está suspendido.',
+    porque:
+      'Los concentrados emulsionables traen su propio agente emulsionante. Si entran antes que las suspensiones presentes en el tanque, ese emulsionante puede desestabilizar las partículas y causar separación o "cortes" visibles —capas, natas o grumos que ya no se recuperan agitando.',
+    siglas: ['EW', 'EC', 'CE'],
+    categoria: 'liquido',
+    litros: 145.3,
+  },
+  {
+    paso: 11,
+    que: 'Fertilizantes foliares y micronutrientes',
+    detalle: 'Después de los plaguicidas, nunca antes.',
+    porque:
+      'Son sales concentradas. Agregadas temprano suben la fuerza iónica del caldo y hacen flocular suspensiones y emulsiones ya formadas. Los micronutrientes metálicos (hierro, zinc, manganeso, cobre) además pueden quelatar moléculas de plaguicida y bajarles la actividad.',
+    siglas: [],
+    categoria: 'liquido',
+    litros: 147.3,
+  },
+  {
+    paso: 12,
+    que: 'Coadyuvantes: tensioactivos, aceites, antideriva',
+    detalle: 'Siempre de últimos, con el tanque casi lleno.',
+    porque:
+      'Van al final para no interferir con la disolución de lo anterior y porque su dosis se calcula sobre el volumen final, que solo se conoce con el tanque casi lleno. Entrar temprano hace que generen espuma durante toda la carga.',
+    siglas: [],
+    categoria: 'coadyuvante',
+    litros: 147.7,
+  },
+  {
+    paso: 13,
+    que: 'Completar agua y mantener la agitación',
+    detalle: 'Terminar de llenar y no parar el agitador hasta vaciar el tanque.',
+    porque:
+      'Detener la agitación —incluso en una pausa corta— permite que las partículas sólidas se sedimenten y que las emulsiones empiecen a separarse en capas. Lo que sale por la boquilla al reanudar ya no es la misma mezcla que se armó. Aplica el caldo el mismo día: guardado de un día para otro se degrada y se separa.',
+    siglas: [],
+    categoria: 'cierre',
+    litros: 200,
+  },
 ];
 
-/** Deduce el tipo de formulación desde el nombre comercial del producto. */
+/** Orden de carga con el nivel de la caneca (0 a 1) al terminar cada paso. */
+const ORDEN_TANQUE = PASOS_CARGA.map((p) => ({ ...p, nivel: p.litros / CAPACIDAD_CANECA }));
+
+/** Qué hace cada tipo de coadyuvante y cuándo se usa. */
+const COADYUVANTES = [
+  {
+    categoria: 'Tensioactivos / humectantes',
+    quePasa:
+      'Bajan la tensión superficial del agua para que la gota se extienda sobre la hoja en vez de escurrir, sobre todo en hojas cerosas o pubescentes donde el agua sola rueda sin mojar.',
+    cuando: 'Frecuente en post-emergentes de contacto y en aplicaciones foliares en general.',
+  },
+  {
+    categoria: 'Acidificantes / corrector de pH',
+    quePasa:
+      'Bajan el pH del agua de mezcla cuando sale alcalina de la fuente, para que los ingredientes activos sensibles a la hidrólisis no se degraden dentro del tanque.',
+    cuando: 'Se agregan en el paso 2, antes de cualquier otro producto.',
+  },
+  {
+    categoria: 'Acondicionadores de agua dura',
+    quePasa:
+      'Secuestran el calcio y el magnesio disueltos en el agua para que no se unan a moléculas aniónicas del herbicida —el glifosato es el caso más conocido— y le resten absorción.',
+    cuando: 'Se agregan en el paso 2, antes de cualquier otro producto, igual que el corrector de pH.',
+  },
+  {
+    categoria: 'Antiespumantes',
+    quePasa:
+      'Reducen la espuma que genera la agitación mecánica, más notoria con productos que ya traen tensioactivos fuertes. Espuma excesiva puede hacer que la bomba dosifique aire en vez de mezcla.',
+    cuando: 'Se agregan al final, junto con los demás coadyuvantes.',
+  },
+  {
+    categoria: 'Aceites agrícolas (minerales o vegetales)',
+    quePasa:
+      'Mejoran la penetración a través de la cutícula de la hoja y alargan el tiempo que la gota permanece húmeda sobre la superficie.',
+    cuando: 'Comunes con graminicidas post-emergentes y algunos insecticidas de contacto.',
+  },
+  {
+    categoria: 'Coadyuvantes antideriva',
+    quePasa:
+      'Modifican el tamaño de gota o forman una película que retarda la evaporación, reduciendo la deriva por viento sin cambiar la química del ingrediente activo.',
+    cuando: 'Útiles en aplicaciones con viento variable o boquillas que generan gota muy fina.',
+  },
+  {
+    categoria: 'Colorantes / marcadores',
+    quePasa:
+      'No tienen función agronómica: solo marcan visualmente por dónde ya pasó el aspersor, para evitar traslapes o franjas sin cubrir.',
+    cuando: 'Útiles en lotes grandes o irregulares donde es difícil ver el avance a simple vista.',
+  },
+];
+
+/** Nombre de cada formulación por su sigla en la etiqueta. */
+const NOMBRE_FORMULACION = {
+  WSB: 'Bolsa hidrosoluble',
+  WSP: 'Bolsa hidrosoluble',
+  WG: 'Granulado dispersable',
+  WDG: 'Granulado dispersable',
+  DF: 'Granulado dispersable',
+  WP: 'Polvo mojable',
+  SG: 'Granulado soluble',
+  SP: 'Polvo soluble',
+  TB: 'Tableta soluble',
+  SC: 'Suspensión concentrada',
+  SE: 'Suspoemulsión',
+  FL: 'Suspensión concentrada',
+  SL: 'Concentrado soluble',
+  EW: 'Emulsión aceite en agua',
+  EC: 'Concentrado emulsionable',
+  CE: 'Concentrado emulsionable',
+};
+
+/** Paso del orden de carga en el que entra cada sigla de formulación. */
+const PASO_POR_SIGLA = ORDEN_TANQUE.reduce((mapa, p) => {
+  p.siglas.forEach((sigla) => {
+    mapa[sigla] = p.paso;
+  });
+  return mapa;
+}, {});
+
+const SIGLAS = Object.keys(NOMBRE_FORMULACION).join('|');
+
+/**
+ * Deduce el tipo de formulación desde el nombre comercial del producto.
+ * ordenCarga es el número de paso de ORDEN_TANQUE en el que se agrega; si la
+ * sigla no aparece en ningún paso, se ubica con las suspensiones (paso 8).
+ */
 function formulacionDe(producto) {
-  const m = String(producto?.nombre || '').match(/\b(WG|WP|SG|SC|SL|EC|CE|WDG|TB)\b/i);
+  const m = String(producto?.nombre || '').match(new RegExp(`\\b(${SIGLAS})\\b`, 'i'));
   if (!m) return null;
   const f = m[1].toUpperCase();
-  const mapa = {
-    WG: 'Granulado dispersable',
-    WDG: 'Granulado dispersable',
-    SG: 'Granulado soluble',
-    WP: 'Polvo mojable',
-    SC: 'Suspensión concentrada',
-    SL: 'Concentrado soluble',
-    EC: 'Concentrado emulsionable',
-    CE: 'Concentrado emulsionable',
-    TB: 'Tableta soluble',
-  };
-  const ordenCarga = { WP: 3, WG: 3, WDG: 3, SG: 3, TB: 3, SC: 4, SL: 4, EC: 5, CE: 5 };
-  return { sigla: f, nombre: mapa[f] || f, ordenCarga: ordenCarga[f] || 4 };
+  return { sigla: f, nombre: NOMBRE_FORMULACION[f] || f, ordenCarga: PASO_POR_SIGLA[f] || 8 };
+}
+
+/**
+ * Cuántos tipos de formulación distintos entran en una mezcla. Desde tres
+ * tipos se considera riesgo de incompatibilidad: más pasos delicados en el
+ * orden de carga y más probabilidad de grumos o separación.
+ */
+function analizarFormulaciones(productos) {
+  const porSigla = new Map();
+  (productos || []).forEach((p) => {
+    const f = formulacionDe(p);
+    if (f && !porSigla.has(f.sigla)) porSigla.set(f.sigla, f);
+  });
+  const tipos = [...porSigla.values()];
+  return { tipos, distintas: tipos.length, riesgo: tipos.length >= 3 };
 }
 
 /** Formatea a una cantidad legible en campo. */
@@ -3271,6 +3492,23 @@ function SelloGrupo({ sistema, grupo, color = COLORES.tinta, tamano = 'md' }) {
 // ══════════════════════════════════════════════════════════════════
 // src/components/ui/Superficie.jsx
 // ══════════════════════════════════════════════════════════════════
+
+const CLAVE_MODO_CAMPO = 'cibochem-modo-campo';
+
+/**
+ * Modo campo: agranda toda la interfaz (texto y botones) para leer bajo el sol
+ * o tocar con guantes. Se aplica como una clase en <html> que sube el tamaño de
+ * letra base (ver index.css), así todo lo que está en rem crece en proporción.
+ * La preferencia se recuerda en el teléfono entre visitas.
+ */
+function useModoCampo() {
+  const [activo, setActivo] = useState(() => localStorage.getItem(CLAVE_MODO_CAMPO) === '1');
+  useEffect(() => {
+    document.documentElement.classList.toggle('modo-campo', activo);
+    localStorage.setItem(CLAVE_MODO_CAMPO, activo ? '1' : '0');
+  }, [activo]);
+  return [activo, setActivo];
+}
 
 /**
  * Insignia hexagonal, el elemento gráfico que identifica cada línea del
@@ -3401,10 +3639,30 @@ function BarraInferior({ pestanas, activa, onCambio }) {
   );
 }
 
-/** Encabezado azul con el logotipo y, opcionalmente, un control segmentado. */
+/**
+ * Encabezado azul con el logotipo y, opcionalmente, un control segmentado.
+ * El sol de la esquina activa el modo campo.
+ */
 function Encabezado({ titulo, subtitulo, children }) {
+  const [modoCampo, setModoCampo] = useModoCampo();
   return (
-    <header style={{ backgroundColor: COLORES.azul }}>
+    <header style={{ backgroundColor: COLORES.azul }} className="relative">
+      <button
+        onClick={() => setModoCampo((v) => !v)}
+        aria-pressed={modoCampo}
+        aria-label={
+          modoCampo
+            ? 'Desactivar modo campo (texto y botones grandes)'
+            : 'Activar modo campo: agranda texto y botones para leer bajo sol o tocar con guantes'
+        }
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full transition"
+        style={{
+          backgroundColor: modoCampo ? '#fff' : 'rgba(255,255,255,0.16)',
+          color: modoCampo ? COLORES.azul : '#fff',
+        }}
+      >
+        <Sun size={18} strokeWidth={2} />
+      </button>
       <div className="mx-auto max-w-3xl px-4 pb-4 pt-5 text-center">
         <p className="text-2xl font-extrabold tracking-tight text-white">
           Cibo<span className="font-light">CAMPO</span>
@@ -4038,6 +4296,1412 @@ const ILUSTRACIONES_POR_TEMA = {
 };
 
 // ══════════════════════════════════════════════════════════════════
+// src/components/ui/iconos/IconosInsectos.jsx
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Íconos de las plagas del diagnóstico: uno por objetivo de la rama de insectos.
+ *
+ * Misma interfaz que los íconos de lucide-react (size, color, strokeWidth,
+ * className), así el diagnóstico los pinta igual que cualquier otro ícono.
+ * Se dibujan en una retícula de 48 × 48 con el trazo en el color de la rama y
+ * rellenos translúcidos del mismo color, para que se lean bien a 30 px dentro
+ * de los botones de opción.
+ */
+
+/** Chupadores (mosca blanca, áfidos, escamas). */
+function IconoChupadores({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M2 34 C12 28 24 28.5 33 34 C39 37.7 43 42 45.5 46 L8 46 C6 42 3.5 38 2 34 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M3.5 35.5 C13 37.5 22 41 28 46" strokeWidth={strokeWidth * 0.75} />
+      <path
+        d="M11 23.5 C10.5 20 12.5 16.5 16 14.5 C21 11.6 26.5 13 27.8 17.5 C29 21.8 26 25.8 21 26.4 C16 27 11.6 26 11 23.5 Z"
+        fill={color}
+        fillOpacity={0.18}
+        strokeWidth={strokeWidth * 1.8}
+      />
+      <path d="M24.6 14.2 L25.4 8.6 M27.6 16.5 L29.6 11.4" strokeWidth={strokeWidth * 1.05} />
+      <path d="M15 26.4 L13.6 30 M20 26.9 L20 30.4 M24.3 25.6 L26.3 29.3" strokeWidth={strokeWidth * 0.85} />
+      <path d="M11.3 24.8 C10.6 27 10.4 29.2 10.8 32.6" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="12.9" cy="23.2" r="1" fill={color} stroke="none" />
+      <path
+        d="M38 6.5 C42.5 9 45.5 14.5 45 19.5 C42.5 22.5 38 23.2 38 23.2 C38 23.2 33.5 22.5 31 19.5 C30.5 14.5 33.5 9 38 6.5 Z"
+        fill={color}
+        fillOpacity={0.14}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M38 8.5 L38 22.8" strokeWidth={strokeWidth * 0.8} />
+      <path d="M36.9 5.6 L34 2.8 M39.1 5.6 L42 2.8" strokeWidth={strokeWidth * 0.85} />
+      <circle cx="38" cy="6.4" r="1.5" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Masticadores (comedores de follaje). */
+function IconoMasticadores({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  const contornoHoja =
+    'M23.5 44 C18 41.5 13.5 37 11 32 Q17 30.5 10 27.5 C8.8 22 10.5 13.5 16.5 8 C18.8 5.9 21 4.5 23.5 4 C29 5 33.5 9 36 14 Q27 17 36.5 20 C37 22 37.5 24 37.3 26 Q26.5 29.3 35 32.5 C33.5 36.5 29 41 23.5 44 Z';
+  const agujero = 'M16 20.5 C18.5 19 21 20 21.3 22.3 C21.6 24.8 19.5 26.3 17.3 25.5 C15.3 24.8 14.5 21.7 16 20.5 Z';
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d={`${contornoHoja} ${agujero}`} fill={color} fillOpacity={0.16} fillRule="evenodd" stroke="none" />
+      <path d={contornoHoja} strokeWidth={strokeWidth * 1.8} />
+      <path d={agujero} strokeWidth={strokeWidth * 1.05} />
+      <path d="M23.5 43 C22.9 33 22.8 18 23.5 5.5" strokeWidth={strokeWidth * 0.85} />
+      <path
+        d="M23.3 31 C26.8 29.4 30 27 32 24.5 M23.2 20.5 C26.5 18.8 29.8 16 31.8 13 M23.4 38 C21 36.6 18.5 34.8 16.8 32.8"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path d="M23.5 43.5 C23.6 45 23.7 45.8 23.8 46.5" strokeWidth={strokeWidth * 1.4} />
+      <circle cx="33.4" cy="17.4" r="0.85" fill={color} stroke="none" />
+      <circle cx="32.4" cy="30.1" r="0.75" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Larvas de lepidóptero (gusanos en general). */
+function IconoLepidopteros({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M3 40 C13 44.5 26 45 34 43 C39 41.8 43 40.5 45.5 39" strokeWidth={strokeWidth * 1.3} />
+      <path
+        d="M9 24.6 C11 19.6 17 17.6 23 17.9 C28 18.1 31.5 19.9 34 22.6 L34 29.6 C31.5 32.8 28 34.4 23 34.5 C17 34.6 11 33 9 30 A2.8 2.8 0 0 1 9 24.6 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.8}
+      />
+      <path
+        d="M14 20.2 C15.6 25 15.4 29.5 14 33.4 M19.5 18.6 C21 24 21 29 19.7 34.2 M25 18 C26.5 23.5 26.5 29 25.3 34.4 M30 19.2 C31.4 24 31.4 29 30.4 33.6"
+        strokeWidth={strokeWidth * 0.75}
+      />
+      <path d="M15.4 34.2 L15.1 38.2 M20.9 34.5 L20.7 38.6 M26.4 34.4 L26.3 38.4" strokeWidth={strokeWidth * 1.5} />
+      <path d="M13.9 39.2 L16.3 39.2 M19.4 39.6 L21.9 39.6 M25.1 39.4 L27.5 39.4" strokeWidth={strokeWidth * 0.7} />
+      <path d="M30.6 34 L30.1 37.4 M33.4 33.2 L33.6 36.6" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="38" cy="26" r="4.6" fill={color} fillOpacity={0.26} strokeWidth={strokeWidth * 1.7} />
+      <circle cx="39.4" cy="24.4" r="1" fill={color} stroke="none" />
+      <path d="M41.5 28.2 L44.2 29.2" strokeWidth={strokeWidth * 0.9} />
+    </svg>
+  );
+}
+
+/** Cogolleros (larva protegida en el cogollo). */
+function IconoCogolleros({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M21.5 37 C15 30 9.5 22.5 3.5 16 C6 25.5 11 34 18 41.5 Z"
+        fill={color}
+        fillOpacity={0.14}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path
+        d="M26.5 37 C33 30 38.5 22.5 44.5 16 C42 25.5 37 34 30 41.5 Z"
+        fill={color}
+        fillOpacity={0.14}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path
+        d="M17 16 C19 27 21 36 22.5 45 L25.5 45 C27 36 29 27 31 16"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.7}
+      />
+      <path
+        d="M20 19.5 C21.5 28.5 22.7 36.5 23.6 45 M28 19.5 C26.5 28.5 25.3 36.5 24.4 45"
+        strokeWidth={strokeWidth * 0.8}
+      />
+      <path d="M21.8 20 C21 16.5 23.3 14 25.8 15.3 C27.8 16.4 27.4 19.4 25.2 19.9" strokeWidth={strokeWidth * 1.2} />
+      <circle cx="15.3" cy="35" r="1.3" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="12.8" cy="31" r="1.3" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="9.9" cy="26.3" r="1.2" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="23" cy="25" r="0.9" fill={color} stroke="none" />
+      <circle cx="25.2" cy="28" r="0.85" fill={color} stroke="none" />
+      <circle cx="22.8" cy="31" r="0.8" fill={color} stroke="none" />
+      <circle cx="24.8" cy="34" r="0.75" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Ácaros (arañita roja, blanca). */
+function IconoAcaros({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M3 10.5 C11 6.5 20 6 27 8.5 C34 11 40 11 45 8" strokeWidth={strokeWidth * 0.75} />
+      <path d="M4 16 C12 12.5 20 12 27 14 C34 16 40 16.5 45 13.5" strokeWidth={strokeWidth * 0.75} />
+      <path
+        d="M11 8.2 L11.8 13.8 M20 6.6 L20.3 12.2 M28.5 8.9 L29 14.5 M37 10.9 L37.3 16.3"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path d="M24 14.4 C24.2 16.2 23.4 17.2 22.6 18.4" strokeWidth={strokeWidth * 0.7} />
+      <path
+        d="M14.5 22 L6.5 16.5 M13.2 25.5 L4.5 22.5 M13.2 30 L4.5 33 M14.8 33.5 L8 39 M29.5 22 L37.5 16.5 M30.8 25.5 L39.5 22.5 M30.8 30 L39.5 33 M29.2 33.5 L36 39"
+        strokeWidth={strokeWidth * 1}
+      />
+      <ellipse cx="22" cy="27.5" rx="9" ry="8.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.8} />
+      <circle cx="18.4" cy="26.2" r="2" fill={color} stroke="none" />
+      <circle cx="25.6" cy="26.2" r="2" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Trips (raspadores del follaje). */
+function IconoTrips({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M30.5 21.2 C24 16.8 15 14.4 7 15 C15 16.6 24 19.2 30.5 21.2 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.05}
+      />
+      <path
+        d="M26.5 17.4 L27.3 13.4 M22 15.9 L22.5 11.8 M17 14.8 L17.2 10.7 M11.5 14.7 L11.2 10.7"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path
+        d="M30.5 26.8 C24 31.2 15 33.6 7 33 C15 31.4 24 28.8 30.5 26.8 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.05}
+      />
+      <path
+        d="M26.5 30.6 L27.3 34.6 M22 32.1 L22.5 36.2 M17 33.2 L17.2 37.3 M11.5 33.3 L11.2 37.3"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path
+        d="M6.5 24 C10.5 20.8 16 20.3 24 20.5 C30.5 20.7 34.5 22.1 34.5 24 C34.5 25.9 30.5 27.3 24 27.5 C16 27.7 10.5 27.2 6.5 24 Z"
+        fill={color}
+        fillOpacity={0.18}
+        strokeWidth={strokeWidth * 1.7}
+      />
+      <path d="M12 21.9 L12 26.3 M16.5 21 L16.5 27 M21 20.7 L21 27.3" strokeWidth={strokeWidth * 0.7} />
+      <circle cx="37" cy="24" r="3.3" fill={color} fillOpacity={0.2} strokeWidth={strokeWidth * 1.5} />
+      <path d="M39 21.5 L43.5 18.5 M39.5 25.6 L44 27.6" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="38.1" cy="22.9" r="0.9" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Raspadores (daño superficial en hoja y fruto). */
+function IconoRaspadores({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <circle cx="22.5" cy="29" r="13.5" fill={color} fillOpacity={0.1} strokeWidth={strokeWidth * 1.8} />
+      <path d="M13.5 24 C14.5 19.5 17.5 16.5 21 15.8" strokeWidth={strokeWidth * 0.7} />
+      <path d="M22.5 15.5 C22.8 12 22.5 9.5 22 7" strokeWidth={strokeWidth * 1.4} />
+      <path
+        d="M22.4 10.5 C25.5 5.5 32 4.5 34.5 7 C33 11.5 27 13.5 22.6 11.2 Z"
+        fill={color}
+        fillOpacity={0.14}
+        strokeWidth={strokeWidth * 1.3}
+      />
+      <path
+        d="M23.5 21.5 C29 19.5 34.5 22 34.8 27.5 C35.1 33.5 30.5 38 25.5 37.5 C20.5 37 18.5 31.5 20 26.5 C20.7 24 21.8 22.1 23.5 21.5 Z"
+        fill={color}
+        fillOpacity={0.2}
+        strokeWidth={strokeWidth * 0.95}
+      />
+      <path
+        d="M23.5 25.5 L24.8 25.2 M27.5 23.8 L28.8 23.6 M31.5 26.5 L32.7 26.3 M22.8 29.5 L24 29.3 M26.5 28.5 L27.8 28.3 M30.5 30 L31.8 29.8 M23.5 33.5 L24.7 33.3 M27.5 32.5 L28.8 32.3 M31 34 L32.2 33.8 M25.5 36 L26.7 35.8"
+        strokeWidth={strokeWidth * 0.8}
+      />
+      <circle cx="29" cy="26.2" r="0.7" fill={color} stroke="none" />
+      <circle cx="26" cy="31.4" r="0.65" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Minadores (galerías dentro de la hoja). */
+function IconoMinadores({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M24 45 C15 39.5 9 30.5 9 21.5 C9 12 15.5 4.5 24 3.5 C32.5 4.5 39 12 39 21.5 C39 30.5 33 39.5 24 45 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.8}
+      />
+      <path d="M24 43.5 C23.6 33 23.6 15 24 5.5" strokeWidth={strokeWidth * 0.75} />
+      <path
+        d="M23.9 33 C26.8 31.4 29.5 29.6 31.2 27.8 M23.9 24 C27 22 30 19.4 31.8 17 M23.9 15 C26.4 13.6 28.6 12 30 10.6"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path
+        d="M14.5 37.5 C19 35 19 31 15 28.3 C10.8 25.4 12.2 20.8 17 19.4 C19.8 18.6 20.8 16.6 20.5 14.5"
+        strokeWidth={strokeWidth * 0.9}
+      />
+      <path d="M15 28.3 C10.8 25.4 12.2 20.8 17 19.4 C19.8 18.6 20.8 16.6 20.5 14.5" strokeWidth={strokeWidth * 1.6} />
+      <path d="M17 19.4 C19.8 18.6 20.8 16.6 20.5 14.5" strokeWidth={strokeWidth * 2.4} />
+      <path
+        d="M18.3 12.8 C18.1 10 19.4 8.2 21.2 8.3 C23 8.4 24 10.2 23.7 12.8 C23.4 15.2 22.2 16.4 20.9 16.3 C19.5 16.2 18.5 15 18.3 12.8 Z"
+        fill={color}
+        fillOpacity={0.24}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path d="M18.7 11 L23.4 11.2 M18.6 13.3 L23.5 13.2" strokeWidth={strokeWidth * 0.7} />
+    </svg>
+  );
+}
+
+/** Barrenadores (perforan tallo o fruto). */
+function IconoBarrenadores({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M17.6 0.5 C16.6 16 16.6 32 17.1 47.5 L30.4 47.5 C30.9 32 30.9 16 29.9 0.5 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.8}
+      />
+      <path d="M17 15 C21 17 27 17 30.7 15 M17 34 C21 36 27 36 30.6 34" strokeWidth={strokeWidth * 1.1} />
+      <path d="M24 20 C25.5 15.5 22.5 12 24.5 7.5" strokeWidth={strokeWidth * 0.75} />
+      <circle cx="24" cy="24.5" r="4.6" fill={color} fillOpacity={0.3} strokeWidth={strokeWidth * 1.5} />
+      <circle cx="24" cy="24.5" r="2.1" fill={color} stroke="none" />
+      <path d="M21.5 28.4 L20.3 30.8 M26.5 28.4 L27.8 30.6" strokeWidth={strokeWidth * 0.8} />
+      <circle cx="24.3" cy="30.6" r="0.95" fill={color} stroke="none" />
+      <circle cx="26.8" cy="32.8" r="0.85" fill={color} stroke="none" />
+      <circle cx="22.2" cy="33.4" r="0.9" fill={color} stroke="none" />
+      <circle cx="25.3" cy="36" r="0.8" fill={color} stroke="none" />
+      <circle cx="22.9" cy="38.6" r="0.85" fill={color} stroke="none" />
+      <circle cx="31.4" cy="35.2" r="0.75" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Trozadores (cortan plántulas a ras). */
+function IconoTrozadores({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M2 30.5 C10 28 18 28.8 26 30.2 C34 31.6 41 31 46 28.5 L46 47 L2 47 Z"
+        fill={color}
+        fillOpacity={0.12}
+        stroke="none"
+      />
+      <path d="M2 30.5 C10 28 18 28.8 26 30.2 C34 31.6 41 31 46 28.5" strokeWidth={strokeWidth * 1.6} />
+      <path
+        d="M32.5 35.4 L34 35.2 M38.5 39.4 L40 39.2 M43 33.4 L44.4 33.2 M35 43.9 L36.4 43.7"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path d="M16 29 L16.2 23.5" strokeWidth={strokeWidth * 1.8} />
+      <path d="M14.2 23.9 L18.2 22.6" strokeWidth={strokeWidth * 1.1} />
+      <path d="M19.5 28.2 C25 26.8 30 25.4 34.5 24" strokeWidth={strokeWidth * 1.6} />
+      <path d="M18.6 26.8 L20.4 29.4" strokeWidth={strokeWidth * 1} />
+      <path
+        d="M34.5 24 C36.5 19.6 41.5 18.2 44 20 C43.2 23.8 38.3 25.8 34.5 24 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.3}
+      />
+      <path
+        d="M34.5 24 C36.2 27.4 40.8 29.2 43.2 27.2 C41.8 24 37.6 22.5 34.5 24 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.3}
+      />
+      <path
+        d="M6.48 35.6 A5.8 5.8 0 1 1 6.48 41.4 L8.99 39.95 A2.9 2.9 0 1 0 8.99 37.05 Z"
+        fill={color}
+        fillOpacity={0.18}
+        strokeWidth={strokeWidth * 1.4}
+      />
+      <path d="M11.5 32.9 L11.5 35.7 M16.8 38.5 L14.6 38.5 M11.5 43.9 L11.5 41.8" strokeWidth={strokeWidth * 0.75} />
+      <circle cx="7.7" cy="36.3" r="1.1" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Coleópteros (escarabajos y picudos). */
+function IconoColeopteros({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M13.6 24.5 L7.5 20.8 M12.6 31 L6 30.5 M14.2 37.8 L8.6 41.8 M34.4 24.5 L40.5 20.8 M35.4 31 L42 30.5 M33.8 37.8 L39.4 41.8"
+        strokeWidth={strokeWidth * 1.1}
+      />
+      <path
+        d="M24 17.5 C31 17.5 35.5 23.5 35.5 31 C35.5 38.8 30.5 44.5 24 44.5 C17.5 44.5 12.5 38.8 12.5 31 C12.5 23.5 17 17.5 24 17.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.8}
+      />
+      <path d="M24 18 L24 44.2" strokeWidth={strokeWidth * 1} />
+      <path d="M19 20 C17 25.5 17 36 18.6 42 M29 20 C31 25.5 31 36 29.4 42" strokeWidth={strokeWidth * 0.7} />
+      <path
+        d="M19.3 17.8 C19.8 13.2 21.6 11 24 11 C26.4 11 28.2 13.2 28.7 17.8 Z"
+        fill={color}
+        fillOpacity={0.2}
+        strokeWidth={strokeWidth * 1.4}
+      />
+      <path d="M24 11.2 C23.5 8 23.3 5 23.6 2.5" strokeWidth={strokeWidth * 1.7} />
+      <path d="M23.75 7 L19.5 8.8 L17.6 12.4 M23.9 7 L28.2 8.8 L30.1 12.4" strokeWidth={strokeWidth * 0.9} />
+      <circle cx="17.3" cy="13.2" r="1.2" fill={color} stroke="none" />
+      <circle cx="30.4" cy="13.2" r="1.2" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Huevos y ninfas (control poblacional temprano). */
+function IconoHuevosNinfas({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M3 39 C11 42 20 42.5 27.5 41 C35 39.5 41 37 45.5 33.5" strokeWidth={strokeWidth * 1.5} />
+      <ellipse cx="12.5" cy="22" rx="3" ry="3.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.1} />
+      <ellipse cx="19.5" cy="22" rx="3" ry="3.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.1} />
+      <ellipse cx="9" cy="29" rx="3" ry="3.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.1} />
+      <ellipse cx="16" cy="29" rx="3" ry="3.5" fill={color} fillOpacity={0.3} strokeWidth={strokeWidth * 1.1} />
+      <ellipse cx="23" cy="29" rx="3" ry="3.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.1} />
+      <ellipse cx="12.5" cy="36" rx="3" ry="3.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.1} />
+      <ellipse cx="19.5" cy="36" rx="3" ry="3.5" fill={color} fillOpacity={0.16} strokeWidth={strokeWidth * 1.1} />
+      <path
+        d="M32.2 27.5 L28.5 25.8 M31.9 31.5 L28 32 M32.8 35 L29.6 38 M40.8 27.5 L44.5 25.8 M41.1 31.5 L45 32 M40.2 35 L43.4 38"
+        strokeWidth={strokeWidth * 0.9}
+      />
+      <ellipse cx="36.5" cy="31" rx="4.6" ry="6" fill={color} fillOpacity={0.18} strokeWidth={strokeWidth * 1.5} />
+      <path d="M32.6 32.5 L40.4 32.5 M33.4 35.4 L39.6 35.4" strokeWidth={strokeWidth * 0.65} />
+      <ellipse cx="36" cy="23.5" rx="3" ry="2.6" fill={color} fillOpacity={0.18} strokeWidth={strokeWidth * 1.3} />
+      <path d="M33.6 22 L30.4 19 M38.4 22 L41.6 19" strokeWidth={strokeWidth * 0.85} />
+      <circle cx="34.9" cy="23" r="0.8" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Ícono por id de objetivo de la rama de insectos (ver taxonomia.js). */
+const ICONOS_INSECTOS = {
+  chupadores: IconoChupadores,
+  masticadores: IconoMasticadores,
+  lepidopteros: IconoLepidopteros,
+  cogolleros: IconoCogolleros,
+  acaros: IconoAcaros,
+  trips: IconoTrips,
+  raspadores: IconoRaspadores,
+  minadores: IconoMinadores,
+  barrenadores: IconoBarrenadores,
+  trozadores: IconoTrozadores,
+  coleopteros: IconoColeopteros,
+  'huevos-ninfas': IconoHuevosNinfas,
+};
+
+// ══════════════════════════════════════════════════════════════════
+// src/components/ui/iconos/IconosMalezas.jsx
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Íconos de los tipos de maleza del diagnóstico.
+ *
+ * Misma interfaz que los íconos de lucide-react (size, color, strokeWidth,
+ * className), así el diagnóstico los pinta igual que cualquier otro ícono.
+ * Se dibujan en una retícula de 48 × 48 con el trazo en el color de la rama y
+ * rellenos translúcidos del mismo color, para que se lean bien a 30 px dentro
+ * de los botones de opción.
+ */
+
+/** Hoja ancha (dicotiledóneas). */
+function IconoHojaAncha({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M24 6 C16 9 9 14 8 22 C7.2 29 11 35 16 36.5 C19 37.4 22 36.5 24 34 C26 36.5 29 37.4 32 36.5 C37 35 40.8 29 40 22 C39 14 32 9 24 6 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.7}
+      />
+      <path d="M24 34.2 C24.3 38 24.2 41 24 44.5" strokeWidth={strokeWidth * 1.5} />
+      <path d="M24 33.6 C24.2 25 24.1 15 24 7.2" strokeWidth={strokeWidth * 1.1} />
+      <path d="M24 29.5 C19 28 14 26.5 10.5 23.5" strokeWidth={strokeWidth * 0.85} />
+      <path d="M24 29.5 C29 28 34 26.5 37.5 23.5" strokeWidth={strokeWidth * 0.85} />
+      <path d="M24 22.5 C20 21 16 19.5 12.5 16.5" strokeWidth={strokeWidth * 0.85} />
+      <path d="M24 22.5 C28 21 32 19.5 35.5 16.5" strokeWidth={strokeWidth * 0.85} />
+      <path d="M24 15.5 C22 14.3 20 13 17.5 11.3" strokeWidth={strokeWidth * 0.85} />
+      <path d="M24 15.5 C26 14.3 28 13 30.5 11.3" strokeWidth={strokeWidth * 0.85} />
+      <path d="M16.6 27 C18.2 25.2 18.7 22.4 18 20.2" strokeWidth={strokeWidth * 0.75} />
+      <path d="M31.4 27 C29.8 25.2 29.3 22.4 30 20.2" strokeWidth={strokeWidth * 0.75} />
+    </svg>
+  );
+}
+
+/** Gramíneas (hoja angosta, pastos). */
+function IconoGramineas({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M22.6 42.6 C17.5 40 11 37 3 31" strokeWidth={strokeWidth * 1.2} />
+      <path d="M25.8 42.6 C31 40.5 37 38.5 44 34" strokeWidth={strokeWidth * 1.2} />
+      <path
+        d="M22 42.4 C18.5 35 14 27.5 5 18 C12 30 15.5 36.5 19.6 42.6 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.5}
+      />
+      <path d="M20.6 42.4 C17 35.5 13 28 5.4 18.6" strokeWidth={strokeWidth * 0.8} />
+      <path d="M23.4 42.4 C22 33 20.5 23 18.5 13" strokeWidth={strokeWidth * 1.15} />
+      <path
+        d="M22.8 42.4 C26 34 30.5 26 43 16.5 C33.5 28 30 35.5 27.4 42.6 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M24.2 42 C27 34.5 31 27 42.6 16.9" strokeWidth={strokeWidth * 0.8} />
+      <path d="M26 42.2 C28.8 35 31.9 28.5 42.8 16.7" strokeWidth={strokeWidth * 0.8} />
+      <path d="M24.2 42.4 C24.8 33 25.6 24 25.8 16 L24.8 4.5" strokeWidth={strokeWidth * 1.3} />
+      <path d="M25.6 13.6 L21.6 11.4 M25.3 10.5 L21.9 8.2 M25.1 7.6 L22.4 5.3" strokeWidth={strokeWidth * 0.95} />
+      <path d="M25.6 13.6 L29.4 11.6 M25.3 10.5 L29 8.4 M25.1 7.6 L28.2 5.5" strokeWidth={strokeWidth * 0.95} />
+      <path d="M18.5 42.6 C21 41.2 27 41.2 29.5 42.6" strokeWidth={strokeWidth * 1.3} />
+      <path
+        d="M21.5 43.4 C20.5 44.8 19.5 45.6 18 46 M26.5 43.4 C27.6 44.8 28.8 45.6 30.5 46"
+        strokeWidth={strokeWidth * 0.9}
+      />
+    </svg>
+  );
+}
+
+/** Ciperáceas (coquito, cortadera). */
+function IconoCiperaceas({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M3 31 L45 31" strokeWidth={strokeWidth * 1.2} />
+      <path d="M24 18 L18.5 31 L29.5 31 Z" fill={color} fillOpacity={0.18} strokeWidth={strokeWidth * 1.7} />
+      <path d="M18.8 30.6 C14.5 27 10 21.5 7 14.5" strokeWidth={strokeWidth * 1.3} />
+      <path d="M29.2 30.6 C33.5 27 38 21.5 41 14.5" strokeWidth={strokeWidth * 1.3} />
+      <path d="M24 18.4 C21.5 13.5 19.5 9 18.5 4" strokeWidth={strokeWidth * 1.3} />
+      <path d="M24 18 L24 10" strokeWidth={strokeWidth * 1.2} />
+      <path d="M24 10 L20.5 5.5 M24 10 L25 3.6 M24 10 L29.5 6.5" strokeWidth={strokeWidth * 0.95} />
+      <path d="M20.9 6.2 L20.2 5.1 M25 4.4 L25 3.3 M29.1 7.1 L29.8 6" strokeWidth={strokeWidth * 2.2} />
+      <path
+        d="M24 31 L24 34.4 C26.5 35.5 28.4 36.2 30 37 C32.6 38.3 34.4 39 36 40 C38.2 41.4 39.6 42.6 41 43.8 M24 34.4 C21.5 35.8 19.5 37.6 17.5 39.8"
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <circle cx="30" cy="37" r="2.5" fill={color} stroke="none" />
+      <circle cx="36" cy="40" r="2.2" fill={color} stroke="none" />
+      <circle cx="41" cy="43.8" r="2" fill={color} stroke="none" />
+      <circle cx="17.5" cy="40.1" r="2.2" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Leñosas y arbustivas (rebrote en potreros). */
+function IconoLenosas({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M8 42.6 L40 42.6" strokeWidth={strokeWidth * 1.2} />
+      <path
+        d="M19.6 42.2 C17 41.2 15 40.6 12.8 40.4 M28.4 42.2 C31 41.2 33 40.6 35.2 40.4"
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M19.6 42.4 L20.1 28.4 C20.1 30.7 27.9 30.7 27.9 28.4 L28.4 42.4 Z"
+        fill={color}
+        fillOpacity={0.14}
+        strokeWidth={strokeWidth * 2}
+      />
+      <ellipse cx="24" cy="28.4" rx="3.9" ry="1.7" fill={color} fillOpacity={0.28} strokeWidth={strokeWidth * 1.6} />
+      <path d="M20.5 28.5 L15.5 22.5 L11 15.5" strokeWidth={strokeWidth * 1.5} />
+      <path d="M21.6 27.8 L19.5 20 L17 12" strokeWidth={strokeWidth * 1.5} />
+      <path d="M26.4 27.8 L28.8 20.5 L27.2 11" strokeWidth={strokeWidth * 1.5} />
+      <path d="M27.5 28.5 L33 23 L38.5 16.5" strokeWidth={strokeWidth * 1.5} />
+      <path
+        d="M11.2 15.8 C7.4 14.6 5.2 11.4 5.6 8 C9.2 9 11.4 12.3 11.2 15.8 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M17 12.2 C14.6 9.6 14.2 5.8 16 2.8 C18.6 5 19.2 9 17 12.2 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M27.2 11.2 C27.8 7.8 30.4 5 33.6 4.4 C33.4 8 30.8 10.9 27.2 11.2 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M38.4 16.8 C39.4 13.8 42 11.6 44.8 11.4 C44.2 14.6 41.6 16.9 38.4 16.8 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+    </svg>
+  );
+}
+
+/** Helechos (helecho marranero). */
+function IconoHelechos({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M11 45 C12 36.5 14.5 28 19.5 21.5 C23 16.9 28.5 15.6 33 17.2" strokeWidth={strokeWidth * 1.6} />
+      <path
+        d="M12 38.7 C9.9 36 7.2 34.8 3.8 35.2 C5.9 37.9 8.6 39.1 12 38.7 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <path
+        d="M13.75 32.5 C16.9 33.5 19.8 32.9 22.2 30.6 C19 29.6 16.2 30.2 13.75 32.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <path
+        d="M16.2 26.7 C13.7 24.5 10.8 23.9 7.6 24.8 C10.1 27 13 27.6 16.2 26.7 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <path
+        d="M19.5 21.5 C22.3 23.2 25.1 23.3 28 21.8 C25.2 20.2 22.4 20.1 19.5 21.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <path
+        d="M23.8 17.9 C23 14.6 21.1 12.3 18 11 C18.8 14.3 20.7 16.6 23.8 17.9 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <path
+        d="M12 38.7 C9.4 37 6.8 35.9 4.2 35.3 M13.9 32.5 C16.6 31.9 19.4 31.6 21.9 30.7 M16.1 26.6 C13.5 25.9 10.7 25.5 7.9 24.9 M19.6 21.6 C22.4 21.7 25.2 21.8 27.7 21.8 M23.7 17.8 C22.1 15.9 20.6 13.9 18.3 11.4"
+        strokeWidth={strokeWidth * 0.75}
+      />
+      <path
+        d="M33 17.2 C35.9 17.2 37.9 14.7 37.9 12 C37.9 9.3 35.5 7.5 33 7.5 C30.5 7.5 29.2 9.9 29.2 12 C29.2 14.1 31.3 15 33 15 C34.7 15 35.2 13.2 35.2 12 C35.2 10.8 33.8 10.6 33 10.6"
+        strokeWidth={strokeWidth * 1.45}
+      />
+      <path d="M7 45.4 C9 44.4 13 44.4 15.5 45.4" strokeWidth={strokeWidth * 1.2} />
+    </svg>
+  );
+}
+
+/** Perennes con rizoma (rebrotan desde la raíz). */
+function IconoPerennes({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <rect x="2" y="21.5" width="44" height="24" rx="2.5" fill={color} fillOpacity={0.1} stroke="none" />
+      <path d="M3 21.5 L45 21.5" strokeWidth={strokeWidth * 1.4} />
+      <path
+        d="M5 34 C9.5 31.8 13.5 31.2 17.5 31.8 C22.5 32.5 26.5 34.2 31.5 33.6 C35.5 33.1 39 31.2 43 29.8"
+        strokeWidth={strokeWidth * 1.7}
+      />
+      <circle cx="17.5" cy="31.8" r="1.8" fill={color} stroke="none" />
+      <circle cx="31.5" cy="33.6" r="1.8" fill={color} stroke="none" />
+      <path
+        d="M17.5 32.4 C16.8 35.5 15.5 38.5 13.8 41.5 M17.5 32.4 C18.4 35.2 19 38 19.2 41 M17.5 32.4 C19.8 34.6 21.5 36.8 22.8 39.2 M31.5 34.2 C30.8 36.8 29.8 39.2 28.4 41.6 M31.5 34.2 C32.6 36.6 33.6 38.8 34.2 41.8"
+        strokeWidth={strokeWidth * 0.9}
+      />
+      <path d="M17.5 31.2 C17.2 27.5 16.9 24 16.9 18.6" strokeWidth={strokeWidth * 1.4} />
+      <path d="M13.6 19.8 L20.4 17.2" strokeWidth={strokeWidth * 1.2} />
+      <path d="M31.5 33 C31.3 27 31.2 20 30.6 13 C30.4 10 30.2 8 30 6" strokeWidth={strokeWidth * 1.5} />
+      <path
+        d="M30.9 17.5 C29 14.7 26.4 13.4 23 13.5 C24.9 16.3 27.5 17.6 30.9 17.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M30.4 11.5 C33.6 11.9 36.3 10.9 38.5 8.5 C35.3 8.1 32.6 9.1 30.4 11.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M30.1 7.5 C29.4 5.3 27.8 3.9 25.5 3.5 C26.2 5.7 27.8 7.1 30.1 7.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path d="M8.3 32.4 C8 29.5 8.2 27.5 9 25.8" strokeWidth={strokeWidth * 1.1} />
+      <circle cx="9.1" cy="25.2" r="1.5" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Todo lo verde (limpieza total del lote). */
+function IconoNoSelectivo({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M3 43.5 L45 43.5" strokeWidth={strokeWidth * 1.2} />
+      <path d="M10 43.5 C9.8 36 10 30 10.4 24" strokeWidth={strokeWidth * 1.4} />
+      <path
+        d="M10.5 24 C6 21.5 5 16 8 12.5 C9 11.4 10 11 10.5 11 C11 11 12 11.4 13 12.5 C16 16 15 21.5 10.5 24 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M10.5 23 L10.5 12.4" strokeWidth={strokeWidth * 0.8} />
+      <path
+        d="M24 43.5 C22 35 20.5 28 19 20 M24 43.5 C23.6 34 23.4 26 23.4 17 M24 43.5 C25.8 34.5 27.5 27 29 20 M24 43.5 C26.5 37.5 29 33.5 32 30.5"
+        strokeWidth={strokeWidth * 1.3}
+      />
+      <path d="M38 43.5 L38 32 M38 32 L33.5 26 L32.7 20.5 M38 32 L42 26.5 L42.6 21.5" strokeWidth={strokeWidth * 1.7} />
+      <path
+        d="M32.7 20.5 C32.7 18.3 31.8 16.6 29.8 15.5 C29.8 17.8 30.7 19.4 32.7 20.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.1}
+      />
+      <path
+        d="M42.6 21.5 C44.5 20.4 45.4 18.7 45.2 16.5 C44.2 16 43.3 17.6 42.6 21.5 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.1}
+      />
+      <path
+        d="M2.5 24 C13 19.5 27 16.5 45.5 15 L45.5 20 C27 21.5 13 24.5 2.5 29 Z"
+        fill={color}
+        fillOpacity={0.2}
+        strokeWidth={strokeWidth * 0.9}
+      />
+    </svg>
+  );
+}
+
+/** Ícono por id de objetivo de la rama de malezas (ver taxonomia.js). */
+const ICONOS_MALEZAS = {
+  'hoja-ancha': IconoHojaAncha,
+  gramineas: IconoGramineas,
+  ciperaceas: IconoCiperaceas,
+  lenosas: IconoLenosas,
+  helechos: IconoHelechos,
+  perennes: IconoPerennes,
+  'no-selectivo': IconoNoSelectivo,
+};
+
+// ══════════════════════════════════════════════════════════════════
+// src/components/ui/iconos/IconosEnfermedades.jsx
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Íconos de las enfermedades del diagnóstico.
+ *
+ * Misma interfaz que los íconos de lucide-react (size, color, strokeWidth,
+ * className), así el diagnóstico los pinta igual que cualquier otro ícono.
+ * Se dibujan en una retícula de 48 × 48 con el trazo en el color de la rama y
+ * rellenos translúcidos del mismo color, para que se lean bien a 30 px dentro
+ * de los botones de opción.
+ *
+ * Están en dos grupos: los síntomas foliares generales y las enfermedades con
+ * un cuadro propio (sigatoka, oomicetos, raíz y suelo, botrytis). El
+ * diagnóstico los une en un solo mapa por id de objetivo.
+ */
+
+/** Trazo de un anillo (círculo con hueco) para las lesiones de mancha foliar. */
+function anillo(cx, cy, radioExterior, radioInterior) {
+  return `M${cx - radioExterior} ${cy} A ${radioExterior} ${radioExterior} 0 1 1 ${cx + radioExterior} ${cy} A ${radioExterior} ${radioExterior} 0 1 1 ${cx - radioExterior} ${cy} Z M${cx - radioInterior} ${cy} A ${radioInterior} ${radioInterior} 0 1 1 ${cx + radioInterior} ${cy} A ${radioInterior} ${radioInterior} 0 1 1 ${cx - radioInterior} ${cy} Z`;
+}
+
+/** Hongos foliares (tizones, antracnosis). */
+function IconoHongosFoliares({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <g transform="rotate(-30 24 24)">
+        <path
+          d="M24 5 L28.4 9.5 L27.2 13.5 L32.8 17.5 L31.2 21.5 L36 25.5 L33.6 29.5 L34.4 33.5 L30 37 L29 40 L24 43 L18.8 40 L19.8 36.5 L13.8 33 L15.6 29 L12 25 L15.6 21 L15.4 16.5 L20 12 L20 9 Z"
+          fill={color}
+          fillOpacity={0.1}
+          strokeWidth={strokeWidth * 1.6}
+        />
+        <path d="M24 43 L24 47" strokeWidth={strokeWidth * 1.6} />
+        <path d="M24 42 L24 6.5" strokeWidth={strokeWidth * 0.95} />
+        <path d="M24 31.5 L32.6 30.6 M24 20.5 L31 20.2" strokeWidth={strokeWidth * 0.7} />
+        <path
+          d="M15.4 16.5 L19.6 14.8 L23.8 16.6 L26.4 20.4 L22 22.2 L23.6 26.4 L18.2 27.8 L19.4 32 L13.8 33 L15.6 29 L12 25 L15.6 21 Z"
+          fill={color}
+          fillOpacity={0.28}
+          strokeWidth={strokeWidth * 0.9}
+        />
+        <path
+          d="M16.6 35.2 L21.6 34.2 L20.4 28.6 L26 27 L24.4 21.4 L28.8 19.2 L25 13.4 L21 11.5"
+          strokeWidth={strokeWidth * 0.75}
+        />
+        <path
+          d="M27.6 34 L30.6 33.2 L31.4 35.8 L28.4 36.6 Z"
+          fill={color}
+          fillOpacity={0.22}
+          strokeWidth={strokeWidth * 0.75}
+        />
+      </g>
+    </svg>
+  );
+}
+
+/** Manchas foliares (lesiones definidas en hoja). */
+function IconoManchas({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M24 3.5 C33.5 10 40 20 40 28.5 C40 37.5 32.8 44.5 24 45 C15.2 44.5 8 37.5 8 28.5 C8 20 14.5 10 24 3.5 Z"
+        fill={color}
+        fillOpacity={0.1}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M24 6 L24 44" strokeWidth={strokeWidth * 1.05} />
+      <path
+        d="M24 14 C20.5 15.5 17.5 17.5 15 20 M24 14 C27.5 15.5 30.5 17.5 33 20 M24 27 C20.5 28.5 17 31 14.5 34 M24 27 C27.5 28.5 31 31 33.5 34"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path
+        d={anillo(16.5, 19.5, 5.6, 2.7)}
+        fillRule="evenodd"
+        fill={color}
+        fillOpacity={0.34}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <circle cx="16.5" cy="19.5" r="1.1" fill={color} stroke="none" />
+      <path
+        d={anillo(31.5, 25, 4.8, 2.3)}
+        fillRule="evenodd"
+        fill={color}
+        fillOpacity={0.34}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <path
+        d={anillo(21, 35, 5.2, 2.5)}
+        fillRule="evenodd"
+        fill={color}
+        fillOpacity={0.34}
+        strokeWidth={strokeWidth * 1.15}
+      />
+      <circle cx="21" cy="35" r="1.05" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Roya (pústulas anaranjadas). */
+function IconoRoya({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M4.5 7 L13 15" strokeWidth={strokeWidth * 1.5} />
+      <path
+        d="M13 15 C22.5 15.5 32 21.5 38 29.5 C42 35 43.5 40.5 43.5 45.5 C38 44.5 32 41.5 26.5 36.5 C19.5 30.5 14.5 23 13 15 Z"
+        fill={color}
+        fillOpacity={0.1}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M14 16 C21.5 23.5 31.5 33.5 42.4 44.8" strokeWidth={strokeWidth * 0.95} />
+      <path d="M25 23 C28.5 22.2 31.5 22 34 22.4 M32 32 C34.8 31.2 37.2 31 39.4 31.4" strokeWidth={strokeWidth * 0.7} />
+      <path
+        d="M20 25.5 C24.5 25 27.5 28 27.5 32.5 C27.5 37 24 39.5 20.2 38.4 C16.6 37.3 15.2 33.6 16.4 29.6 C17.2 27 18.4 25.6 20 25.5 Z"
+        fill={color}
+        fillOpacity={0.22}
+        strokeWidth={strokeWidth * 0.8}
+      />
+      <circle cx="19" cy="29.5" r="2.1" fill={color} stroke="none" />
+      <circle cx="23.5" cy="30.5" r="2.2" fill={color} stroke="none" />
+      <circle cx="19.5" cy="34" r="2" fill={color} stroke="none" />
+      <circle cx="23.8" cy="34.8" r="2.1" fill={color} stroke="none" />
+      <circle cx="21.5" cy="26.5" r="1.6" fill={color} stroke="none" />
+      <circle cx="17" cy="21.5" r="1.5" fill={color} stroke="none" />
+      <circle cx="20" cy="22.5" r="1.3" fill={color} stroke="none" />
+      <circle cx="29" cy="30" r="1.2" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+/** Mildeo velloso (oomiceto foliar). */
+function IconoMildeoVelloso({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M24 33 C21.4 36 17.6 38.4 13.6 38 C9.4 37.6 6 35.2 6.5 32 C8 29.2 10.8 26 13.5 23.5 C11.6 20.6 9.8 16 10 12.6 C10.2 9.4 12.6 8.6 14.8 10.6 C16.4 12 18.2 13.2 19.5 14.5 C20 11 21.6 6.8 24 4 C26.4 6.8 28 11 28.5 14.5 C29.8 13.2 31.6 12 33.2 10.6 C35.4 8.6 37.8 9.4 38 12.6 C38.2 16 36.4 20.6 34.5 23.5 C37.2 26 40 29.2 41.5 32 C42 35.2 38.6 37.6 34.4 38 C30.4 38.4 26.6 36 24 33 Z"
+        fill={color}
+        fillOpacity={0.1}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M24 33 L24 43.6" strokeWidth={strokeWidth * 1.6} />
+      <path
+        d="M24 33 L9.6 30.4 M24 33 L13.4 15.4 M24 33 L24 7.5 M24 33 L34.6 15.4 M24 33 L38.4 30.4"
+        strokeWidth={strokeWidth * 0.85}
+      />
+      <path d="M20.3 26.8 L24 25.3 M17.6 22.4 L24 17.2 M31.2 27 L35.8 26.6" strokeWidth={strokeWidth * 0.7} />
+      <path
+        d="M20.3 26.8 L24 25.3 L24 17.2 L17.6 22.4 Z"
+        fill={color}
+        fillOpacity={0.24}
+        strokeWidth={strokeWidth * 0.9}
+        strokeLinejoin="miter"
+      />
+      <path
+        d="M30.6 31.8 L34.8 31 L35.8 26.6 L31.2 27 Z"
+        fill={color}
+        fillOpacity={0.24}
+        strokeWidth={strokeWidth * 0.9}
+        strokeLinejoin="miter"
+      />
+      <path
+        d="M17 31.7 L13 31 L12.4 27.2 L16.4 27.6 Z"
+        fill={color}
+        fillOpacity={0.24}
+        strokeWidth={strokeWidth * 0.9}
+        strokeLinejoin="miter"
+      />
+      <path
+        d="M24.6 13.4 L26.6 14 L26 10.4 L24.2 10.8 Z"
+        fill={color}
+        fillOpacity={0.24}
+        strokeWidth={strokeWidth * 0.9}
+        strokeLinejoin="miter"
+      />
+      <path
+        d="M20.8 27 C20.5 28.2 21 28.8 20.4 30 M22.2 26.5 C21.9 27.7 22.4 28.3 21.8 29.5 M23.6 26 C23.3 27.2 23.8 27.8 23.2 29 M31.6 31.8 C31.4 32.8 31.9 33.3 31.4 34.3 M33.4 31.5 C33.2 32.5 33.7 33 33.2 34"
+        strokeWidth={strokeWidth * 0.8}
+      />
+    </svg>
+  );
+}
+
+/** Síntomas foliares generales, por id de objetivo. */
+const ICONOS_ENFERMEDADES_FOLIARES = {
+  'hongos-foliares': IconoHongosFoliares,
+  manchas: IconoManchas,
+  roya: IconoRoya,
+  'mildeo-velloso': IconoMildeoVelloso,
+};
+/** Sigatoka (banano y plátano). */
+function IconoSigatoka({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M4 38 C12.3 21.6 25.7 12.6 44 11 C35.2 26.6 21.8 35.6 4 38 Z"
+        fill={color}
+        fillOpacity={0.1}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path d="M4.6 37.6 L2 40.8" strokeWidth={strokeWidth * 1.6} />
+      <path d="M5 37.4 C17 30 30 21 43.4 11.6" strokeWidth={strokeWidth * 0.95} />
+      <path
+        d="M11.8 31.9 L10.3 27.6 M16.6 28.7 L14.8 23.6 M21.4 25.4 L19.6 20.2 M26.2 22.2 L24.5 17.3 M31 18.9 L29.5 14.7 M35.8 15.7 L34.7 12.6 M10.5 34.5 L13.5 37.1 M15.3 31.2 L19.3 34.6 M20.1 28 L24.4 31.6 M24.9 24.7 L29.1 28.3 M29.7 21.5 L33.4 24.7 M34.5 18.3 L37.4 20.8"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path
+        d="M14.1 30.2 L13 27 M18.9 26.8 L17.6 23 M18 29.8 L21 32.4 M22.8 26.6 L25.5 28.9"
+        strokeWidth={strokeWidth * 1.3}
+      />
+      <path d="M23.7 23.6 L22.3 19.6 M27.5 23.2 L30.6 25.9" strokeWidth={strokeWidth * 2.4} />
+      <g transform="rotate(-19 28.6 19.9)">
+        <ellipse cx="28.6" cy="19.9" rx="3.2" ry="4.8" fill={color} fillOpacity={0.1} stroke="none" />
+        <path
+          d="M26.2 19.9 a2.4 4.1 0 1 0 4.8 0 a2.4 4.1 0 1 0 -4.8 0 Z M27.6 19.9 a1 2 0 1 0 2 0 a1 2 0 1 0 -2 0 Z"
+          fillRule="evenodd"
+          fill={color}
+          fillOpacity={0.3}
+          strokeWidth={strokeWidth * 0.9}
+        />
+      </g>
+      <g transform="rotate(-49 33.7 20.8)">
+        <path
+          d="M31.6 20.8 a2.1 3.1 0 1 0 4.2 0 a2.1 3.1 0 1 0 -4.2 0 Z M32.85 20.8 a0.85 1.4 0 1 0 1.7 0 a0.85 1.4 0 1 0 -1.7 0 Z"
+          fillRule="evenodd"
+          fill={color}
+          fillOpacity={0.3}
+          strokeWidth={strokeWidth * 0.9}
+        />
+      </g>
+      <ellipse
+        cx="32.9"
+        cy="15.8"
+        rx="1.9"
+        ry="2.3"
+        transform="rotate(-19 32.9 15.8)"
+        fill={color}
+        fillOpacity={0.26}
+        strokeWidth={strokeWidth * 0.9}
+      />
+    </svg>
+  );
+}
+
+/** Oomicetos (Phytophthora, Pythium). */
+function IconoOomicetos({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M3 12.6 C7 10.2 10.4 14.8 14.4 12.6 C18.4 10.4 21.8 14.8 25.8 12.6 C29.8 10.4 33.2 14.8 37.2 12.6 C40 11.1 42.6 12.2 45 13.4 L45 19.4 L3 19.4 Z"
+        fill={color}
+        fillOpacity={0.14}
+        stroke="none"
+      />
+      <path
+        d="M3 12.6 C7 10.2 10.4 14.8 14.4 12.6 C18.4 10.4 21.8 14.8 25.8 12.6 C29.8 10.4 33.2 14.8 37.2 12.6 C40 11.1 42.6 12.2 45 13.4"
+        strokeWidth={strokeWidth * 1.4}
+      />
+      <path d="M3 19.4 L45 19.4" strokeWidth={strokeWidth * 1.5} />
+      <path
+        d="M5.4 23.6 L8.6 23.6 M39.4 22.4 L42.6 22.4 M6.2 36.4 L9.4 36.4 M39 37.6 L42.2 37.6"
+        strokeWidth={strokeWidth * 0.8}
+      />
+      <path
+        d="M21.5 19.6 C22 15.6 22.6 10.6 22.9 7.4 C23.2 5.6 24.8 5.6 25.1 7.4 C25.4 10.6 26 15.6 26.5 19.6 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.5}
+      />
+      <path
+        d="M21.5 19.6 C21.8 17.4 22.05 15.8 22.3 14.4 C23.4 15.5 24.7 14 25.7 14.6 C25.95 16 26.2 17.6 26.5 19.6 Z"
+        fill={color}
+        fillOpacity={0.3}
+        strokeWidth={strokeWidth * 0.9}
+      />
+      <path
+        d="M21.6 19.6 C21.8 21.8 22 23.8 22.2 25.6 L25.8 25.6 C26 23.8 26.2 21.8 26.4 19.6 Z"
+        fill={color}
+        fillOpacity={0.1}
+        strokeWidth={strokeWidth * 1.4}
+      />
+      <path
+        d="M21.9 21.6 C19.4 22.2 17.2 23.6 15.6 25.8 M26.2 22.4 C28.8 23 31 24.4 32.6 26.6 M21.7 24 C19.7 25.2 18.3 26.8 17.5 28.8 M26 24.2 C27.6 25.2 28.8 26.6 29.6 28.4"
+        strokeWidth={strokeWidth * 0.9}
+      />
+      <path
+        d="M22.2 25.6 C23.3 26.7 24.7 24.7 25.8 25.6 C25.6 28.4 25.3 31.2 24.9 33.6 L23.2 33.6 C22.8 31.2 22.5 28.4 22.2 25.6 Z"
+        fill={color}
+        fillOpacity={0.28}
+        strokeWidth={strokeWidth * 1.1}
+      />
+      <path
+        d="M25.4 28 C27.8 29 29.6 30.8 30.6 33.4 M22.7 30.6 C20.4 31.8 18.6 33.6 17.6 36.2"
+        strokeWidth={strokeWidth * 1.5}
+      />
+      <path
+        d="M22.6 32.8 C20.5 35.2 20.5 38.4 22.8 40.4 C23 38 22.4 35.2 23.7 33.2 Z"
+        fill={color}
+        fillOpacity={0.2}
+        strokeWidth={strokeWidth * 0.85}
+      />
+      <path d="M24.1 33.4 C24.1 36.6 23.9 39.4 23.5 42.2" strokeWidth={strokeWidth * 0.75} />
+      <path
+        d="M11.8 24.4 a1.2 1.2 0 1 0 2.4 0 a1.2 1.2 0 1 0 -2.4 0 Z M10.4 29.2 a0.9 0.9 0 1 0 1.8 0 a0.9 0.9 0 1 0 -1.8 0 Z M33.8 28.4 a1.1 1.1 0 1 0 2.2 0 a1.1 1.1 0 1 0 -2.2 0 Z M35.9 33 a0.85 0.85 0 1 0 1.7 0 a0.85 0.85 0 1 0 -1.7 0 Z M13.6 33.4 a0.8 0.8 0 1 0 1.6 0 a0.8 0.8 0 1 0 -1.6 0 Z"
+        fill={color}
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
+/** Raíz y suelo (pudriciones, damping off). */
+function IconoRaizSuelo({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path d="M3 34 L45 34" strokeWidth={strokeWidth * 1.5} />
+      <path
+        d="M5.5 39 L8.5 39 M28 38 L31 38 M34.5 42 L37.5 42 M40 38.5 L43 38.5 M11 43 L14 43"
+        strokeWidth={strokeWidth * 0.8}
+      />
+      <path d="M9 34 L9 27.5" strokeWidth={strokeWidth * 1.2} />
+      <path
+        d="M9 27.5 C7.4 25.4 5.2 24.8 3.8 25.8 C5 28 7.4 28.7 9 27.5 Z M9 27.5 C10.6 25.4 12.8 24.8 14.2 25.8 C13 28 10.6 28.7 9 27.5 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.1}
+      />
+      <path d="M22 34 C22 37 21.8 39.5 21.5 42.5" strokeWidth={strokeWidth * 1.2} />
+      <path
+        d="M21.9 36.5 C20.4 37.4 19.3 38.6 18.6 40.2 M21.75 39 C23.3 39.8 24.4 40.9 25 42.4"
+        strokeWidth={strokeWidth * 0.85}
+      />
+      <path
+        d="M20.4 34.6 C20.7 36.2 21 37.6 21.2 38.8 C22.5 38.9 23.2 38.9 23.9 38.8 C23.6 37.4 23.2 36 22.8 34.6 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M20.9 33.4 C21.6 30.4 23 26.6 25.2 22.8 C26.9 19.9 28.8 17.5 30.6 15.8 C31.7 16.8 32.2 17.7 31.9 18.6 C30 20.4 28.2 22.7 26.8 25.2 C25 28.4 23.8 31 23.3 33.4 Z"
+        fill={color}
+        fillOpacity={0.12}
+        strokeWidth={strokeWidth * 1.4}
+      />
+      <path
+        d="M20.7 32 C21.4 32.5 22.6 32.5 23.5 32 C23.4 33 23.3 33.6 23.3 34.3 C23.4 35.2 23.6 36.2 23.9 37.2 C22.9 36.7 21.7 36.7 20.9 37.2 C20.6 36.2 20.4 35.2 20.35 34.3 C20.35 33.6 20.5 33 20.7 32 Z"
+        fill={color}
+        fillOpacity={0.32}
+        strokeWidth={strokeWidth * 0.9}
+      />
+      <path
+        d="M31.2 16.2 C33.6 13.4 37.2 12.8 39.8 14.6 C37.8 17.8 34 18.4 31.2 16.2 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.3}
+      />
+      <path
+        d="M30.9 15.8 C30.2 12.2 32 8.8 35.4 7.8 C36.2 11.4 34.4 14.8 30.9 15.8 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.3}
+      />
+    </svg>
+  );
+}
+
+/** Botrytis y pudriciones (moho gris en flor y fruto). */
+function IconoBotrytis({ size = 24, color = 'currentColor', strokeWidth = 1.8, className, ...resto }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...resto}
+    >
+      <path
+        d="M19 19.8 C25.6 19.8 29.8 24.6 29.6 30.4 C29.4 36.8 24.8 41.8 19 42.2 C13.2 41.8 8.6 36.8 8.4 30.4 C8.2 24.6 12.4 19.8 19 19.8 Z"
+        fill={color}
+        fillOpacity={0.1}
+        strokeWidth={strokeWidth * 1.6}
+      />
+      <path
+        d="M12.7 26 a0.8 0.8 0 1 0 1.6 0 a0.8 0.8 0 1 0 -1.6 0 Z M15.4 29.5 a0.8 0.8 0 1 0 1.6 0 a0.8 0.8 0 1 0 -1.6 0 Z M12 32.5 a0.8 0.8 0 1 0 1.6 0 a0.8 0.8 0 1 0 -1.6 0 Z M14.6 36 a0.8 0.8 0 1 0 1.6 0 a0.8 0.8 0 1 0 -1.6 0 Z M17.7 32.8 a0.8 0.8 0 1 0 1.6 0 a0.8 0.8 0 1 0 -1.6 0 Z"
+        fill={color}
+        stroke="none"
+      />
+      <path d="M19 20 L19 13.4" strokeWidth={strokeWidth * 1.2} />
+      <path
+        d="M19 19.8 C16.2 19.6 13.6 18.2 12.2 15.8 C15.2 15.2 18.2 16.8 19 19.8 Z M19 19.8 C21.8 19.6 24.4 18.2 25.8 15.8 C22.8 15.2 19.8 16.8 19 19.8 Z"
+        fill={color}
+        fillOpacity={0.16}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      <path
+        d="M25.4 22.8 C28.2 24.8 29.2 28.2 29 31.2 C28.8 35.6 25.4 40 21.8 41.2 C20.2 38.4 20 34 21.2 30.2 C22.2 26.8 23.6 23.8 25.4 22.8 Z"
+        fill={color}
+        fillOpacity={0.26}
+        strokeWidth={strokeWidth * 0.95}
+      />
+      <path
+        d="M26.4 25.8 C27.6 28.6 27.2 32.8 25.4 36 C24.6 37.4 23.6 38.6 22.6 39.4"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <circle cx="25.6" cy="24.6" r="1.4" fill={color} stroke="none" />
+      <path
+        d="M27.6 22 C27.2 18.8 30.4 16.6 32.8 18.2 C34.8 15.8 38.4 17 38.6 19.8 C41.4 20.4 41.8 24 39.4 25.6 C40.4 28.4 37.6 30.8 35 29.6 C33.4 31.8 29.8 31.4 29 28.8 C26.6 28.4 25.8 24.8 27.6 22 Z"
+        fill={color}
+        fillOpacity={0.14}
+        strokeWidth={strokeWidth * 0.85}
+      />
+      <path
+        d="M30.4 17.8 C29.4 15 28.4 12.6 27.6 10.6 M35.8 17.2 C36.2 14.6 36.6 12 37 9.8 M39.6 21.6 C41.2 19.6 42.4 17.6 43.4 15.6 M35.2 30.2 C36.4 31.9 37.6 33.7 38.6 35.4"
+        strokeWidth={strokeWidth * 0.85}
+      />
+      <path
+        d="M27.6 10.6 L24.6 8.2 M27.6 10.6 L29.8 7.8 M37 9.8 L34.2 7.2 M37 9.8 L40.2 7.8 M43.4 15.6 L41.6 12.2 M43.4 15.6 L45.8 13.4 M38.6 35.4 L36.6 38.4 M38.6 35.4 L41.6 37.4"
+        strokeWidth={strokeWidth * 0.7}
+      />
+      <path
+        d="M22.8 7.7 a1.2 1.2 0 1 0 2.4 0 a1.2 1.2 0 1 0 -2.4 0 Z M29.2 7.3 a1.2 1.2 0 1 0 2.4 0 a1.2 1.2 0 1 0 -2.4 0 Z M32.4 6.7 a1.2 1.2 0 1 0 2.4 0 a1.2 1.2 0 1 0 -2.4 0 Z M39.6 7.3 a1.2 1.2 0 1 0 2.4 0 a1.2 1.2 0 1 0 -2.4 0 Z M39.9 11.5 a1.1 1.1 0 1 0 2.2 0 a1.1 1.1 0 1 0 -2.2 0 Z M45.1 13 a1.1 1.1 0 1 0 2.2 0 a1.1 1.1 0 1 0 -2.2 0 Z M34.85 39.2 a1.15 1.15 0 1 0 2.3 0 a1.15 1.15 0 1 0 -2.3 0 Z M41.05 37.7 a1.15 1.15 0 1 0 2.3 0 a1.15 1.15 0 1 0 -2.3 0 Z"
+        fill={color}
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
+/** Enfermedades con cuadro propio, por id de objetivo. */
+const ICONOS_ENFERMEDADES_OTRAS = {
+  sigatoka: IconoSigatoka,
+  oomicetos: IconoOomicetos,
+  'raiz-suelo': IconoRaizSuelo,
+  botrytis: IconoBotrytis,
+};
+
+// ══════════════════════════════════════════════════════════════════
 // src/components/TarjetaProducto.jsx
 // ══════════════════════════════════════════════════════════════════
 
@@ -4057,6 +5721,9 @@ function TarjetaProducto({ producto, onAbrir, orden }) {
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
   const fondo = FONDO_CATEGORIA[producto.categoria] || COLORES.azulClaro;
   const Icono = ICONO_CATEGORIA[producto.categoria] || Bug;
+  // No todos los productos tienen foto de empaque: si la imagen no carga, la
+  // columna desaparece y la tarjeta queda como antes, sin hueco vacío.
+  const [sinFoto, setSinFoto] = useState(false);
 
   return (
     <button
@@ -4076,6 +5743,22 @@ function TarjetaProducto({ producto, onAbrir, orden }) {
           </span>
         )}
       </span>
+
+      {/* Foto del empaque, para reconocer el producto en la bodega */}
+      {!sinFoto && (
+        <span
+          className="flex w-16 shrink-0 items-center justify-center border-r bg-white p-1.5"
+          style={{ borderColor: COLORES.borde }}
+        >
+          <img
+            src={`/productos/${producto.id}.jpg`}
+            alt=""
+            loading="lazy"
+            className="h-full w-full rounded-lg object-cover"
+            onError={() => setSinFoto(true)}
+          />
+        </span>
+      )}
 
       <span className="min-w-0 flex-1 px-4 py-3.5">
         <span className="flex flex-wrap items-center gap-2">
@@ -4162,17 +5845,32 @@ function Dato({ etiqueta, children }) {
 /** Ficha técnica completa. Combina datos del producto con la ficha de su grupo. */
 function FichaProducto({ producto, onCerrar, onVerRotacion }) {
   const panel = useRef(null);
+  const [sinFoto, setSinFoto] = useState(false);
+
+  // onCerrar se lee desde una referencia para que el efecto del historial no
+  // se vuelva a ejecutar (y no apile otra entrada) cada vez que el padre se
+  // vuelve a pintar con una función nueva.
+  const cerrarRef = useRef(onCerrar);
+  cerrarRef.current = onCerrar;
+
+  // Cada producto puede tener o no foto de empaque: se vuelve a intentar al
+  // cambiar de ficha.
+  useEffect(() => {
+    setSinFoto(false);
+  }, [producto?.id]);
+
+  const idProducto = producto?.id;
 
   // La ficha se abre sobre toda la pantalla, así que tiene que poder cerrarse
   // sin buscar el botón: tecla Escape, botón físico de atrás del teléfono, o
   // tocando fuera del panel.
   useEffect(() => {
-    if (!producto) return undefined;
+    if (!idProducto) return;
 
     const conEscape = (e) => {
-      if (e.key === 'Escape') onCerrar();
+      if (e.key === 'Escape') window.history.back();
     };
-    const conAtras = () => onCerrar();
+    const conAtras = () => cerrarRef.current();
 
     document.addEventListener('keydown', conEscape);
     window.addEventListener('popstate', conAtras);
@@ -4189,10 +5887,23 @@ function FichaProducto({ producto, onCerrar, onVerRotacion }) {
       document.removeEventListener('keydown', conEscape);
       window.removeEventListener('popstate', conAtras);
       document.body.style.overflow = desplazamientoPrevio;
-      // Si se cerró con el botón y no con "atrás", limpiar la entrada añadida
-      if (window.history.state?.ficha) window.history.back();
     };
-  }, [producto, onCerrar]);
+  }, [idProducto]);
+
+  // Todos los cierres pasan por el historial: así la entrada que se añadió al
+  // abrir siempre se consume, y "atrás" y los botones se comportan igual.
+  const cerrar = () => window.history.back();
+
+  // El fondo no acepta toques hasta el cuadro siguiente a la apertura: el
+  // mismo toque que abrió la ficha podía caer sobre el fondo y cerrarla al
+  // instante.
+  const [listo, setListo] = useState(false);
+  useEffect(() => {
+    if (!idProducto) return;
+    setListo(false);
+    const cuadro = requestAnimationFrame(() => setListo(true));
+    return () => cancelAnimationFrame(cuadro);
+  }, [idProducto]);
 
   if (!producto) return null;
 
@@ -4205,7 +5916,7 @@ function FichaProducto({ producto, onCerrar, onVerRotacion }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"
-      onClick={onCerrar}
+      onClick={listo ? cerrar : undefined}
       role="presentation"
     >
       <div
@@ -4223,33 +5934,46 @@ function FichaProducto({ producto, onCerrar, onVerRotacion }) {
           style={{ borderColor: COLORES.borde }}
         >
           <button
-            onClick={onCerrar}
+            onClick={cerrar}
             className="mb-2 flex items-center gap-1.5 text-sm font-semibold transition hover:opacity-70"
             style={{ color: COLORES.azul }}
           >
             <ArrowLeft size={16} /> Volver
           </button>
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Etiqueta texto={producto.categoria} color={color} tono="solido" />
-                {producto.estado !== 'Disponible' && (
-                  <Etiqueta
-                    texto={producto.estado}
-                    color={producto.estado === 'Nuevo' ? COLORES.verde : COLORES.naranja}
-                  />
-                )}
-                {producto.todera && <Etiqueta texto="Producto ancla" color={COLORES.verde} />}
+            <div className="flex min-w-0 items-start gap-3">
+              {/* Foto del empaque; si el producto no tiene, se omite sin dejar hueco */}
+              {!sinFoto && (
+                <img
+                  src={`/productos/${producto.id}.jpg`}
+                  alt=""
+                  loading="lazy"
+                  className="h-16 w-16 shrink-0 rounded-xl object-cover sm:h-20 sm:w-20"
+                  style={{ border: `1px solid ${COLORES.borde}` }}
+                  onError={() => setSinFoto(true)}
+                />
+              )}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Etiqueta texto={producto.categoria} color={color} tono="solido" />
+                  {producto.estado !== 'Disponible' && (
+                    <Etiqueta
+                      texto={producto.estado}
+                      color={producto.estado === 'Nuevo' ? COLORES.verde : COLORES.naranja}
+                    />
+                  )}
+                  {producto.todera && <Etiqueta texto="Producto ancla" color={COLORES.verde} />}
+                </div>
+                <h2 className="mt-2 text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
+                  {producto.nombre}
+                </h2>
+                <p className="text-sm" style={{ color: COLORES.textoSuave }}>
+                  {producto.ia}
+                </p>
               </div>
-              <h2 className="mt-2 text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
-                {producto.nombre}
-              </h2>
-              <p className="text-sm" style={{ color: COLORES.textoSuave }}>
-                {producto.ia}
-              </p>
             </div>
             <button
-              onClick={onCerrar}
+              onClick={cerrar}
               className="shrink-0 rounded-full p-2 transition hover:bg-slate-100"
               aria-label="Cerrar ficha"
             >
@@ -4502,7 +6226,7 @@ function FichaProducto({ producto, onCerrar, onVerRotacion }) {
 
           {/* Cierre al final: tras una ficha larga, el botón de arriba queda lejos */}
           <button
-            onClick={onCerrar}
+            onClick={cerrar}
             className="mt-5 w-full rounded-xl py-3 text-sm font-bold text-white transition hover:opacity-90"
             style={{ backgroundColor: COLORES.tinta }}
           >
@@ -4518,27 +6242,50 @@ function FichaProducto({ producto, onCerrar, onVerRotacion }) {
 // src/components/Diagnostico.jsx
 // ══════════════════════════════════════════════════════════════════
 
+const ICONOS_ENFERMEDADES = { ...ICONOS_ENFERMEDADES_FOLIARES, ...ICONOS_ENFERMEDADES_OTRAS };
+
 const ICONOS = { insectos: Bug, malezas: Sprout, enfermedades: Leaf, nutricion: Droplets };
 
-function Opcion({ label, ayuda, activo, onClick, color }) {
+/**
+ * Ícono ilustrado de cada objetivo, por rama. Ayuda a reconocer la plaga, la
+ * maleza o la enfermedad por su forma antes de leer el nombre. La rama de
+ * nutrición no lleva: sus objetivos son procesos, no organismos.
+ */
+const ICONOS_OBJETIVO = {
+  insectos: ICONOS_INSECTOS,
+  malezas: ICONOS_MALEZAS,
+  enfermedades: ICONOS_ENFERMEDADES,
+};
+
+function Opcion({ label, ayuda, activo, onClick, color, icono: Icono }) {
   return (
     <button
       onClick={onClick}
-      className="rounded-lg border p-3 text-left transition hover:shadow-sm"
+      className="flex items-start gap-2.5 rounded-lg border p-3 text-left transition hover:shadow-sm"
       style={{
         borderColor: activo ? color : COLORES.borde,
         backgroundColor: activo ? `${color}12` : '#fff',
         boxShadow: activo ? `inset 0 0 0 1px ${color}` : undefined,
       }}
     >
-      <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
-        {label}
-      </span>
-      {ayuda && (
-        <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
-          {ayuda}
+      {Icono && (
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: `${color}14` }}
+        >
+          <Icono size={30} color={color} strokeWidth={1.8} />
         </span>
       )}
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
+          {label}
+        </span>
+        {ayuda && (
+          <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
+            {ayuda}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -4667,6 +6414,7 @@ function Diagnostico({ onAbrirProducto, onVerCiclo }) {
               label={o.label}
               ayuda={o.ayuda}
               color={color}
+              icono={ICONOS_OBJETIVO[rama.id]?.[o.id]}
               activo={objetivo === o.id}
               onClick={() => setObjetivo(objetivo === o.id ? null : o.id)}
             />
@@ -5497,6 +7245,872 @@ function CicloVida({ onAbrirProducto, onVolver }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// src/components/Caneca.jsx
+// ══════════════════════════════════════════════════════════════════
+
+/* ────────────────────────────────────────────────────────────────
+   GEOMETRÍA DE LA CANECA (unidades del viewBox)
+   El cuerpo es un cilindro visto de frente y un poco desde arriba: la boca
+   y la base son elipses de radios RADIO_X × RADIO_Y.
+   ──────────────────────────────────────────────────────────────── */
+const ANCHO_VISTA = 232;
+const ALTO_VISTA = 316;
+const CENTRO_X = 116;
+const RADIO_X = 70;
+const RADIO_Y = 19;
+const Y_BOCA = 62;
+const Y_BASE = 282;
+// La cavidad es un poco más angosta que el cuerpo: el grosor de la lámina
+const RADIO_X_INTERIOR = 65.5;
+const RADIO_Y_INTERIOR = 17.8;
+const Y_FONDO_INTERIOR = 280;
+// Altura de la superficie del líquido con la caneca llena y vacía
+const Y_LLENO = 71;
+const Y_VACIO = 277;
+// Aros de refuerzo del cuerpo
+const Y_ARO_SUPERIOR = 137;
+const Y_ARO_INFERIOR = 207;
+
+/** Altura de la superficie del líquido para un nivel entre 0 y 1. */
+const yDeNivel = (nivel) => Y_VACIO - nivel * (Y_VACIO - Y_LLENO);
+
+/** Silueta del cuerpo y de la cavidad interior. */
+const CONTORNO_CUERPO = `M${CENTRO_X - RADIO_X},${Y_BOCA} A${RADIO_X},${RADIO_Y} 0 0 1 ${CENTRO_X + RADIO_X},${Y_BOCA} L${CENTRO_X + RADIO_X},${Y_BASE} A${RADIO_X},${RADIO_Y} 0 0 1 ${CENTRO_X - RADIO_X},${Y_BASE} Z`;
+const CONTORNO_CAVIDAD = `M${CENTRO_X - RADIO_X_INTERIOR},${Y_BOCA} A${RADIO_X_INTERIOR},${RADIO_Y_INTERIOR} 0 0 1 ${CENTRO_X + RADIO_X_INTERIOR},${Y_BOCA} L${CENTRO_X + RADIO_X_INTERIOR},${Y_FONDO_INTERIOR} A${RADIO_X_INTERIOR},${RADIO_Y_INTERIOR} 0 0 1 ${CENTRO_X - RADIO_X_INTERIOR},${Y_FONDO_INTERIOR} Z`;
+
+/** Mitad frontal de la elipse a una altura y: las marcas que rodean el cuerpo. */
+const arcoFrontal = (y) => `M${CENTRO_X - RADIO_X},${y} A${RADIO_X},${RADIO_Y} 0 0 0 ${CENTRO_X + RADIO_X},${y}`;
+/** Banda curva de cierto alto que abraza el frente del cuerpo (los aros). */
+const franjaFrontal = (y, alto) =>
+  `M${CENTRO_X - RADIO_X},${y} A${RADIO_X},${RADIO_Y} 0 0 0 ${CENTRO_X + RADIO_X},${y} L${CENTRO_X + RADIO_X},${y + alto} A${RADIO_X},${RADIO_Y} 0 0 1 ${CENTRO_X - RADIO_X},${y + alto} Z`;
+
+/** Color, fondo e ícono de cada familia de pasos del orden de carga. */
+const ESTILO_CATEGORIA = {
+  agua: { etiqueta: 'Agua', color: COLORES.azul, fondo: COLORES.azulClaro, Icono: Droplets },
+  acondicionador: { etiqueta: 'Acondicionador', color: COLORES.teal, fondo: COLORES.tealClaro, Icono: FlaskConical },
+  solido: { etiqueta: 'Sólidos', color: COLORES.ambar, fondo: COLORES.ambarClaro, Icono: Package },
+  liquido: { etiqueta: 'Líquidos', color: COLORES.naranja, fondo: COLORES.naranjaClaro, Icono: Droplet },
+  coadyuvante: { etiqueta: 'Coadyuvantes', color: COLORES.verde, fondo: COLORES.verdeClaro, Icono: Sparkles },
+  cierre: { etiqueta: 'Cierre', color: COLORES.tinta, fondo: COLORES.grisClaro, Icono: CircleCheck },
+};
+const ESTILO_GENERICO = { etiqueta: 'Paso', color: COLORES.gris, fondo: COLORES.grisClaro, Icono: Droplets };
+// El agua y su acondicionamiento siempre forman capa, aunque no haya producto
+const CATEGORIAS_SIEMPRE_VISIBLES = ['agua', 'acondicionador'];
+// Opacidades alternas para que capas vecinas se distingan dentro del líquido
+const OPACIDAD_CAPAS = [0.14, 0.24, 0.18, 0.28, 0.16, 0.22, 0.12, 0.26];
+
+const acotarNivel = (valor) => {
+  const n = Number(valor);
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
+};
+
+/**
+ * Caneca de 200 L que guía el orden de mezcla.
+ *
+ * Dibuja una caneca metálica que se va llenando paso a paso según
+ * ORDEN_TANQUE: el líquido sube con una transición, cada paso que aporta algo
+ * deja una capa visible y al lado se explica qué entra en ese paso, cuáles
+ * productos de la mezcla del usuario van ahí y por qué.
+ *
+ * Props:
+ *  - pasos: ORDEN_TANQUE con, en cada paso, productos (los de la mezcla que
+ *    entran ahí) y aplica (false si el paso no tiene que ver con la mezcla).
+ *  - indiceActivo / onCambiarPaso: paso mostrado; el componente es controlado.
+ *  - capacidadLitros: capacidad que se rotula en la caneca.
+ *  - color: color del líquido y de los acentos.
+ *
+ * Es tolerante con datos incompletos (pasos sin nivel, sin siglas, índice
+ * fuera de rango) porque no debe romper la pestaña por un dato mal cargado.
+ */
+function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros = 200, color = COLORES.azul }) {
+  const pasosValidos = Array.isArray(pasos) ? pasos.filter((p) => p && typeof p == 'object') : [];
+  const total = pasosValidos.length;
+  const pedido = Number(indiceActivo);
+  const indice = total ? Math.min(Math.max(Number.isFinite(pedido) ? Math.trunc(pedido) : 0, 0), total - 1) : 0;
+  const [verPorque, setVerPorque] = useState(false);
+  const idReact = useId();
+  // Prefijo único para los id de los degradados y recortes del SVG: si hay
+  // dos canecas en la página no se pisan entre sí.
+  const prefijo = `bm${String(idReact).replace(/[^a-zA-Z0-9]/g, '')}`;
+
+  // Al cambiar de paso se cierra la explicación del anterior
+  useEffect(() => {
+    setVerPorque(false);
+  }, [indice]);
+  if (total === 0) return null;
+  const colorAcento = typeof color == 'string' && color.trim() ? color : COLORES.azul;
+  const capacidad =
+    Number.isFinite(Number(capacidadLitros)) && Number(capacidadLitros) > 0 ? Number(capacidadLitros) : 200;
+  const niveles = [];
+  const capas = [];
+  // El nivel nunca baja de un paso al siguiente. Cada paso que aporta algo a
+  // la mezcla deja una capa entre el nivel anterior y el suyo.
+  let nivelPrevio = 0;
+  pasosValidos.forEach((paso, i) => {
+    const nivel = Math.max(acotarNivel(paso.nivel), nivelPrevio);
+    niveles.push(nivel);
+    const productos = Array.isArray(paso.productos) ? paso.productos : [];
+    const dejaCapa =
+      paso.aplica !== false && (productos.length > 0 || CATEGORIAS_SIEMPRE_VISIBLES.indexOf(paso.categoria) !== -1);
+    const yTope = yDeNivel(nivel);
+    const yPiso = yDeNivel(nivelPrevio);
+    if (dejaCapa && yPiso - yTope > 0.4) capas.push({ clave: i, y: yTope, alto: yPiso - yTope, visible: i <= indice });
+    nivelPrevio = nivel;
+  });
+  const actual = pasosValidos[indice];
+  const nivelActual = niveles[indice];
+  const yLiquido = yDeNivel(nivelActual);
+  const litros = nivelActual * capacidad;
+  // Litros enteros cuando lo son; si no, un decimal con coma
+  const litrosTexto =
+    Math.abs(litros - Math.round(litros)) < 0.05 ? String(Math.round(litros)) : litros.toFixed(1).replace('.', ',');
+  const porcentaje = Math.round(nivelActual * 100);
+  const estilo = ESTILO_CATEGORIA[actual.categoria] || ESTILO_GENERICO;
+  const IconoPaso = estilo.Icono;
+  const aplica = actual.aplica !== false;
+  const productosPaso = Array.isArray(actual.productos) ? actual.productos : [];
+  const siglasPaso = Array.isArray(actual.siglas) ? actual.siglas.filter(Boolean) : [];
+  const numeroPaso = Number.isFinite(Number(actual.paso)) ? actual.paso : indice + 1;
+  const irA = (i) => {
+    if (typeof onCambiarPaso != 'function') return;
+    if (!Number.isFinite(i) || i < 0 || i > total - 1) return;
+    onCambiarPaso(i);
+  };
+
+  // El líquido se dibuja con la superficie en y = 0 y se desplaza entero hasta
+  // el nivel: así la subida es una sola transición de transform. Las capas van
+  // dentro con el desplazamiento contrario para quedarse quietas en su sitio.
+  const moverLiquido = { transform: `translate(0px, ${yLiquido}px)` };
+  const compensarLiquido = { transform: `translate(0px, ${-yLiquido}px)` };
+  const MARCAS = [0.25, 0.5, 0.75, 1];
+  return (
+    <section>
+      <style>{`
+        .${prefijo}-anim { transition: transform 620ms cubic-bezier(.33,.02,.15,1); }
+        .${prefijo}-fade { transition: opacity 620ms ease; }
+        @media (prefers-reduced-motion: reduce) {
+          .${prefijo}-anim, .${prefijo}-fade { transition: none; }
+        }
+      `}</style>
+      <div className="grid gap-4 sm:grid-cols-5">
+        <div
+          className="rounded-2xl border p-3 sm:col-span-2"
+          style={{
+            borderColor: COLORES.borde,
+            backgroundColor: '#fff',
+            backgroundImage: `linear-gradient(180deg, #fff 0%, ${COLORES.papel} 100%)`,
+            boxShadow: '0 1px 3px rgba(11,36,49,0.08)',
+          }}
+        >
+          <svg
+            viewBox={`0 0 ${ANCHO_VISTA} ${ALTO_VISTA}`}
+            width="100%"
+            className="mx-auto block h-auto"
+            style={{ maxWidth: 300 }}
+            role="img"
+            aria-label={`Caneca de ${capacidad} litros con ${litrosTexto} litros de mezcla, ${porcentaje} por ciento de su capacidad`}
+          >
+            <defs>
+              <linearGradient id={`${prefijo}-acero`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#2E3B46" />
+                <stop offset="5%" stopColor="#4A5A66" />
+                <stop offset="16%" stopColor="#7E919E" />
+                <stop offset="28%" stopColor="#C2D0D9" />
+                <stop offset="37%" stopColor="#A8B8C3" />
+                <stop offset="52%" stopColor="#82949F" />
+                <stop offset="68%" stopColor="#63737F" />
+                <stop offset="84%" stopColor="#47555F" />
+                <stop offset="94%" stopColor="#6E7E89" />
+                <stop offset="100%" stopColor="#37444E" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-aceroFrente`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#2E3B46" stopOpacity="1" />
+                <stop offset="7%" stopColor="#4A5A66" stopOpacity="0.94" />
+                <stop offset="16%" stopColor="#7E919E" stopOpacity="0.6" />
+                <stop offset="28%" stopColor="#C2D0D9" stopOpacity="0.3" />
+                <stop offset="41%" stopColor="#A8B8C3" stopOpacity="0.16" />
+                <stop offset="56%" stopColor="#8B9DA9" stopOpacity="0.17" />
+                <stop offset="69%" stopColor="#63737F" stopOpacity="0.29" />
+                <stop offset="83%" stopColor="#4A5862" stopOpacity="0.62" />
+                <stop offset="94%" stopColor="#6E7E89" stopOpacity="0.92" />
+                <stop offset="100%" stopColor="#37444E" stopOpacity="1" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-aro`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#3A4854" stopOpacity="1" />
+                <stop offset="8%" stopColor="#5E6E7A" stopOpacity="0.96" />
+                <stop offset="20%" stopColor="#93A5B1" stopOpacity="0.74" />
+                <stop offset="30%" stopColor="#D2DEE6" stopOpacity="0.5" />
+                <stop offset="50%" stopColor="#9FB0BB" stopOpacity="0.34" />
+                <stop offset="70%" stopColor="#71818D" stopOpacity="0.46" />
+                <stop offset="86%" stopColor="#4E5C67" stopOpacity="0.78" />
+                <stop offset="100%" stopColor="#3A4854" stopOpacity="1" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-metal`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#3B4A55" />
+                <stop offset="16%" stopColor="#8FA2AE" />
+                <stop offset="30%" stopColor="#DCE7EE" />
+                <stop offset="48%" stopColor="#A3B4BF" />
+                <stop offset="70%" stopColor="#6A7A86" />
+                <stop offset="88%" stopColor="#9DAFBA" />
+                <stop offset="100%" stopColor="#3B4A55" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-interior`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#788996" />
+                <stop offset="16%" stopColor="#4E5D69" />
+                <stop offset="55%" stopColor="#323F49" />
+                <stop offset="100%" stopColor="#1E2932" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-interiorLados`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#0A1218" stopOpacity="0.85" />
+                <stop offset="24%" stopColor="#0A1218" stopOpacity="0.16" />
+                <stop offset="50%" stopColor="#0A1218" stopOpacity="0" />
+                <stop offset="78%" stopColor="#0A1218" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#0A1218" stopOpacity="0.9" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-modelado`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#000" stopOpacity="0.46" />
+                <stop offset="10%" stopColor="#000" stopOpacity="0.26" />
+                <stop offset="26%" stopColor="#fff" stopOpacity="0.34" />
+                <stop offset="36%" stopColor="#fff" stopOpacity="0.14" />
+                <stop offset="52%" stopColor="#fff" stopOpacity="0" />
+                <stop offset="72%" stopColor="#000" stopOpacity="0.18" />
+                <stop offset="88%" stopColor="#000" stopOpacity="0.38" />
+                <stop offset="100%" stopColor="#000" stopOpacity="0.5" />
+              </linearGradient>
+              <radialGradient id={`${prefijo}-superficie`} cx="38%" cy="30%" r="78%">
+                <stop offset="0%" stopColor="#fff" stopOpacity="0.55" />
+                <stop offset="45%" stopColor="#fff" stopOpacity="0.16" />
+                <stop offset="78%" stopColor="#fff" stopOpacity="0.03" />
+                <stop offset="100%" stopColor="#000" stopOpacity="0.16" />
+              </radialGradient>
+              <radialGradient id={`${prefijo}-brillo`} cx="50%" cy="40%" r="52%">
+                <stop offset="0%" stopColor="#fff" stopOpacity="0.5" />
+                <stop offset="55%" stopColor="#fff" stopOpacity="0.11" />
+                <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id={`${prefijo}-rebote`} cx="50%" cy="52%" r="55%">
+                <stop offset="0%" stopColor="#E6F1F8" stopOpacity="0.34" />
+                <stop offset="100%" stopColor="#E6F1F8" stopOpacity="0" />
+              </radialGradient>
+              <linearGradient id={`${prefijo}-sombraBoca`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#0A1218" stopOpacity="0.34" />
+                <stop offset="100%" stopColor="#0A1218" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id={`${prefijo}-sombraBase`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#0A1218" stopOpacity="0" />
+                <stop offset="100%" stopColor="#0A1218" stopOpacity="0.34" />
+              </linearGradient>
+              <radialGradient id={`${prefijo}-piso`} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#0B2431" stopOpacity="0.32" />
+                <stop offset="62%" stopColor="#0B2431" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#0B2431" stopOpacity="0" />
+              </radialGradient>
+              <clipPath id={`${prefijo}-recorteCuerpo`}>
+                <path d={CONTORNO_CUERPO} />
+              </clipPath>
+              <clipPath id={`${prefijo}-recorteCavidad`}>
+                <path d={CONTORNO_CAVIDAD} />
+              </clipPath>
+              <clipPath id={`${prefijo}-bajoSuperficie`}>
+                <rect x="-400" y="0" width="1000" height="700" />
+              </clipPath>
+            </defs>
+            <title>{`Caneca de ${capacidad} L llena al ${porcentaje} %`}</title>
+            {/* sombra en el piso */}
+            <ellipse cx={CENTRO_X} cy={303} rx={86} ry={12} fill={`url(#${prefijo}-piso)`} />
+            {/* tapa con sus dos tapones, apoyada detrás */}
+            <g opacity="0.95">
+              <ellipse cx={CENTRO_X} cy={33} rx={62} ry={26} fill={`url(#${prefijo}-metal)`} />
+              <ellipse cx={CENTRO_X} cy={32} rx={55} ry={21} fill={`url(#${prefijo}-acero)`} />
+              <ellipse
+                cx={CENTRO_X}
+                cy={32}
+                rx={42}
+                ry={15.5}
+                fill="none"
+                stroke="#fff"
+                strokeOpacity="0.16"
+                strokeWidth="1.2"
+              />
+              <ellipse cx={92} cy={25} rx={11.5} ry={6} fill="#8B9CA8" />
+              <ellipse cx={92} cy={23.4} rx={9.8} ry={5} fill={`url(#${prefijo}-metal)`} />
+              <path d="M85.5,23.2 h13" stroke="#3B4A55" strokeOpacity="0.55" strokeWidth="1.4" />
+              <ellipse cx={146} cy={28} rx={7.6} ry={4.2} fill="#8B9CA8" />
+              <ellipse cx={146} cy={26.9} rx={6.2} ry={3.4} fill={`url(#${prefijo}-metal)`} />
+              <path d="M142.2,26.8 h7.6" stroke="#3B4A55" strokeOpacity="0.55" strokeWidth="1.2" />
+            </g>
+            {/* cuerpo y cavidad, con el líquido adentro */}
+            <path d={CONTORNO_CUERPO} fill={`url(#${prefijo}-acero)`} />
+            <g clipPath={`url(#${prefijo}-recorteCavidad)`}>
+              <path d={CONTORNO_CAVIDAD} fill={`url(#${prefijo}-interior)`} />
+              <path d={CONTORNO_CAVIDAD} fill={`url(#${prefijo}-interiorLados)`} />
+              <g className={`${prefijo}-anim`} style={moverLiquido}>
+                <rect
+                  x={CENTRO_X - RADIO_X_INTERIOR}
+                  y={0}
+                  width={RADIO_X_INTERIOR * 2}
+                  height={330}
+                  fill={colorAcento}
+                />
+                <rect
+                  x={CENTRO_X - RADIO_X_INTERIOR}
+                  y={0}
+                  width={RADIO_X_INTERIOR * 2}
+                  height={330}
+                  fill={`url(#${prefijo}-modelado)`}
+                />
+                <g clipPath={`url(#${prefijo}-bajoSuperficie)`}>
+                  <g className={`${prefijo}-anim`} style={compensarLiquido}>
+                    {capas.map((capa, i) => (
+                      <g key={capa.clave} className={`${prefijo}-fade`} style={{ opacity: capa.visible ? 1 : 0 }}>
+                        <rect
+                          x={CENTRO_X - RADIO_X_INTERIOR}
+                          y={capa.y}
+                          width={RADIO_X_INTERIOR * 2}
+                          height={capa.alto}
+                          fill={colorAcento}
+                          opacity={OPACIDAD_CAPAS[i % OPACIDAD_CAPAS.length]}
+                        />
+                        <rect
+                          x={CENTRO_X - RADIO_X_INTERIOR}
+                          y={capa.y}
+                          width={RADIO_X_INTERIOR * 2}
+                          height={0.9}
+                          fill="#fff"
+                          opacity="0.3"
+                        />
+                      </g>
+                    ))}
+                  </g>
+                </g>
+                {/* superficie del líquido */}
+                <ellipse cx={CENTRO_X} cy={0} rx={RADIO_X_INTERIOR} ry={RADIO_Y_INTERIOR} fill={colorAcento} />
+                <ellipse
+                  cx={CENTRO_X}
+                  cy={0}
+                  rx={RADIO_X_INTERIOR}
+                  ry={RADIO_Y_INTERIOR}
+                  fill={`url(#${prefijo}-superficie)`}
+                />
+                <ellipse
+                  cx={CENTRO_X}
+                  cy={0}
+                  rx={RADIO_X_INTERIOR}
+                  ry={RADIO_Y_INTERIOR}
+                  fill="none"
+                  stroke="#fff"
+                  strokeOpacity="0.45"
+                  strokeWidth="1"
+                />
+              </g>
+            </g>
+            {/* pared frontal translúcida, aros y marcas de nivel */}
+            <path d={CONTORNO_CUERPO} fill={`url(#${prefijo}-aceroFrente)`} />
+            <g clipPath={`url(#${prefijo}-recorteCuerpo)`}>
+              <rect
+                x={CENTRO_X - RADIO_X}
+                y={Y_BOCA}
+                width={RADIO_X * 2}
+                height={30}
+                fill={`url(#${prefijo}-sombraBoca)`}
+              />
+              <rect
+                x={CENTRO_X - RADIO_X}
+                y={Y_BASE - 34}
+                width={RADIO_X * 2}
+                height={34 + RADIO_Y}
+                fill={`url(#${prefijo}-sombraBase)`}
+              />
+              {[Y_ARO_SUPERIOR, Y_ARO_INFERIOR].map((y) => (
+                <g key={y}>
+                  <path d={franjaFrontal(y - 5, 10)} fill={`url(#${prefijo}-aro)`} />
+                  <path d={arcoFrontal(y - 5)} fill="none" stroke="#0F1A22" strokeOpacity="0.4" strokeWidth="1" />
+                  <path d={arcoFrontal(y - 3.4)} fill="none" stroke="#fff" strokeOpacity="0.22" strokeWidth="1" />
+                  <path d={arcoFrontal(y + 5)} fill="none" stroke="#0F1A22" strokeOpacity="0.34" strokeWidth="1" />
+                </g>
+              ))}
+              {MARCAS.map((marca) => {
+                const y = yDeNivel(marca);
+                return (
+                  <g key={marca}>
+                    <path d={arcoFrontal(y)} fill="none" stroke="#0B141B" strokeOpacity="0.26" strokeWidth="1" />
+                    <path d={arcoFrontal(y + 1.3)} fill="none" stroke="#fff" strokeOpacity="0.28" strokeWidth="1" />
+                  </g>
+                );
+              })}
+              <rect
+                x={70}
+                y={Y_BOCA - RADIO_Y}
+                width={30}
+                height={Y_BASE - Y_BOCA + RADIO_Y * 2}
+                fill={`url(#${prefijo}-brillo)`}
+              />
+              <rect
+                x={167}
+                y={Y_BOCA - RADIO_Y}
+                width={15}
+                height={Y_BASE - Y_BOCA + RADIO_Y * 2}
+                fill={`url(#${prefijo}-rebote)`}
+              />
+            </g>
+            {/* contorno, base y borde de la boca */}
+            <path d={CONTORNO_CUERPO} fill="none" stroke="#16232D" strokeOpacity="0.45" strokeWidth="1.2" />
+            <path d={arcoFrontal(Y_BASE)} fill="none" stroke={`url(#${prefijo}-metal)`} strokeWidth="4.5" />
+            <path d={arcoFrontal(Y_BASE - 2.6)} fill="none" stroke="#0F1A22" strokeOpacity="0.3" strokeWidth="1" />
+            <ellipse
+              cx={CENTRO_X}
+              cy={Y_BOCA}
+              rx={RADIO_X}
+              ry={RADIO_Y}
+              fill="none"
+              stroke={`url(#${prefijo}-metal)`}
+              strokeWidth="6.5"
+            />
+            <ellipse
+              cx={CENTRO_X}
+              cy={Y_BOCA - 1.4}
+              rx={RADIO_X - 1.8}
+              ry={RADIO_Y - 1.8}
+              fill="none"
+              stroke="#fff"
+              strokeOpacity="0.3"
+              strokeWidth="1.2"
+            />
+            <ellipse
+              cx={CENTRO_X}
+              cy={Y_BOCA}
+              rx={RADIO_X_INTERIOR}
+              ry={RADIO_Y_INTERIOR}
+              fill="none"
+              stroke="#0A121A"
+              strokeOpacity="0.55"
+              strokeWidth="1.6"
+            />
+            {/* rótulos de litros a la derecha */}
+            {MARCAS.map((marca, i) => {
+              const y = yDeNivel(marca);
+              return (
+                <g key={`etq-${marca}`}>
+                  <path
+                    d={`M${CENTRO_X + RADIO_X},${y} h6`}
+                    stroke={COLORES.borde}
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                  <text
+                    x={CENTRO_X + RADIO_X + 9}
+                    y={y + 3.4}
+                    fontSize="9.5"
+                    fontWeight="700"
+                    fill={COLORES.textoSuave}
+                  >
+                    {Math.round(marca * capacidad)}
+                    {i === MARCAS.length - 1 ? ' L' : ''}
+                  </text>
+                </g>
+              );
+            })}
+            {/* indicador de litros que acompaña a la superficie */}
+            <g className={`${prefijo}-anim`} style={moverLiquido}>
+              <path
+                d={`M10,0 H${CENTRO_X - RADIO_X_INTERIOR}`}
+                stroke={colorAcento}
+                strokeWidth="1"
+                strokeDasharray="2 3"
+                opacity="0.6"
+              />
+              <rect x={2} y={-9.5} width={44} height={19} rx={6.5} fill={colorAcento} />
+              <text x={24} y={4.2} textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">
+                {litrosTexto} L
+              </text>
+            </g>
+          </svg>
+          <div className="mt-1 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+              Nivel del tanque
+            </p>
+            <p className="mt-0.5" style={{ color: COLORES.tinta }}>
+              <span className="font-mono text-3xl font-bold">{litrosTexto}</span>
+              <span className="ml-1 text-base font-bold">L</span>
+            </p>
+            <p className="mt-0.5 text-xs" style={{ color: COLORES.textoSuave }}>
+              de {capacidad} L · {porcentaje} % de la caneca
+            </p>
+          </div>
+        </div>
+        {/* Explicación del paso actual */}
+        <div className="sm:col-span-3">
+          <div aria-live="polite">
+            <div
+              className="rounded-2xl border bg-white p-4 transition"
+              style={{
+                borderColor: COLORES.borde,
+                borderLeft: `4px solid ${aplica ? estilo.color : COLORES.borde}`,
+                boxShadow: '0 1px 3px rgba(11,36,49,0.08)',
+                opacity: aplica ? 1 : 0.58,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold text-white"
+                  style={{ backgroundColor: aplica ? estilo.color : COLORES.gris }}
+                >
+                  {numeroPaso}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide"
+                    style={{ color: aplica ? estilo.color : COLORES.textoSuave }}
+                  >
+                    <IconoPaso size={13} strokeWidth={2.2} />
+                    {estilo.etiqueta}
+                  </p>
+                  <h3 className="mt-0.5 break-words text-base font-bold leading-tight" style={{ color: COLORES.tinta }}>
+                    {actual.que}
+                  </h3>
+                  {actual.detalle && (
+                    <p className="mt-1 break-words text-sm leading-snug" style={{ color: COLORES.textoSuave }}>
+                      {actual.detalle}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {(siglasPaso.length > 0 || !aplica) && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {siglasPaso.map((sigla) => (
+                    <span
+                      key={sigla}
+                      className="rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold"
+                      style={{ backgroundColor: estilo.fondo, color: estilo.color }}
+                    >
+                      {sigla}
+                    </span>
+                  ))}
+                  {!aplica && (
+                    <span
+                      className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                      style={{ backgroundColor: COLORES.grisClaro, color: COLORES.textoSuave }}
+                    >
+                      No aplica a tu mezcla
+                    </span>
+                  )}
+                </div>
+              )}
+              <p
+                className="mt-3 text-[11px] font-semibold uppercase tracking-wide"
+                style={{ color: COLORES.textoSuave }}
+              >
+                Qué entra aquí
+              </p>
+              {productosPaso.length > 0 ? (
+                <ul className="mt-1.5 space-y-1.5">
+                  {productosPaso.map((pr, i) => (
+                    <li
+                      key={pr && pr.id ? pr.id : `pr-${i}`}
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+                      style={{ backgroundColor: COLORES.papel }}
+                    >
+                      <span
+                        className="min-w-0 flex-1 truncate text-sm font-semibold"
+                        style={{ color: COLORES.tinta }}
+                        title={pr && pr.nombre ? pr.nombre : ''}
+                      >
+                        {pr && pr.nombre ? pr.nombre : 'Producto'}
+                      </span>
+                      {pr && pr.sigla && (
+                        <span
+                          className="shrink-0 rounded font-mono text-[10px] font-bold"
+                          style={{ color: COLORES.textoSuave }}
+                        >
+                          {pr.sigla}
+                        </span>
+                      )}
+                      {pr && pr.dosis && (
+                        <span className="shrink-0 font-mono text-sm font-bold" style={{ color: colorAcento }}>
+                          {pr.dosis}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p
+                  className="mt-1.5 rounded-lg border border-dashed px-3 py-2 text-xs"
+                  style={{ borderColor: COLORES.borde, color: COLORES.textoSuave }}
+                >
+                  Ningún producto de tu mezcla entra en este paso.
+                </p>
+              )}
+              {actual.porque && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setVerPorque((v) => !v)}
+                    aria-expanded={verPorque}
+                    aria-label={
+                      verPorque
+                        ? `Ocultar la explicación del paso ${numeroPaso}`
+                        : `Ver por qué se hace el paso ${numeroPaso}`
+                    }
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition"
+                    style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+                  >
+                    <Info size={13} style={{ color: estilo.color }} />
+                    ¿Por qué?
+                    <ChevronDown
+                      size={14}
+                      className="transition-transform"
+                      style={{ color: COLORES.textoSuave, transform: verPorque ? 'rotate(180deg)' : 'none' }}
+                    />
+                  </button>
+                  {verPorque && (
+                    <div
+                      className="mt-2 max-h-44 overflow-y-auto overscroll-contain rounded-xl p-3"
+                      style={{ backgroundColor: COLORES.papel }}
+                    >
+                      <p className="break-words text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                        {actual.porque}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => irA(indice - 1)}
+              disabled={indice === 0}
+              aria-label="Ir al paso anterior de la carga"
+              className="flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ borderColor: COLORES.borde, backgroundColor: '#fff', color: COLORES.tinta }}
+            >
+              <ChevronLeft size={16} />
+              Anterior
+            </button>
+            <span
+              className="flex-1 text-center text-[11px] font-semibold uppercase tracking-wide"
+              style={{ color: COLORES.textoSuave }}
+            >
+              Paso {indice + 1} de {total}
+            </span>
+            <button
+              type="button"
+              onClick={() => irA(indice + 1)}
+              disabled={indice === total - 1}
+              aria-label="Ir al siguiente paso de la carga"
+              className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ backgroundColor: colorAcento }}
+            >
+              Siguiente
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          {/* Riel con todos los pasos; los que no aplican a la mezcla se atenúan */}
+          <nav aria-label="Pasos del orden de carga" className="mt-3">
+            <ol className="grid gap-1" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
+              {pasosValidos.map((paso, i) => {
+                const aplicaPaso = paso.aplica !== false;
+                const esActual = i === indice;
+                const yaPaso = i < indice;
+                const colorRiel = esActual
+                  ? colorAcento
+                  : aplicaPaso
+                    ? yaPaso
+                      ? colorAcento
+                      : COLORES.borde
+                    : COLORES.grisClaro;
+                const numero = Number.isFinite(Number(paso.paso)) ? paso.paso : i + 1;
+                return (
+                  <li key={`riel-${i}`} className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => irA(i)}
+                      aria-current={esActual ? 'step' : undefined}
+                      aria-label={`Paso ${numero}: ${paso.que || 'sin título'}${aplicaPaso ? '' : ' (no aplica a tu mezcla)'}`}
+                      className="block w-full rounded-md px-0.5 pb-0.5 pt-1 text-center transition"
+                      style={{ opacity: aplicaPaso ? 1 : 0.4 }}
+                    >
+                      <span
+                        className="block rounded-full transition-all"
+                        style={{
+                          height: esActual ? 6 : 4,
+                          backgroundColor: colorRiel,
+                          opacity: yaPaso && !esActual ? 0.45 : 1,
+                        }}
+                      />
+                      <span
+                        className="mt-1 block font-mono text-[10px] font-bold leading-none"
+                        style={{ color: esActual ? colorAcento : COLORES.textoSuave }}
+                      >
+                        {numero}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// src/components/TutorialMezcla.jsx
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Repaso rápido del orden de carga: cinco ideas clave para que no se corte la
+ * mezcla. Cada diapositiva dice qué hacer y, aparte, por qué.
+ */
+const DIAPOSITIVAS = [
+  {
+    titulo: 'La regla, en una frase',
+    cuerpo:
+      'Agua → corrige el agua → sólidos → líquidos → fertilizantes → coadyuvantes → completa. Si respetas ese orden ya evitaste la mayoría de las mezclas cortadas.',
+    porque:
+      'Cada familia necesita una condición distinta del caldo para integrarse bien. Meterlas en desorden es lo que produce grumos, natas y capas que ya no se recuperan agitando.',
+  },
+  {
+    titulo: 'Sólidos primero, y prediluidos',
+    cuerpo:
+      'Polvos y granulados (WP, WG, SG) nunca van secos al tanque: se disuelven aparte en un balde con agua y se vierten colados, con el agitador andando.',
+    porque:
+      'Un polvo seco que cae sobre un caldo ya cargado se aglomera y termina tapando boquillas o quedándose en el fondo sin aplicar. Necesita agua limpia y en movimiento para hidratarse.',
+  },
+  {
+    titulo: 'Fertilizantes y coadyuvantes, de últimos',
+    cuerpo:
+      'Los foliares y micronutrientes entran después de los plaguicidas. Los coadyuvantes (tensioactivos, aceites, antideriva) van al final, con el tanque casi lleno.',
+    porque:
+      'Son sales concentradas y surfactantes: temprano hacen flocular lo que ya está suspendido, generan espuma durante toda la carga, y su dosis depende del volumen final que aún no conoces.',
+  },
+  {
+    titulo: 'El orden no lo arregla todo',
+    cuerpo:
+      'Dos productos pueden ser incompatibles entre sí aunque los cargues bien: por antagonismo físico-químico (uno desestabiliza la formulación del otro) o biológico (uno le baja la eficacia al otro sin que se vea).',
+    porque:
+      'La etiqueta ICA es la fuente autorizada sobre las mezclas ya documentadas. Para combinaciones que no están en la etiqueta, no existe forma de saberlo por cálculo: hay que probarlo.',
+  },
+  {
+    titulo: 'La prueba de frasco: 15 minutos',
+    cuerpo:
+      'Antes de mezclar dos productos por primera vez, combínalos en un frasco transparente en la misma proporción del tanque y espera 15 minutos. Si aparecen grumos, natas, separación en capas o calor, no los mezcles: aplícalos por separado.',
+    porque:
+      'Quince minutos en un frasco cuestan mucho menos que un tanque de 200 L cortado, una aplicación perdida y las boquillas tapadas a mitad del lote.',
+  },
+];
+
+/** Tutorial en ventana sobre la pantalla, con flechas del teclado y Escape. */
+function TutorialMezcla({ onCerrar }) {
+  const [indice, setIndice] = useState(0);
+  const total = DIAPOSITIVAS.length;
+  const diapositiva = DIAPOSITIVAS[indice];
+  const esUltima = indice === total - 1;
+
+  useEffect(() => {
+    const conTecla = (e) => {
+      if (e.key === 'Escape') onCerrar();
+      if (e.key === 'ArrowRight') setIndice((i) => Math.min(i + 1, total - 1));
+      if (e.key === 'ArrowLeft') setIndice((i) => Math.max(i - 1, 0));
+    };
+    document.addEventListener('keydown', conTecla);
+
+    // Bloquear el desplazamiento del fondo mientras el tutorial está abierto
+    const desplazamientoPrevio = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', conTecla);
+      document.body.style.overflow = desplazamientoPrevio;
+    };
+  }, [onCerrar, total]);
+
+  const puntos = useMemo(() => DIAPOSITIVAS.map((_, i) => i), []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"
+      onClick={onCerrar}
+      role="presentation"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tutorial: cómo armar una mezcla"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white sm:rounded-2xl"
+      >
+        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: COLORES.borde }}>
+          <span
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide"
+            style={{ color: COLORES.textoSuave }}
+          >
+            <Beaker size={14} /> Tutorial · {indice + 1} de {total}
+          </span>
+          <button
+            onClick={onCerrar}
+            className="rounded-full p-1.5 transition hover:bg-slate-100"
+            aria-label="Cerrar tutorial"
+          >
+            <X size={18} style={{ color: COLORES.textoSuave }} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <h3 className="text-lg font-bold" style={{ color: COLORES.tinta }}>
+            {diapositiva.titulo}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+            {diapositiva.cuerpo}
+          </p>
+          {diapositiva.porque && (
+            <div className="mt-3 flex gap-2 rounded-lg p-3" style={{ backgroundColor: COLORES.azulClaro }}>
+              <Droplets size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.azul }} />
+              <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                <strong>¿Por qué?</strong> {diapositiva.porque}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t px-5 py-3" style={{ borderColor: COLORES.borde }}>
+          {/* Puntos de avance: el actual se alarga */}
+          <div className="flex items-center justify-center gap-1.5">
+            {puntos.map((i) => (
+              <span
+                key={i}
+                className="h-1.5 rounded-full transition-all"
+                style={{ width: i === indice ? 16 : 6, backgroundColor: i === indice ? COLORES.azul : COLORES.borde }}
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => setIndice((i) => Math.max(i - 1, 0))}
+              disabled={indice === 0}
+              className="flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-30"
+              style={{ color: COLORES.tinta, border: `1px solid ${COLORES.borde}` }}
+            >
+              <ChevronLeft size={16} /> Anterior
+            </button>
+            <button
+              onClick={() => (esUltima ? onCerrar() : setIndice((i) => i + 1))}
+              className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2.5 text-sm font-bold text-white transition hover:opacity-90"
+              style={{ backgroundColor: COLORES.tinta }}
+            >
+              {esUltima ? 'Listo' : 'Siguiente'} {!esUltima && <ChevronRight size={16} />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // src/components/Mezcla.jsx
 // ══════════════════════════════════════════════════════════════════
 
@@ -5515,6 +8129,44 @@ function Campo({ etiqueta, ayuda, children }) {
       )}
       <div className="mt-1.5">{children}</div>
     </label>
+  );
+}
+
+/**
+ * Sección plegable: muestra el título y el resumen, y despliega la
+ * explicación al tocar. Así la lista de pasos se puede leer de un vistazo.
+ */
+function Seccion({ titulo, subtitulo, children }) {
+  const [abierta, setAbierta] = useState(false);
+  return (
+    <div className="rounded-xl border bg-white" style={{ borderColor: COLORES.borde }}>
+      <button
+        onClick={() => setAbierta((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 p-3 text-left"
+        aria-expanded={abierta}
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
+            {titulo}
+          </span>
+          {subtitulo && (
+            <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
+              {subtitulo}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          size={18}
+          className="shrink-0 transition-transform"
+          style={{ color: COLORES.textoSuave, transform: abierta ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+      {abierta && (
+        <div className="border-t px-3 pb-3 pt-2.5" style={{ borderColor: COLORES.borde }}>
+          {children}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -5658,6 +8310,8 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice }) {
 /** Calculadora de mezcla, calibración y orden de carga. */
 function Mezcla() {
   const [vista, setVista] = useState('mezcla');
+  const [verTutorial, setVerTutorial] = useState(false);
+  const [pasoCaneca, setPasoCaneca] = useState(0);
   const [condiciones, setCondiciones] = useState({
     area: '1',
     volumenHa: '200',
@@ -5690,15 +8344,72 @@ function Mezcla() {
     return lista;
   }, [productosElegidos]);
 
-  // Orden de carga sugerido para los productos elegidos
-  const ordenCarga = useMemo(
-    () =>
-      productosElegidos
-        .map((p) => ({ producto: p, f: formulacionDe(p) }))
-        .filter((x) => x.f)
-        .sort((a, b) => a.f.ordenCarga - b.f.ordenCarga),
-    [productosElegidos]
-  );
+  // Tipos de formulación distintos en el tanque
+  const formulaciones = useMemo(() => analizarFormulaciones(productosElegidos), [productosElegidos]);
+
+  // Semáforo de la mezcla: con dos o más productos dice de un vistazo si hay
+  // riesgo de incompatibilidad física, choque de modo de acción o nada que
+  // reportar. La incompatibilidad física va primero porque corta el tanque.
+  const estadoMezcla = useMemo(() => {
+    if (productosElegidos.length < 2) return null;
+    if (formulaciones.riesgo) {
+      const siglas = formulaciones.tipos.map((t) => t.sigla).join(', ');
+      return {
+        Icono: OctagonAlert,
+        fondo: '#FDF3EE',
+        borde: '#F0C9B4',
+        texto: '#C2410C',
+        mensaje: `Riesgo de incompatibilidad: ${formulaciones.distintas} formulaciones distintas en el tanque (${siglas})`,
+      };
+    }
+    if (choques.length > 0) {
+      return {
+        Icono: AlertTriangle,
+        fondo: COLORES.ambarClaro,
+        borde: COLORES.ambar,
+        texto: COLORES.ambar,
+        mensaje: 'Hay modos de acción repetidos en la mezcla',
+      };
+    }
+    return {
+      Icono: CircleCheck,
+      fondo: COLORES.verdeClaro,
+      borde: COLORES.verde,
+      texto: COLORES.verde,
+      mensaje: 'Sin conflictos detectados entre los productos seleccionados',
+    };
+  }, [productosElegidos.length, formulaciones, choques.length]);
+
+  // Orden de carga con los productos de la mezcla ubicados en su paso. Un
+  // paso de formulación sin ningún producto de la mezcla queda como "no
+  // aplica"; los pasos generales (agua, acondicionador, cierre) siempre aplican.
+  const pasosCaneca = useMemo(() => {
+    const porPaso = new Map();
+    items.forEach((item) => {
+      const producto = PRODUCTOS.find((p) => p.id === item.productoId);
+      if (!producto) return;
+      const f = formulacionDe(producto);
+      const paso = f?.ordenCarga || 8;
+      const calculo = calcularMezcla({
+        dosis: item.dosis,
+        unidad: item.unidad,
+        area: condiciones.area,
+        volumenHa: condiciones.volumenHa,
+        capacidadBomba: condiciones.capacidadBomba,
+      });
+      if (!porPaso.has(paso)) porPaso.set(paso, []);
+      porPaso.get(paso).push({
+        id: producto.id,
+        nombre: producto.nombre,
+        sigla: f?.sigla || '—',
+        dosis: calculo ? `${unidadAmigable(calculo.productoPorBomba, calculo.base)} por bomba` : 'falta la dosis',
+      });
+    });
+    return ORDEN_TANQUE.map((p) => {
+      const productos = porPaso.get(p.paso) || [];
+      return { ...p, productos, aplica: p.siglas.length === 0 || productos.length > 0 };
+    });
+  }, [items, condiciones]);
 
   const resumen = useMemo(
     () =>
@@ -5781,6 +8492,20 @@ function Mezcla() {
             </div>
           )}
 
+          {estadoMezcla && (
+            <div
+              className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold"
+              style={{
+                backgroundColor: estadoMezcla.fondo,
+                border: `1px solid ${estadoMezcla.borde}`,
+                color: estadoMezcla.texto,
+              }}
+            >
+              <estadoMezcla.Icono size={16} className="shrink-0" />
+              {estadoMezcla.mensaje}
+            </div>
+          )}
+
           <div className="mt-5 space-y-3">
             {items.map((item, i) => (
               <LineaProducto
@@ -5805,9 +8530,9 @@ function Mezcla() {
           {choques.length > 0 && (
             <div
               className="mt-4 rounded-lg p-3"
-              style={{ backgroundColor: '#FDF3EE', border: '1px solid #F0C9B4' }}
+              style={{ backgroundColor: COLORES.ambarClaro, border: `1px solid ${COLORES.ambar}` }}
             >
-              <p className="flex items-center gap-2 text-sm font-bold" style={{ color: '#C2410C' }}>
+              <p className="flex items-center gap-2 text-sm font-bold" style={{ color: COLORES.ambar }}>
                 <AlertTriangle size={15} /> Modos de acción repetidos en la mezcla
               </p>
               <ul className="mt-2 space-y-1">
@@ -5820,6 +8545,23 @@ function Mezcla() {
               <p className="mt-2 text-xs" style={{ color: COLORES.textoSuave }}>
                 Mezclar dos productos del mismo sitio de acción no amplía el espectro y sí duplica la
                 presión de selección sobre ese blanco.
+              </p>
+            </div>
+          )}
+
+          {formulaciones.riesgo && (
+            <div
+              className="mt-4 rounded-lg p-3"
+              style={{ backgroundColor: '#FDF3EE', border: '1px solid #F0C9B4' }}
+            >
+              <p className="flex items-center gap-2 text-sm font-bold" style={{ color: '#C2410C' }}>
+                <OctagonAlert size={15} /> Formulaciones distintas en la misma mezcla
+              </p>
+              <p className="mt-2 text-sm" style={{ color: COLORES.tinta }}>
+                Estás combinando {formulaciones.distintas} tipos de formulación:{' '}
+                {formulaciones.tipos.map((t) => `${t.nombre} (${t.sigla})`).join(', ')}. Mientras más tipos
+                entran al mismo tanque, más pasos delicados hay en el orden de carga y más riesgo de grumos o
+                separación — revisa la pestaña "Orden de carga" y no te saltes la prueba de frasco.
               </p>
             </div>
           )}
@@ -5894,61 +8636,86 @@ function Mezcla() {
       {/* ───────────── ORDEN DE CARGA ───────────── */}
       {vista === 'orden' && (
         <>
-          {ordenCarga.length > 0 && (
-            <div className="mt-5">
-              <h3 className="text-sm font-bold" style={{ color: COLORES.tinta }}>
-                Orden para tu mezcla
-              </h3>
-              <ol className="mt-2 space-y-2">
-                {ordenCarga.map(({ producto, f }, i) => (
-                  <li
-                    key={producto.id}
-                    className="flex items-center gap-3 rounded-xl border bg-white p-3"
-                    style={{ borderColor: COLORES.borde }}
-                  >
-                    <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold text-white"
-                      style={{ backgroundColor: COLORES.naranja }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
-                        {producto.nombre}
-                      </span>
-                      <span className="text-xs" style={{ color: COLORES.textoSuave }}>
-                        {f.nombre} ({f.sigla})
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
+          <button
+            onClick={() => setVerTutorial(true)}
+            className="mt-5 flex w-full items-center gap-3 rounded-2xl p-4 text-left transition hover:opacity-90"
+            style={{ backgroundColor: COLORES.tinta }}
+          >
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+            >
+              <GraduationCap size={22} color="#fff" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-bold text-white">Repaso rápido: que no se corte la mezcla</span>
+              <span className="mt-0.5 block text-xs" style={{ color: '#9DB8C9' }}>
+                Cinco ideas clave en un minuto
+              </span>
+            </span>
+          </button>
+
+          {/* La caneca de 200 L se llena paso a paso con los productos de la mezcla */}
+          <div className="mt-5">
+            <Caneca
+              pasos={pasosCaneca}
+              indiceActivo={pasoCaneca}
+              onCambiarPaso={setPasoCaneca}
+              capacidadLitros={200}
+              color={COLORES.azul}
+            />
+          </div>
 
           <h3 className="mt-6 text-sm font-bold" style={{ color: COLORES.tinta }}>
             Regla general de carga
           </h3>
-          <ol className="mt-2 space-y-2">
+          <p className="mt-1 text-xs" style={{ color: COLORES.textoSuave }}>
+            Toca cada paso para ver por qué importa, no solo qué hacer.
+          </p>
+          <div className="mt-2 space-y-2">
             {ORDEN_TANQUE.map((p) => (
-              <li key={p.paso} className="flex gap-3">
-                <span
-                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold"
-                  style={{ backgroundColor: COLORES.azulClaro, color: COLORES.tinta }}
-                >
-                  {p.paso}
-                </span>
-                <span>
-                  <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
-                    {p.que}
-                  </span>
-                  <span className="text-xs" style={{ color: COLORES.textoSuave }}>
-                    {p.detalle}
-                  </span>
-                </span>
-              </li>
+              <Seccion key={p.paso} titulo={`${p.paso}. ${p.que}`} subtitulo={p.detalle}>
+                <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  <strong>¿Por qué?</strong> {p.porque}
+                </p>
+              </Seccion>
             ))}
-          </ol>
+          </div>
+
+          <h3 className="mt-6 text-sm font-bold" style={{ color: COLORES.tinta }}>
+            Coadyuvantes: qué hace cada tipo
+          </h3>
+          <p className="mt-1 text-xs" style={{ color: COLORES.textoSuave }}>
+            No son el ingrediente activo — cambian cómo se comporta la mezcla o la gota.
+          </p>
+          <div className="mt-2 space-y-2">
+            {COADYUVANTES.map((c) => (
+              <Seccion key={c.categoria} titulo={c.categoria}>
+                <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  {c.quePasa}
+                </p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                  Cuándo se usa
+                </p>
+                <p className="mt-0.5 text-sm" style={{ color: COLORES.tinta }}>
+                  {c.cuando}
+                </p>
+              </Seccion>
+            ))}
+          </div>
+
+          <div className="mt-6 flex gap-2 rounded-lg p-3" style={{ backgroundColor: COLORES.azulClaro }}>
+            <Info size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.azul }} />
+            <p className="text-xs leading-relaxed" style={{ color: COLORES.tinta }}>
+              <strong>Por qué se corta una mezcla aun siguiendo el orden:</strong> puede haber antagonismo
+              físico-químico (un producto desestabiliza la formulación del otro) o antagonismo biológico (uno reduce
+              la eficacia del otro sin que se note a simple vista). La etiqueta ICA es la fuente autorizada sobre
+              mezclas conocidas; para lo que no está documentado, la prueba de frasco (más abajo) es la única forma
+              confiable de detectarlo en campo.
+            </p>
+          </div>
+
+          {verTutorial && <TutorialMezcla onCerrar={() => setVerTutorial(false)} />}
         </>
       )}
 
@@ -6145,6 +8912,143 @@ function Aprender() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// src/components/AvisosApp.jsx
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Avisos de la aplicación instalable (PWA), bajo el encabezado.
+ *
+ *  - Sin conexión: la app se usa en finca, donde la señal falla. Se avisa que
+ *    sigue funcionando completa, para que nadie crea que se dañó.
+ *  - Versión nueva: el service worker ya descargó una actualización. Al tocar
+ *    se activa y se recarga la página.
+ *  - Instalar: el navegador ofrece instalar la app en el teléfono. Se puede
+ *    ocultar si no interesa.
+ */
+function AvisosApp() {
+  const [eventoInstalar, setEventoInstalar] = useState(null);
+  const [descartado, setDescartado] = useState(false);
+  const [sinConexion, setSinConexion] = useState(!navigator.onLine);
+  const [nuevaVersion, setNuevaVersion] = useState(null);
+
+  useEffect(() => {
+    const alPedirInstalacion = (evento) => {
+      // Se guarda el evento para mostrar el aviso propio en vez del del navegador
+      evento.preventDefault();
+      setEventoInstalar(evento);
+    };
+    const alInstalar = () => setEventoInstalar(null);
+    const alConectar = () => setSinConexion(false);
+    const alDesconectar = () => setSinConexion(true);
+
+    window.addEventListener('beforeinstallprompt', alPedirInstalacion);
+    window.addEventListener('appinstalled', alInstalar);
+    window.addEventListener('online', alConectar);
+    window.addEventListener('offline', alDesconectar);
+
+    // Una versión nueva queda "instalada" pero en espera mientras haya una
+    // pestaña con la anterior. Solo se avisa si ya había un service worker
+    // controlando la página: en la primera visita no hay nada que actualizar.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then((registro) => {
+          registro.addEventListener('updatefound', () => {
+            const trabajador = registro.installing;
+            trabajador?.addEventListener('statechange', () => {
+              if (trabajador.state === 'installed' && navigator.serviceWorker.controller) {
+                setNuevaVersion(trabajador);
+              }
+            });
+          });
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', alPedirInstalacion);
+      window.removeEventListener('appinstalled', alInstalar);
+      window.removeEventListener('online', alConectar);
+      window.removeEventListener('offline', alDesconectar);
+    };
+  }, []);
+
+  const instalar = async () => {
+    if (!eventoInstalar) return;
+    eventoInstalar.prompt();
+    await eventoInstalar.userChoice;
+    setEventoInstalar(null);
+  };
+
+  const actualizar = () => {
+    // sw.js escucha este mensaje y se activa de inmediato (skipWaiting)
+    nuevaVersion?.postMessage?.('activar-actualizacion');
+    navigator.serviceWorker.controller?.postMessage('activar-actualizacion');
+    window.location.reload();
+  };
+
+  return (
+    <>
+      {sinConexion && (
+        <div
+          className="flex items-center justify-center gap-2 px-4 py-1.5 text-xs font-semibold"
+          style={{ backgroundColor: COLORES.ambarClaro, color: '#8A5200' }}
+          role="status"
+        >
+          <WifiOff size={13} />
+          Sin conexión · la app funciona completa, todo el contenido está guardado
+        </div>
+      )}
+
+      {nuevaVersion && (
+        <button
+          onClick={actualizar}
+          className="flex w-full items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white"
+          style={{ backgroundColor: COLORES.verde }}
+        >
+          <RefreshCw size={13} /> Hay una versión nueva · toca para actualizar
+        </button>
+      )}
+
+      {eventoInstalar && !descartado && (
+        <div
+          className="mx-4 mt-4 flex items-center gap-3 rounded-2xl p-3"
+          style={{ backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(11,36,49,0.1)' }}
+        >
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            style={{ backgroundColor: COLORES.azulClaro }}
+          >
+            <Download size={18} style={{ color: COLORES.azul }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
+              Instalar en el teléfono
+            </span>
+            <span className="block text-xs" style={{ color: COLORES.textoSuave }}>
+              Se abre a pantalla completa y funciona en finca sin señal
+            </span>
+          </span>
+          <button
+            onClick={instalar}
+            className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-white"
+            style={{ backgroundColor: COLORES.azul }}
+          >
+            Instalar
+          </button>
+          <button
+            onClick={() => setDescartado(true)}
+            className="shrink-0 rounded-full p-1.5"
+            aria-label="Ocultar aviso de instalación"
+          >
+            <X size={15} style={{ color: COLORES.textoSuave }} />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // src/App.jsx
 // ══════════════════════════════════════════════════════════════════
 
@@ -6158,15 +9062,33 @@ const PESTANAS = [
   { id: 'aprender', label: 'Aprender', icono: GraduationCap, titulo: 'Datos de interés' },
 ];
 
+const VISTAS = ['diagnostico', 'catalogo', 'rotacion', 'mezcla', 'aprender'];
+
+/**
+ * Pestaña con la que abre la app. Los atajos del ícono instalado
+ * (manifest.webmanifest) entran con ?vista=diagnostico o ?vista=mezcla.
+ */
+function vistaInicial() {
+  const vista = new URLSearchParams(window.location.search).get('vista');
+  return VISTAS.includes(vista) ? vista : 'diagnostico';
+}
+
 function App() {
-  const [pestana, setPestana] = useState('diagnostico');
+  const [pestana, setPestana] = useState(vistaInicial);
   const [productoAbierto, setProductoAbierto] = useState(null);
   const [productoRotacion, setProductoRotacion] = useState(null);
   const [verCiclo, setVerCiclo] = useState(false);
 
   const actual = PESTANAS.find((p) => p.id === pestana);
 
+  // Función estable: la ficha la guarda en una referencia y no debe cambiar
+  // en cada pintado.
+  const cerrarFicha = useCallback(() => setProductoAbierto(null), []);
+
   const irARotacion = (producto) => {
+    // La ficha abierta dejó una entrada en el historial: se consume para que
+    // "atrás" no vuelva a una ficha que ya no está.
+    if (window.history.state?.ficha) window.history.back();
     setProductoRotacion(producto);
     setProductoAbierto(null);
     setVerCiclo(false);
@@ -6184,6 +9106,10 @@ function App() {
         titulo={verCiclo ? 'Ciclo de vida' : actual.titulo}
         subtitulo={`${PRODUCTOS.length} productos · IRAC · HRAC · FRAC`}
       />
+
+      <div className="mx-auto max-w-3xl">
+        <AvisosApp />
+      </div>
 
       <main className="mx-auto max-w-3xl px-4 py-5">
         {pestana === 'diagnostico' &&
@@ -6204,7 +9130,8 @@ function App() {
           style={{ borderColor: COLORES.borde, color: COLORES.textoSuave }}
         >
           Herramienta de apoyo a la decisión sobre el portafolio Cibochem 2026.
-          No reemplaza la etiqueta ICA ni la visita técnica.
+          No reemplaza la etiqueta ICA ni la visita técnica: la decisión final y la aplicación en campo son
+          responsabilidad del profesional o usuario que las ejecuta.
         </p>
       </main>
 
@@ -6213,7 +9140,7 @@ function App() {
       {productoAbierto && (
         <FichaProducto
           producto={productoAbierto}
-          onCerrar={() => setProductoAbierto(null)}
+          onCerrar={cerrarFicha}
           onVerRotacion={irARotacion}
         />
       )}
