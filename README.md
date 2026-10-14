@@ -5,7 +5,7 @@ Convierte una situación de campo — *"tengo mosca blanca en etapa vegetativa y
 última vez apliqué un neonicotinoide"* — en una lista corta de productos que
 encajan, ordenada y explicada.
 
-![Estado](https://img.shields.io/badge/verificaciones-2852-brightgreen)
+![Estado](https://img.shields.io/badge/verificaciones-4000%2B-brightgreen)
 ![PWA](https://img.shields.io/badge/funciona-sin%20se%C3%B1al-2B7FB8)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-blue)
 
@@ -15,9 +15,10 @@ encajan, ordenada y explicada.
 
 | Módulo | Para qué sirve |
 |---|---|
+| **Diagnóstico por cultivo** | Escoges el cultivo y lo que ves en el lote (con nombre científico). La app arma una **recomendación técnica**: producto, acompañante, siguiente rotación, cómo aplicarlo, qué vas a ver y qué confirmar en la etiqueta. |
 | **Diagnóstico** | Asistente por pasos: qué plaga, maleza o enfermedad, dónde, cuándo y qué aplicaste antes. Devuelve productos ordenados con la razón de cada uno y un **programa de rotación de 3 pases** que no repite sitio de acción. |
 | **Catálogo** | Búsqueda por nombre comercial, ingrediente activo, familia química, código de grupo o **nombre de la plaga** ("mosca blanca", "coquito"), sin importar tildes. Filtros por línea, favoritos y disponibilidad, y comparador lado a lado. |
-| **Rotación** | Escoges lo que acabas de aplicar y separa el portafolio en lo que **repite** el sitio de acción y lo que **sí sirve** para rotar, explicando por qué importa rotar ese grupo. |
+| **Rotación** | Escoges lo que acabas de aplicar —un producto Cibochem o **la molécula de otra casa**— y separa el portafolio en lo que **repite** el sitio de acción y lo que **sí sirve** para rotar, explicando por qué importa rotar ese grupo. |
 | **Ciclo de vida** | Matriz de qué estadio de la plaga alcanza cada insecticida. Muchos fracasos de campo son el producto correcto en el estadio equivocado. |
 | **Mezcla** | Calculadora multiproducto que **queda guardada en el teléfono**, calibración real del equipo, orden de carga, detección de modos de acción repetidos, **receta para enviar al operario** por WhatsApp y **lista de chequeo antes de aplicar**. |
 | **Aprender** | El razonamiento agronómico completo: resistencia, translocación, biología de arvenses, hongos frente a oomicetos, ciclo de vida y calidad de aplicación. |
@@ -167,7 +168,11 @@ en un subdirectorio de Pages o en un dominio propio.
     │   ├── productos.js     ← BASE DE DATOS: aquí se agregan productos
     │   ├── gruposMoA.js     ← conocimiento por grupo IRAC/HRAC/FRAC
     │   ├── conocimiento.js  ← contenido del módulo Aprender
-    │   └── taxonomia.js     ← árbol de diagnóstico, colores, etiquetas
+    │   ├── taxonomia.js     ← árbol de diagnóstico, colores, etiquetas
+    │   ├── campo.js         ← ficha de campo por producto (guía + fichas técnicas)
+    │   ├── gruposQuimicos.js← grupos, moléculas de otras casas, gemelos funcionales
+    │   ├── cultivos.js      ← 18 cultivos con sus problemas y nombre científico
+    │   └── iconosIlustrados.js ← qué ícono representa cada concepto
     ├── motores/
     │   ├── resistencia.js   ← cerebro 1
     │   ├── diagnostico.js   ← cerebro 2 (incluye la búsqueda)

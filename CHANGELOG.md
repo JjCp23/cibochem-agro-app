@@ -2,6 +2,48 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.6.0]
+
+### Agregado
+- **Diagnóstico por cultivo.** 18 cultivos de Colombia con sus plagas,
+  enfermedades y malezas principales, cada una con nombre científico y la
+  categoría con la que la app busca producto. Lo que el portafolio no maneja
+  (bacterias, virus, nematodos, mosca de la fruta) se dice con su razón.
+- **Recomendación técnica**: producto principal y por qué, acompañante
+  multisitio cuando el fungicida es de riesgo alto, siguiente aplicación con
+  otro sitio de acción, cómo aplicarlo según su movimiento, qué se va a ver en
+  campo y qué confirmar en la etiqueta. Se comparte en texto.
+- **Guía de campo integrada** (de la guía del portafolio): para los 80
+  productos, qué se ve en campo, cómo actúa, blancos con nombre científico,
+  usos, consejo de campo y descripción del portafolio; para los grupos de
+  resistencia, cuándo recomendar y cuándo no, y las moléculas de otras casas.
+- **Usos en ficha técnica** de 35 productos, con fuente y nivel de confianza.
+- **Verificador de cruces con otras casas**: en Rotación se escoge la
+  molécula que se aplicó (más de cien de otras marcas) y la app la traduce a
+  su grupo.
+- **Marcas gemelas y versiones PRO** detectadas por composición, en la ficha
+  y en un tema nuevo de Aprender; otro tema con las siete reglas para
+  recomendar por grupo químico.
+- **Íconos ilustrados** en 2D (Fluent Emoji de Microsoft, licencia MIT, más
+  nueve dibujados para la app) para líneas, problemas, cultivos y
+  herramientas.
+
+### Cambiado
+- El cultivo ordena las recomendaciones: primero lo que su ficha técnica
+  menciona para ese cultivo. En floración se penalizan los grupos que afectan
+  a los polinizadores.
+- Portada con paisaje animado.
+
+### Corregido
+- PROTECSOL pasa de FRAC 33 a **FRAC P07**, según la reclasificación de los
+  fosfonatos.
+- La búsqueda reconocía "Propiconazol" y "Propiconazole" como moléculas
+  distintas.
+
+### Notas
+- No se muestran dosis ni periodos de carencia o reentrada tomados de
+  internet: las fuentes no coincidían entre sí. Se leen en la etiqueta ICA.
+
 ## [1.5.0]
 
 ### Agregado
