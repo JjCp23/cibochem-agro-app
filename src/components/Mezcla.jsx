@@ -28,8 +28,8 @@ import {
 } from '../motores/index.js';
 import { compartenModoDeAccion, explicarConflicto } from '../motores/index.js';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
-import { Caneca } from './Caneca.jsx';
 import { TutorialMezcla } from './TutorialMezcla.jsx';
+import { Caneca } from './Caneca.jsx';
 
 const entrada = 'w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2';
 
