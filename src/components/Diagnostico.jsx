@@ -311,6 +311,20 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
         >
           <path d="M0 22 Q50 6 100 18 T200 12 V40 H0Z" fill="#CFE3BF" />
           <path d="M0 32 Q60 18 120 28 T200 24 V40 H0Z" fill="#B5D69C" />
+          {/* Matas de pasto que se mecen, cada una a su ritmo */}
+          {[
+            [18, 30, 0],
+            [44, 27, 0.6],
+            [132, 29, 1.1],
+            [158, 25, 0.3],
+            [182, 27, 0.9],
+          ].map(([x, y, retraso]) => (
+            <g key={x} className="cc-mecer" style={{ animationDelay: `${retraso}s` }}>
+              <path d={`M${x} ${y + 8} Q${x - 3} ${y} ${x - 5} ${y - 7}`} stroke="#7FB55A" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              <path d={`M${x} ${y + 8} Q${x} ${y - 1} ${x + 1} ${y - 9}`} stroke="#6AA444" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              <path d={`M${x} ${y + 8} Q${x + 3} ${y + 1} ${x + 6} ${y - 5}`} stroke="#8CC152" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+            </g>
+          ))}
         </svg>
         <p className="relative text-xs font-semibold uppercase tracking-wide" style={{ color: COLORES.azul }}>
           {saludoDelDia()}

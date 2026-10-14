@@ -27,6 +27,7 @@ export const ESTILOS_APP = `
 @keyframes cc-latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @keyframes cc-flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @keyframes cc-girar { to { transform: rotate(-360deg); } }
+@keyframes cc-mecer { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
 @keyframes cc-brote { 0% { transform: scale(.2) rotate(-12deg); opacity: 0; } 70% { transform: scale(1.08) rotate(3deg); opacity: 1; } 100% { transform: none; } }
 
 .cc-entrada { animation: cc-subir .32s cubic-bezier(.2,.8,.2,1) backwards; }
@@ -56,6 +57,8 @@ export const ESTILOS_APP = `
 .cc-latido { animation: cc-latido 1.8s ease-in-out infinite; }
 .cc-flotar { animation: cc-flotar 3s ease-in-out infinite; }
 .cc-girar { animation: cc-girar .6s cubic-bezier(.3,1.2,.5,1); }
+/* Pasto que se mece con el viento: gira desde su base */
+.cc-mecer { transform-box: fill-box; transform-origin: 50% 100%; animation: cc-mecer 3.4s ease-in-out infinite; }
 .cc-brote { animation: cc-brote .5s cubic-bezier(.3,1.3,.5,1) backwards; }
 
 .cc-presionable { transition: transform .16s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease; }
