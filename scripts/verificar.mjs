@@ -40,6 +40,18 @@ import {
 import { buscarTexto, normalizarTexto } from '../src/motores/diagnostico.js';
 import { codigosDeGrupo } from '../src/data/gruposMoA.js';
 import { alternarEnLista, anteponerReciente, productosDeIds } from '../src/estado/memoria.js';
+import { CAMPO } from '../src/data/campo.js';
+import { CULTIVOS } from '../src/data/cultivos.js';
+import { GRUPOS_QUIMICOS, GRUPOS_FUNCIONALES } from '../src/data/gruposQuimicos.js';
+import { ICONO_ILUSTRADO } from '../src/data/iconosIlustrados.js';
+import {
+  gemelosDe,
+  mismaMoleculaDe,
+  productoDesdeMolecula,
+  mismosModoDeAccion,
+  clavesDeGrupo,
+  MOLECULAS_PARA_VERIFICAR,
+} from '../src/motores/resistencia.js';
 
 let fallos = 0;
 let pruebas = 0;
@@ -337,6 +349,59 @@ check(anteponerReciente(['a', 'b', 'c'], 'd', 3).join() === 'd,a,b', 'la lista d
 check(
   productosDeIds(['tioxam', 'ya-no-existe'], PRODUCTOS).length === 1,
   'los ids de productos retirados del portafolio se ignoran'
+);
+
+// ────────────────────────────────────────────────────────────
+seccion('Guía de campo: datos por producto y grupos químicos');
+const idsProductos = new Set(PRODUCTOS.map((p) => p.id));
+Object.keys(CAMPO).forEach((id) => check(idsProductos.has(id), `CAMPO tiene un producto que no existe: ${id}`));
+check(Object.keys(CAMPO).length === PRODUCTOS.length, 'cada producto debe tener su ficha de campo');
+const idsCultivo = new Set(CULTIVOS.map((c) => c.id));
+Object.entries(CAMPO).forEach(([id, c]) => {
+  (c.cultivos || []).forEach((cu) => check(idsCultivo.has(cu), `${id}: cultivo desconocido ${cu}`));
+  if (c.etiqueta) {
+    check(/^https?:\/\//.test(c.etiqueta.fuente || ''), `${id}: dato de etiqueta sin URL de fuente`);
+    check(['alta', 'media'].includes(c.etiqueta.confianza), `${id}: dato de etiqueta de confianza baja`);
+    const texto = JSON.stringify(c.etiqueta);
+    check(!/pc_dias|pr_horas|dosis/i.test(texto), `${id}: la app no muestra dosis ni periodos de carencia o reentrada`);
+  }
+});
+PRODUCTOS.filter((p) => p.sistema).forEach((p) =>
+  clavesDeGrupo(p).forEach((k) => check(GRUPOS_QUIMICOS[k], `${p.nombre}: sin ficha de grupo químico ${k}`))
+);
+GRUPOS_FUNCIONALES.forEach((g) => g.productos.forEach((id) => check(idsProductos.has(id), `grupo funcional ${g.id}: producto ${id} no existe`)));
+check(buscar('protecsol').grupo === 'P07', 'los fosfonatos son FRAC P07 desde la reclasificación de FRAC');
+
+seccion('Marcas gemelas y misma molécula');
+check(gemelosDe(buscar('ridder')).some((p) => p.id === 'furioso'), 'RIDDER y FURIOSO son la misma composición');
+check(gemelosDe(buscar('undazol')).some((p) => p.id === 'powerplus'), 'UNDAZOL y POWEREX son propiconazol 250 g/L');
+check(gemelosDe(buscar('algasoil')).length === 0, 'sin concentración declarada no se afirma que dos productos sean idénticos');
+check(mismaMoleculaDe(buscar('limpion')).some((p) => p.id === 'limpionpro'), 'LIMPION PRO es la misma molécula que LIMPION');
+PRODUCTOS.forEach((p) =>
+  gemelosDe(p).forEach((g) => check(!p.sistema || compartenModoDeAccion(p, g), `${p.nombre} y ${g.nombre} son gemelos pero no comparten grupo`))
+);
+
+seccion('Verificador de cruces con moléculas de otras casas');
+check(MOLECULAS_PARA_VERIFICAR.length > 100, 'debe haber más de cien moléculas para escoger');
+const clorpirifos = productoDesdeMolecula(MOLECULAS_PARA_VERIFICAR.find((m) => m.nombre === 'Clorpirifos'));
+check(clorpirifos.sistema === 'IRAC' && clorpirifos.grupo === '1', 'el clorpirifos se traduce a IRAC 1');
+check(mismosModoDeAccion(clorpirifos).some((p) => p.id === 'metomil40'), 'después de clorpirifos, METOMIL no es rotación');
+MOLECULAS_PARA_VERIFICAR.forEach((m) => check(/^(IRAC|FRAC|HRAC):/.test(m.grupo), `${m.nombre}: grupo con formato inválido`));
+
+seccion('Cultivos: cada problema apunta a un objetivo del diagnóstico');
+const objetivosValidos = new Set(RAMAS.flatMap((r) => r.objetivos.map((o) => o.id)));
+CULTIVOS.forEach((c) => {
+  check(ICONO_ILUSTRADO[c.id], `${c.nombre}: sin ícono`);
+  [...c.plagas, ...c.enfermedades, ...c.malezas].forEach((x) =>
+    check(x.objetivo === null || objetivosValidos.has(x.objetivo), `${c.nombre} · ${x.comun}: objetivo inválido ${x.objetivo}`)
+  );
+  c.enfermedades
+    .filter((e) => ['bacteria', 'virus', 'protista'].includes(e.tipo))
+    .forEach((e) => check(e.objetivo === null, `${c.nombre} · ${e.comun}: ${e.tipo} no se maneja con fungicida`));
+});
+check(
+  CULTIVOS.find((c) => c.id === 'arroz').enfermedades.find((e) => /piricularia/i.test(e.comun)).objetivo === 'hongos-foliares',
+  'la piricularia del arroz es un hongo foliar'
 );
 
 // ────────────────────────────────────────────────────────────

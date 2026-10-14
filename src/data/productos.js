@@ -1243,7 +1243,7 @@ export const PRODUCTOS = [
     ia: 'Fosetil aluminio 800 g/Kg',
     categoria: 'Fungicida',
     sistema: 'FRAC',
-    grupo: '33',
+    grupo: 'P07',
     familia: 'Fosfonatos',
     mecanismo: 'Efecto fungitóxico directo más activación de las defensas naturales de la planta (fitoalexinas).',
     sintoma: 'Protege partes subterráneas y frena el avance de oomicetos en raíz.',

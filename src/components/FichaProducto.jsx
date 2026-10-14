@@ -12,14 +12,26 @@ import {
   Move,
   Zap,
   Users,
+  Eye,
+  Crosshair,
+  Lightbulb,
+  Check,
+  Ban,
+  Copy,
+  Sprout,
+  Atom,
 } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, COLOR_RIESGO, etiquetaDe } from '../data/taxonomia.js';
 import { TRANSLOCACION, ESTADIOS, fichasDeProducto } from '../data/gruposMoA.js';
 import { FAVORITOS, useAlmacen, alternarEnLista } from '../estado/memoria.js';
-import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
+import { Etiqueta, SelloGrupo, TextoMarcado } from './ui/Etiqueta.jsx';
+import { CAMPO } from '../data/campo.js';
+import { CULTIVOS } from '../data/cultivos.js';
+import { GRUPOS_FUNCIONALES } from '../data/gruposQuimicos.js';
+import { PRODUCTOS } from '../data/productos.js';
 import { HojaInferior } from './ui/Hoja.jsx';
 import { Hexagono } from './ui/Superficie.jsx';
-import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
+import { ICONO_CATEGORIA, IconoIlustrado } from './ui/Iconos.jsx';
 import { iconoDeProducto } from '../data/iconosIlustrados.js';
 import { avisar, compartirTexto } from './ui/Avisos.jsx';
 import {
@@ -27,6 +39,10 @@ import {
   mismosModoDeAccion,
   gruposDeRotacion,
   estadiosDeProducto,
+  gruposQuimicosDe,
+  crucesQueConfundenDe,
+  gemelosDe,
+  mismaMoleculaDe,
 } from '../motores/index.js';
 
 function Bloque({ icono: Icono, titulo, children, color = COLORES.tinta }) {
@@ -110,8 +126,31 @@ function AccionFicha({ icono: Icono, etiqueta, onClick, activo, color }) {
   );
 }
 
+/** Botón con el nombre de otro producto, para saltar a su ficha. */
+function EnlaceProducto({ producto, onAbrir }) {
+  const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
+  return (
+    <button
+      onClick={() => onAbrir?.(producto)}
+      className="cc-presionable mb-1 mr-1.5 inline-flex items-center gap-1 rounded-full border bg-white px-2.5 py-1 text-xs font-semibold"
+      style={{ borderColor: `${color}55`, color }}
+    >
+      {producto.nombre}
+    </button>
+  );
+}
+
+/** Dominio legible de una URL de fuente. */
+function dominioDe(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return 'fuente consultada';
+  }
+}
+
 /** Ficha técnica completa. Combina datos del producto con la ficha de su grupo. */
-export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMezcla }) {
+export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMezcla, onAbrirProducto }) {
   const [favoritos, setFavoritos] = useAlmacen(FAVORITOS);
   if (!producto) return null;
 
@@ -122,6 +161,16 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
   const estadios = estadiosDeProducto(producto);
   const esFavorito = favoritos.includes(producto.id);
   const tr = fichas[0] && TRANSLOCACION[fichas[0].ficha.translocacion];
+  const campo = CAMPO[producto.id] || {};
+  const gruposQ = gruposQuimicosDe(producto);
+  const cruces = crucesQueConfundenDe(producto);
+  const gemelos = gemelosDe(producto);
+  const misma = mismaMoleculaDe(producto);
+  const cultivosDelProducto = (campo.cultivos || [])
+    .map((id) => CULTIVOS.find((c) => c.id === id))
+    .filter(Boolean);
+  const funcional = GRUPOS_FUNCIONALES.find((g) => g.productos.includes(producto.id));
+  const tarjeta = { boxShadow: '0 1px 3px rgba(11,36,49,0.07)' };
 
   const alternarFavorito = () => {
     setFavoritos((l) => alternarEnLista(l, producto.id));
@@ -199,6 +248,32 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
         </div>
 
         <div className="px-5 pb-8">
+          {campo.descripcion && (
+            <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm italic leading-relaxed" style={{ color: COLORES.textoSuave, ...tarjeta }}>
+              «{campo.descripcion}»
+              <span className="mt-1 block text-[10px] font-bold uppercase not-italic tracking-wide">
+                Así lo presenta el portafolio
+              </span>
+            </p>
+          )}
+
+          {/* ── Lo que se ve en campo: la mejor forma de saber si funcionó ── */}
+          {campo.enCampo && (
+            <Bloque icono={Eye} titulo="Qué vas a ver en campo" color={COLORES.azul}>
+              <p className="rounded-2xl bg-white p-3 text-sm leading-relaxed" style={{ color: COLORES.tinta, ...tarjeta }}>
+                <TextoMarcado texto={campo.enCampo} />
+              </p>
+            </Bloque>
+          )}
+
+          {campo.mecanismo && (
+            <Bloque icono={Atom} titulo="Cómo actúa">
+              <p className="rounded-2xl bg-white p-3 text-sm leading-relaxed" style={{ color: COLORES.tinta, ...tarjeta }}>
+                <TextoMarcado texto={campo.mecanismo} />
+              </p>
+            </Bloque>
+          )}
+
           {/* ── Modo de acción por cada grupo de la mezcla ── */}
           {fichas.map(({ codigo, ficha }) => {
             const tr = TRANSLOCACION[ficha.translocacion];
@@ -224,9 +299,11 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
                   {ficha.proceso}
                 </p>
 
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
-                  {ficha.mecanismo}
-                </p>
+                {!campo.mecanismo && (
+                  <p className="mt-2 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                    {ficha.mecanismo}
+                  </p>
+                )}
 
                 <div className="mt-3 rounded-xl p-2.5" style={{ backgroundColor: `${color}0D` }}>
                   <p className="text-xs" style={{ color: COLORES.textoSuave }}>
@@ -309,9 +386,109 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
             </Bloque>
           )}
 
+          {/* ── Contra qué y dónde ── */}
+          {(campo.blancos || campo.usos || cultivosDelProducto.length > 0 || campo.etiqueta) && (
+            <Bloque icono={Crosshair} titulo="Contra qué y en qué cultivos">
+              <div className="space-y-2">
+                {campo.blancos && (
+                  <div className="rounded-2xl bg-white p-3" style={tarjeta}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                      Blancos
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                      <TextoMarcado texto={campo.blancos} />
+                    </p>
+                  </div>
+                )}
+                {cultivosDelProducto.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {cultivosDelProducto.map((c) => (
+                      <span
+                        key={c.id}
+                        className="inline-flex items-center gap-1.5 rounded-full border bg-white py-1 pl-1.5 pr-2.5 text-xs font-semibold"
+                        style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+                      >
+                        <IconoIlustrado nombre={c.id} tamano={18} />
+                        {c.nombre.replace(/\s*\(.*\)/, '')}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {campo.usos && (
+                  <p className="rounded-2xl bg-white p-3 text-sm leading-relaxed" style={{ color: COLORES.tinta, ...tarjeta }}>
+                    <TextoMarcado texto={campo.usos} />
+                  </p>
+                )}
+                {campo.etiqueta && (
+                  <div className="rounded-2xl border bg-white p-3" style={{ borderColor: COLORES.borde }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                      Lo que dice la ficha técnica consultada
+                    </p>
+                    {campo.etiqueta.usos && (
+                      <ul className="mt-1.5 space-y-1">
+                        {campo.etiqueta.usos.map((u) => (
+                          <li key={u.cultivo} className="text-sm" style={{ color: COLORES.tinta }}>
+                            <strong>{u.cultivo}</strong>
+                            {u.blancos.length > 0 && <span style={{ color: COLORES.textoSuave }}>: {u.blancos.join(', ')}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {campo.etiqueta.composicion && (
+                      <p className="mt-1.5 text-sm" style={{ color: COLORES.tinta }}>
+                        <strong>Composición:</strong> {campo.etiqueta.composicion}
+                      </p>
+                    )}
+                    {campo.etiqueta.selectividad && (
+                      <p className="mt-1.5 text-sm" style={{ color: COLORES.tinta }}>
+                        <strong>Selectividad:</strong> {campo.etiqueta.selectividad}
+                      </p>
+                    )}
+                    <p className="mt-2 text-[11px] leading-snug" style={{ color: COLORES.textoSuave }}>
+                      Fuente:{' '}
+                      <a href={campo.etiqueta.fuente} target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: COLORES.azul }}>
+                        {dominioDe(campo.etiqueta.fuente)}
+                      </a>{' '}
+                      · confianza {campo.etiqueta.confianza}. Confirma el cultivo registrado, la dosis y los periodos de
+                      carencia y reentrada en la etiqueta ICA vigente.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Bloque>
+          )}
+
           {/* ── Cuándo elegirlo ── */}
-          {fichas.some((f) => f.ficha.decision) && (
+          {(fichas.some((f) => f.ficha.decision) || gruposQ.some((g) => g.recomiendaSi || g.noRecomiendesSi)) && (
             <Bloque icono={Compass} titulo="Cuándo elegirlo" color={COLORES.verde}>
+              {gruposQ.map(
+                (g) =>
+                  (g.recomiendaSi || g.noRecomiendesSi) && (
+                    <div key={g.clave} className="mb-2 space-y-1.5">
+                      {gruposQ.length > 1 && (
+                        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+                          {g.clave.replace(':', ' ')} · {g.nombre}
+                        </p>
+                      )}
+                      {g.recomiendaSi && (
+                        <p className="flex gap-2 rounded-2xl bg-white p-3 text-sm leading-relaxed" style={{ color: COLORES.tinta, ...tarjeta }}>
+                          <Check size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.verde }} />
+                          <span>
+                            <strong>Recomiéndalo si</strong> <TextoMarcado texto={g.recomiendaSi} />
+                          </span>
+                        </p>
+                      )}
+                      {g.noRecomiendesSi && (
+                        <p className="flex gap-2 rounded-2xl p-3 text-sm leading-relaxed" style={{ color: COLORES.tinta, backgroundColor: '#FDF3EE' }}>
+                          <Ban size={16} className="mt-0.5 shrink-0" style={{ color: '#C2410C' }} />
+                          <span>
+                            <strong>No lo recomiendes si</strong> <TextoMarcado texto={g.noRecomiendesSi} />
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )
+              )}
               {fichas.map(
                 ({ codigo, ficha }) =>
                   ficha.decision && (
@@ -324,6 +501,81 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
                     </p>
                   )
               )}
+            </Bloque>
+          )}
+
+          {campo.consejo && (
+            <div className="mt-5 flex gap-3 rounded-2xl p-4" style={{ backgroundColor: COLORES.ambarClaro }}>
+              <IconoIlustrado nombre="idea" tamano={30} respaldo={Lightbulb} color={COLORES.ambar} className="shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COLORES.ambar }}>
+                  Consejo de campo
+                </p>
+                <p className="mt-1 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  <TextoMarcado texto={campo.consejo} />
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Marcas gemelas y la misma molécula en otra presentación ── */}
+          {(gemelos.length > 0 || misma.length > 0) && (
+            <Bloque icono={Copy} titulo="La misma química en el portafolio">
+              <div className="space-y-2 rounded-2xl bg-white p-3" style={tarjeta}>
+                {gemelos.length > 0 && (
+                  <div>
+                    <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                      <strong>Misma composición y concentración</strong> que estas marcas. No son alternativas entre
+                      sí: escoger una u otra es cuestión de presentación o de canal.
+                    </p>
+                    <div className="mt-1.5">
+                      {gemelos.map((p) => (
+                        <EnlaceProducto key={p.id} producto={p} onAbrir={onAbrirProducto} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {misma.length > 0 && (
+                  <div>
+                    <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                      <strong>Misma molécula</strong> en otra concentración o formulación. Tampoco rotan entre sí.
+                    </p>
+                    <div className="mt-1.5">
+                      {misma.map((p) => (
+                        <EnlaceProducto key={p.id} producto={p} onAbrir={onAbrirProducto} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Bloque>
+          )}
+
+          {/* ── Base funcional de los bioestimulantes ── */}
+          {funcional && (
+            <Bloque icono={Sprout} titulo={`Base funcional: ${funcional.nombre}`} color={COLORES.verde}>
+              <div className="space-y-2 rounded-2xl bg-white p-3 text-sm leading-relaxed" style={{ color: COLORES.tinta, ...tarjeta }}>
+                <p>
+                  <strong>Qué hace.</strong> <TextoMarcado texto={funcional.que} />
+                </p>
+                <p>
+                  <strong>Cómo combinar.</strong> <TextoMarcado texto={funcional.combinar} />
+                </p>
+                <p>
+                  <strong>Cuándo.</strong> <TextoMarcado texto={funcional.cuando} />
+                </p>
+                {funcional.productos.length > 1 && (
+                  <div className="pt-1">
+                    {funcional.productos
+                      .filter((id) => id !== producto.id)
+                      .map((id) => PRODUCTOS.find((p) => p.id === id))
+                      .filter(Boolean)
+                      .map((p) => (
+                        <EnlaceProducto key={p.id} producto={p} onAbrir={onAbrirProducto} />
+                      ))}
+                  </div>
+                )}
+              </div>
             </Bloque>
           )}
 
@@ -353,6 +605,21 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
                     </div>
                   )
               )}
+              {gruposQ.map(
+                (g) =>
+                  g.otrasMoleculas && (
+                    <p key={`o-${g.clave}`} className="mb-2 rounded-2xl bg-white p-3 text-xs leading-relaxed" style={{ color: COLORES.textoSuave, ...tarjeta }}>
+                      <strong style={{ color: COLORES.tinta }}>Otras casas venden el mismo grupo ({g.clave.replace(':', ' ')}):</strong>{' '}
+                      {g.otrasMoleculas} Si el lote viene de alguna de ellas, este producto no es rotación.
+                    </p>
+                  )
+              )}
+              {cruces.map((c) => (
+                <p key={`${c.a}-${c.b}`} className="mb-2 rounded-2xl p-3 text-xs leading-relaxed" style={{ color: COLORES.tinta, backgroundColor: COLORES.azulClaro }}>
+                  <strong>Cruce que confunde:</strong> {c.a.replace(':', ' ')} y {c.b.replace(':', ' ')} actúan sobre {c.blanco},
+                  pero en sitios distintos: sí sirven para rotar entre sí.
+                </p>
+              ))}
               <p className="mt-1 text-sm" style={{ color: COLORES.textoSuave }}>
                 Ocupa el sitio de acción{' '}
                 <span className="font-mono font-semibold">

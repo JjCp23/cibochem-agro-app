@@ -148,7 +148,7 @@ export const TEMAS = [
       {
         titulo: 'Qué sí controla oomicetos',
         texto:
-          'Los grupos específicos: FRAC 28 (propamocarb), FRAC 33 (fosetil aluminio), FRAC 43 (fluopicolide), FRAC 4 (fenilamidas) y FRAC 40 (CAA). Además, los multisitio M03 y M05 tienen actividad sobre ambos linajes, y las estrobilurinas (FRAC 11) tienen actividad parcial sobre algunos oomicetos.',
+          'Los grupos específicos: FRAC 28 (propamocarb), FRAC P07 (fosetil aluminio, antes FRAC 33), FRAC 43 (fluopicolide), FRAC 4 (fenilamidas) y FRAC 40 (CAA). Además, los multisitio M03 y M05 tienen actividad sobre ambos linajes, y las estrobilurinas (FRAC 11) tienen actividad parcial sobre algunos oomicetos.',
       },
       {
         titulo: 'La pista de campo: el agua',
@@ -204,6 +204,85 @@ export const TEMAS = [
   },
 
   // ════════════════════════════════════════════════════════════
+  {
+    id: 'reglas',
+    titulo: 'Recomendar por grupo químico',
+    resumen: 'Siete reglas para que la rotación sea real y no solo un cambio de marca',
+    secciones: [
+      {
+        titulo: '1. Traduce el historial a números antes de decidir',
+        texto:
+          'Pregunta qué se aplicó por molécula, no por marca, y conviértelo a su grupo. Un producto de otra casa con clorpirifos es IRAC 1, igual que METOMIL. El verificador de Rotación hace esa traducción con más de cien moléculas de otras casas.',
+        destacado: true,
+      },
+      {
+        titulo: '2. Se compara el número, no la letra ni la familia',
+        texto:
+          '4A y 4C son el mismo 4. Triazol e imidazol son el mismo FRAC 3. 2,4-D, picloram, triclopyr, fluroxipir y quinclorac son el mismo HRAC 4. Familias distintas no significan sitios distintos.',
+      },
+      {
+        titulo: '3. Una mezcla gasta todos sus grupos',
+        texto:
+          'FORXAM consume un turno de IRAC 3 y uno de IRAC 4. Después de FORXAM no rotan ni LAMBDOX ni TIOXAM, y BENEVOLO gasta a la vez una estrobilurina y un triazol.',
+      },
+      {
+        titulo: '4. En insecticidas, rota por generación de la plaga',
+        texto:
+          'Usa un mismo grupo durante una ventana de unos 30 días —más o menos una generación— y cambia de número en la siguiente. Así la generación que sobrevive a un grupo se encuentra con otro.',
+      },
+      {
+        titulo: '5. Los fungicidas de riesgo alto nunca van solos',
+        texto:
+          'FRAC 1, 7 y 11: máximo 2 a 3 aplicaciones por ciclo, nunca consecutivas, y siempre acompañados de MANCONEX o CLOROPAZ. El multisitio es lo que protege la molécula cara.',
+        destacado: true,
+      },
+      {
+        titulo: '6. En herbicidas, una mezcla solo protege si los dos controlan la maleza',
+        texto:
+          'VIPPER y TOCONEX son 4 + 4: amplían espectro, no diversifican. Los COMBO sí suman un HRAC 2, pero solo sobre las especies que el metsulfurón controla.',
+      },
+      {
+        titulo: '7. Primero el blanco, después el grupo',
+        texto:
+          'Cambiar de grupo no sirve si el producto nuevo no controla la plaga que tienes. ACARISIL no reemplaza a un piretroide contra trozadores adultos, aunque sea un grupo distinto.',
+      },
+      {
+        titulo: 'Cruces que confunden',
+        texto:
+          'METOMIL (carbamato) y el clorpirifos (organofosforado) parecen distintos y no rotan: los dos son IRAC 1. TIOXAM, INSECTOPRID y METELON son el mismo IRAC 4. En cambio, un piretroide (IRAC 3) y ESEOESE (IRAC 22) tocan el canal de sodio pero en sitios distintos, y sí rotan.',
+        destacado: true,
+      },
+    ],
+  },
+  {
+    id: 'marcas',
+    titulo: 'Marcas gemelas y versiones PRO',
+    resumen: 'Cuándo dos nombres son el mismo producto y no una alternativa',
+    secciones: [
+      {
+        titulo: 'Por qué importa',
+        texto:
+          'Al revisar las composiciones aparecen dos patrones deliberados. Conocerlos evita recomendar dos productos idénticos como si fueran alternativas, y permite explicar la lógica del portafolio con seguridad. La ficha de cada producto avisa cuando tiene un gemelo o una versión en otra concentración.',
+        destacado: true,
+      },
+      {
+        titulo: 'Marcas gemelas: misma composición, dos nombres',
+        texto:
+          'RIDDER y FURIOSO (abamectina + imidacloprid). DURAB y BENIGNO (azoxystrobin + difenoconazol). UNDAZOL y POWEREX (propiconazol). CARBENDAZIM y ROBENDAZIM. STOP West y REDDI (glifosato). LIMPION y GHAZA (glufosinato). VIPPER y TOCONEX (2,4-D + picloram). Si un cliente dice que uno le funcionó y el otro no, el problema estuvo en la aplicación o en la plaga, no en el producto.',
+      },
+      {
+        titulo: 'Línea PRO: la misma molécula en sólido concentrado',
+        texto:
+          'LIMPION PRO (glufosinato 800 g/Kg: 1 Kg reemplaza unos 4 L), STOP West PRO (glifosato en sal amónica sólida, que además ayuda con la dureza del agua), PASTUREX PRO (picloram 400 g/Kg, fácil de llevar a potreros lejanos) y HERBIMEX PRO (2,4-D en sal de dimetilamonio, menos volátil cerca de cultivos sensibles).',
+      },
+      {
+        titulo: 'La excepción: MULTA PRO',
+        texto:
+          'Aquí "PRO" no es más concentración: se le agrega acetamiprid. Cambia el espectro y consume además un turno de IRAC 4A, así que no rota con los neonicotinoides.',
+        destacado: true,
+      },
+    ],
+  },
   {
     id: 'etiqueta',
     titulo: 'Leer la etiqueta ICA',

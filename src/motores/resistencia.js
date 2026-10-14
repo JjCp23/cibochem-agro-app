@@ -12,6 +12,12 @@
 
 import { PRODUCTOS } from '../data/productos.js';
 import { codigosDeGrupo, grupoDeRotacion, fichaGrupo } from '../data/gruposMoA.js';
+import {
+  GRUPOS_QUIMICOS,
+  CRUCES_QUE_CONFUNDEN,
+  MOLECULAS_PORTAFOLIO,
+  MOLECULAS_OTRAS_CASAS,
+} from '../data/gruposQuimicos.js';
 
 export { codigosDeGrupo, grupoDeRotacion };
 
@@ -76,3 +82,118 @@ export function estadiosDeProducto(producto) {
   });
   return [...set];
 }
+
+// ── Grupos químicos, marcas gemelas y moléculas de otras casas ──────────
+
+const CATEGORIA_DE_SISTEMA = { IRAC: 'Insecticida', FRAC: 'Fungicida', HRAC: 'Herbicida' };
+
+/** Claves "COMITÉ:número" de los sitios de acción que ocupa un producto. */
+export function clavesDeGrupo(producto) {
+  return gruposDeRotacion(producto).map((g) => `${producto.sistema}:${g}`);
+}
+
+/** Ficha de grupo químico (riesgo, otras moléculas, cuándo sí y cuándo no) por cada sitio del producto. */
+export function gruposQuimicosDe(producto) {
+  return clavesDeGrupo(producto)
+    .map((clave) => ({ clave, ...GRUPOS_QUIMICOS[clave] }))
+    .filter((g) => g.nombre);
+}
+
+/** Pares de grupos que tocan el mismo blanco sin cruzarse, cuando el producto está en uno de ellos. */
+export function crucesQueConfundenDe(producto) {
+  const claves = clavesDeGrupo(producto);
+  return CRUCES_QUE_CONFUNDEN.filter((c) => claves.includes(c.a) || claves.includes(c.b));
+}
+
+function sinTildes(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+/** "Abamectina 28 g/L + Imidacloprid 300 g/L" → [["abamectina", "28"], ["imidacloprid", "300"]] */
+function ingredientes(producto) {
+  return String(producto?.ia || '')
+    .split('+')
+    .map((parte) => {
+      // Misma molécula escrita distinto: thiametoxam/tiametoxam, propiconazole/propiconazol
+      const t = sinTildes(parte)
+        .replace(/thiam/g, 'tiam')
+        .replace(/(\w)ole\b/g, '$1ol')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const numero = (t.match(/(\d+(?:[.,]\d+)?)\s*(?:g|%|cc|ml)/) || [])[1] || '';
+      const nombre = t
+        .replace(/\(.*?\)/g, '')
+        .replace(/\d+(?:[.,]\d+)?\s*(?:g\/kg|g\/l|%|cc\/l|ml\/l|g)?/g, '')
+        // La sal o la forma química no cambian la molécula activa
+        .replace(/\b(de|sal|equiv\.?|equivalente|acido|dimethylamine|dimethylammonium|dimetilamina|dimetilamonio|amina|amonio|isopropilamina|potasica|potasio|methyl|metil)\b/g, ' ')
+        .replace(/[^a-z ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return [nombre, numero.replace(',', '.')];
+    })
+    .filter(([nombre]) => nombre);
+}
+
+/**
+ * Marcas gemelas: misma composición (moléculas y concentraciones) bajo otro
+ * nombre. No son alternativas técnicas: son decisiones de canal.
+ */
+export function gemelosDe(producto) {
+  const partes = ingredientes(producto);
+  // Sin concentración declarada en cada ingrediente no se puede afirmar que
+  // dos productos sean idénticos (pasa con extractos y kits).
+  if (partes.length === 0 || partes.some(([, numero]) => !numero)) return [];
+  const firma = partes.map((x) => x.join(':')).sort().join('+');
+  return PRODUCTOS.filter(
+    (p) => p.id !== producto.id && ingredientes(p).map((x) => x.join(':')).sort().join('+') === firma
+  );
+}
+
+/** Misma(s) molécula(s) en otra concentración o formulación (por ejemplo, las versiones PRO). */
+export function mismaMoleculaDe(producto) {
+  const firma = ingredientes(producto).map((x) => x[0]).sort().join('+');
+  if (!firma) return [];
+  const gemelos = gemelosDe(producto).map((p) => p.id);
+  return PRODUCTOS.filter(
+    (p) =>
+      p.id !== producto.id &&
+      !gemelos.includes(p.id) &&
+      ingredientes(p).map((x) => x[0]).sort().join('+') === firma
+  );
+}
+
+/**
+ * Convierte una molécula aplicada (del portafolio o de otra casa) en un
+ * "producto" que el motor de rotación entiende. Así se puede responder
+ * "apliqué clorpirifos de otra marca, ¿qué rota?".
+ */
+export function productoDesdeMolecula(molecula) {
+  const [sistema, grupo] = String(molecula.grupo).split(':');
+  return {
+    id: `molecula:${sinTildes(molecula.nombre).replace(/[^a-z0-9]+/g, '-')}`,
+    nombre: molecula.nombre,
+    ia: molecula.nombre,
+    categoria: CATEGORIA_DE_SISTEMA[sistema],
+    sistema,
+    grupo,
+    familia: molecula.familia,
+    externo: true,
+  };
+}
+
+/** Todas las moléculas que se pueden escoger en el verificador, sin repetir. */
+export const MOLECULAS_PARA_VERIFICAR = (() => {
+  const vistas = new Set();
+  return [...MOLECULAS_PORTAFOLIO, ...MOLECULAS_OTRAS_CASAS]
+    .map((m) => ({ nombre: m.nombre, familia: m.familia, grupo: m.grupo, otraCasa: !m.id }))
+    .filter((m) => {
+      const k = sinTildes(m.nombre);
+      if (vistas.has(k)) return false;
+      vistas.add(k);
+      return true;
+    })
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+})();

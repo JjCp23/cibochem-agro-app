@@ -18,6 +18,8 @@ const ESTILO_TEMA = {
   etiqueta: { icono: FileText, imagen: 'etiqueta', color: COLORES.ambar, fondo: COLORES.ambarClaro },
   umbrales: { icono: Target, imagen: 'umbrales', color: COLORES.gris, fondo: COLORES.grisClaro },
   estres: { icono: Stethoscope, imagen: 'estres', color: COLORES.ambar, fondo: COLORES.ambarClaro },
+  reglas: { icono: ShieldCheck, imagen: 'laboratorio', color: COLORES.teal, fondo: COLORES.tealClaro },
+  marcas: { icono: FileText, imagen: 'catalogo', color: COLORES.naranja, fondo: COLORES.naranjaClaro },
 };
 
 /** Minutos de lectura de un tema, a unas 200 palabras por minuto. */

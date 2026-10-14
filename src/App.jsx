@@ -195,7 +195,9 @@ export default function App() {
 
       {productoAbierto && (
         <FichaProducto
+          key={productoAbierto.id}
           producto={productoAbierto}
+          onAbrirProducto={abrirProducto}
           onCerrar={cerrarProducto}
           onVerRotacion={irARotacion}
           onAgregarAMezcla={agregarAMezcla}

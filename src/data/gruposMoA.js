@@ -517,8 +517,10 @@ export const GRUPOS_MOA = {
     decision: 'Elección típica para damping off y pudriciones de raíz en semillero y trasplante.',
     precaucion: 'Verificar compatibilidad si se aplica junto con fertilizantes en drench.',
   },
-  'FRAC:33': {
+  // FRAC pasó los fosfonatos del grupo 33 al P07 (inductores de defensa)
+  'FRAC:P07': {
     nombre: 'Fosfonatos (fosetil aluminio)',
+    legado: '33',
     proceso: 'Doble: acción directa e inducción de defensas',
     sitioAccion: 'Acción multisitio débil sobre el patógeno más activación de las defensas de la planta',
     mecanismo:

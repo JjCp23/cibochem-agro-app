@@ -48,4 +48,25 @@ export function SelloGrupo({ sistema, grupo, color = COLORES.tinta, tamano = 'md
   );
 }
 
+/**
+ * Texto con **resaltados**: los datos de la guía de campo marcan así lo que
+ * hay que retener de un vistazo.
+ */
+export function TextoMarcado({ texto }) {
+  const partes = String(texto || '').split('**');
+  return (
+    <>
+      {partes.map((parte, i) =>
+        i % 2 ? (
+          <strong key={i} style={{ color: COLORES.tinta }}>
+            {parte}
+          </strong>
+        ) : (
+          <React.Fragment key={i}>{parte}</React.Fragment>
+        )
+      )}
+    </>
+  );
+}
+
 export default Etiqueta;
