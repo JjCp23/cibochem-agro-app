@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, AlertTriangle, Bug, Sprout, Leaf, Droplets, Gauge } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
@@ -20,6 +20,9 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
   const color = COLOR_CATEGORIA[producto.categoria] || COLORES.azul;
   const fondo = FONDO_CATEGORIA[producto.categoria] || COLORES.azulClaro;
   const Icono = ICONO_CATEGORIA[producto.categoria] || Bug;
+  // No todos los productos tienen foto de empaque: si la imagen no carga, la
+  // columna desaparece y la tarjeta queda como antes, sin hueco vacío.
+  const [sinFoto, setSinFoto] = useState(false);
 
   return (
     <button
@@ -39,6 +42,22 @@ export function TarjetaProducto({ producto, onAbrir, orden }) {
           </span>
         )}
       </span>
+
+      {/* Foto del empaque, para reconocer el producto en la bodega */}
+      {!sinFoto && (
+        <span
+          className="flex w-16 shrink-0 items-center justify-center border-r bg-white p-1.5"
+          style={{ borderColor: COLORES.borde }}
+        >
+          <img
+            src={`/productos/${producto.id}.jpg`}
+            alt=""
+            loading="lazy"
+            className="h-full w-full rounded-lg object-cover"
+            onError={() => setSinFoto(true)}
+          />
+        </span>
+      )}
 
       <span className="min-w-0 flex-1 px-4 py-3.5">
         <span className="flex flex-wrap items-center gap-2">
