@@ -1,0 +1,19 @@
+{
+  "name": "CiboCAMPO · Selector agronómico",
+  "short_name": "CiboCAMPO",
+  "description": "Diagnóstico guiado, rotación anti-resistencia (IRAC/HRAC/FRAC), calculadora de mezcla y referencia agronómica sobre el portafolio Cibochem 2026. Funciona sin señal.",
+  "lang": "es-CO",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F8FA",
+  "theme_color": "#2B7FB8",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

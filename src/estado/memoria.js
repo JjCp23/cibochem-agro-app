@@ -84,3 +84,35 @@ export function productosDeIds(ids, productos) {
 export const FAVORITOS = crearAlmacen('cibo:favoritos', []);
 export const RECIENTES = crearAlmacen('cibo:recientes', []);
 export const MEZCLA_PRODUCTOS = crearAlmacen('cibo:mezcla:productos', []);
+
+/** Almacén que vive solo mientras la app está abierta (no se guarda). */
+export function crearAlmacenVolatil(inicial) {
+  let valor = inicial;
+  const oyentes = new Set();
+  return {
+    obtener: () => valor,
+    fijar(nuevo) {
+      valor = typeof nuevo === 'function' ? nuevo(valor) : nuevo;
+      oyentes.forEach((f) => f());
+    },
+    suscribir(f) {
+      oyentes.add(f);
+      return () => oyentes.delete(f);
+    },
+  };
+}
+
+/**
+ * Invitación del navegador a instalar la app (Android y escritorio). Se guarda
+ * para mostrar el botón "Instalar" en el momento oportuno, no en un aviso que
+ * aparece solo al abrir.
+ */
+export const INSTALACION = crearAlmacenVolatil(null);
+
+export function escucharInstalacion() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    INSTALACION.fijar(e);
+  });
+  window.addEventListener('appinstalled', () => INSTALACION.fijar(null));
+}

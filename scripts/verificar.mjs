@@ -340,6 +340,30 @@ check(
 );
 
 // ────────────────────────────────────────────────────────────
+seccion('App instalable: manifiesto, iconos y service worker');
+let manifiesto = null;
+try {
+  manifiesto = JSON.parse(readFileSync('public/manifest.webmanifest', 'utf8'));
+} catch {
+  check(false, 'public/manifest.webmanifest debe existir y ser JSON válido');
+}
+if (manifiesto) {
+  check(manifiesto.name && manifiesto.short_name, 'el manifiesto necesita nombre y nombre corto');
+  check(manifiesto.start_url === './' && manifiesto.scope === './', 'rutas relativas para servir desde Pages');
+  check(manifiesto.display === 'standalone', 'la app instalada se abre sin barra del navegador');
+  ['192x192', '512x512'].forEach((t) =>
+    check(manifiesto.icons.some((i) => i.sizes === t), `falta el icono de ${t}`)
+  );
+  check(manifiesto.icons.some((i) => i.purpose === 'maskable'), 'falta el icono adaptable (maskable)');
+  manifiesto.icons.forEach((i) => check(existsSync(`public/${i.src}`), `no existe el icono ${i.src}`));
+}
+const plantillaSw = existsSync('scripts/sw-plantilla.js') ? readFileSync('scripts/sw-plantilla.js', 'utf8') : '';
+check(
+  plantillaSw.includes('__VERSION__') && plantillaSw.includes('__ARCHIVOS__'),
+  'la plantilla del service worker debe tener los marcadores que llena el build'
+);
+
+// ────────────────────────────────────────────────────────────
 seccion('Artefacto de un solo archivo: nada usado sin importar');
 const rutaArtefacto = 'dist-artefacto/CibochemCampo.jsx';
 if (!existsSync(rutaArtefacto)) {

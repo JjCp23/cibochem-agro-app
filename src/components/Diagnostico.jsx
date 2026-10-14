@@ -24,11 +24,19 @@ import {
   Apple,
   ThermometerSun,
   Route,
+  Download,
 } from 'lucide-react';
 import { RAMAS, COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
 import { PRODUCTOS } from '../data/productos.js';
 import { recomendar, construirPrograma } from '../motores/index.js';
-import { FAVORITOS, RECIENTES, useAlmacen, productosDeIds } from '../estado/memoria.js';
+import {
+  FAVORITOS,
+  RECIENTES,
+  INSTALACION,
+  useAlmacen,
+  usePersistente,
+  productosDeIds,
+} from '../estado/memoria.js';
 import { FilaMenu, Hexagono, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
 import { ICONO_RAMA, ICONO_CATEGORIA } from './ui/Iconos.jsx';
@@ -214,6 +222,63 @@ function ProgramaSugerido({ programa, color, onAbrirProducto, ultimoUsado }) {
   );
 }
 
+/**
+ * Invitación a instalar la app. Solo aparece cuando el navegador lo permite
+ * (Android y escritorio) y se puede descartar para siempre.
+ */
+function TarjetaInstalar() {
+  const [evento, setEvento] = useAlmacen(INSTALACION);
+  const [descartada, setDescartada] = usePersistente('cibo:instalar:descartada', false);
+  if (!evento || descartada) return null;
+
+  const instalar = async () => {
+    evento.prompt();
+    try {
+      await evento.userChoice;
+    } finally {
+      setEvento(null);
+    }
+  };
+
+  return (
+    <div
+      className="cc-entrada mt-4 flex items-center gap-3 rounded-3xl bg-white p-4"
+      style={{ boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
+    >
+      <span
+        className="cc-latido flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+        style={{ backgroundColor: COLORES.azul }}
+      >
+        <Download size={20} color="#fff" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
+          Instálala en tu teléfono
+        </span>
+        <span className="block text-xs leading-snug" style={{ color: COLORES.textoSuave }}>
+          Se abre como una app y funciona en el lote sin señal.
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-1">
+        <button
+          onClick={instalar}
+          className="cc-presionable rounded-full px-3.5 py-1.5 text-xs font-bold text-white"
+          style={{ backgroundColor: COLORES.azul }}
+        >
+          Instalar
+        </button>
+        <button
+          onClick={() => setDescartada(true)}
+          className="text-[11px] font-semibold"
+          style={{ color: COLORES.textoSuave }}
+        >
+          Ahora no
+        </button>
+      </span>
+    </div>
+  );
+}
+
 /** Pantalla de inicio: saludo, buscador, ramas del diagnóstico y accesos. */
 function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProducto }) {
   const [favoritosIds] = useAlmacen(FAVORITOS);
@@ -258,6 +323,8 @@ function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProduct
           Producto, ingrediente, grupo o plaga…
         </button>
       </div>
+
+      <TarjetaInstalar />
 
       <h3
         className="mt-7 text-xs font-bold uppercase tracking-wide"
