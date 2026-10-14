@@ -2,6 +2,52 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.5.0]
+
+Versión recuperada de la publicada en https://cibochem-campo.pages.dev, que
+iba por delante del código de GitHub (1.4.1). Se reconstruyó el fuente a partir
+del paquete publicado; el build resultante coincide con él salvo los nombres
+que asigna el minificador. Los datos (80 productos, fichas de grupo,
+taxonomía y temas de Aprender) ya eran iguales.
+
+### Agregado
+- **Caneca de 200 L como guía del orden de mezcla.** La pestaña "Orden de
+  carga" muestra una caneca que se llena paso a paso con animación: cada paso
+  deja su capa, dice qué formulaciones entran ahí, cuáles productos de la
+  mezcla van en ese paso con su dosis por bomba y por qué se hace. El orden de
+  carga pasó de 7 a 13 pasos, cada uno con su explicación.
+- **Repaso rápido** de cinco ideas para que no se corte la mezcla, en ventana
+  con flechas del teclado.
+- **Coadyuvantes: qué hace cada tipo**, en secciones plegables, junto con los
+  pasos del orden de carga.
+- **Semáforo de la mezcla** y aviso de **formulaciones distintas**: desde tres
+  tipos de formulación en el tanque se marca riesgo de incompatibilidad.
+  `formulacionDe` reconoce más siglas (WSB, WSP, DF, SP, SE, FL, EW) y ubica
+  cada una en su paso; nueva `analizarFormulaciones`.
+- **Íconos ilustrados** para cada objetivo del diagnóstico: 12 plagas, 7 tipos
+  de maleza y 8 enfermedades, dibujados en SVG con la interfaz de lucide-react.
+- **Fotos de empaque** en la tarjeta y la ficha de producto (64 de los 80; si
+  un producto no tiene foto, la imagen se oculta sin dejar hueco).
+- **Aplicación instalable (PWA)**: manifest con atajos a Diagnóstico y Mezcla,
+  service worker que deja la app completa sin señal, aviso de "sin conexión",
+  aviso de versión nueva que actualiza y recarga, e invitación a instalar.
+- Atajos de URL `?vista=diagnostico`, `?vista=mezcla` (y las demás pestañas).
+- **Modo campo**: botón de sol en el encabezado que agranda texto y botones
+  para leer bajo el sol o tocar con guantes. Se recuerda entre visitas.
+
+### Cambiado
+- Los choques de modo de acción en la mezcla se muestran en ámbar; el rojo
+  queda para la incompatibilidad de formulaciones.
+- El aviso del pie aclara que la decisión final y la aplicación en campo son
+  responsabilidad de quien las ejecuta.
+
+### Corregido
+- La ficha de producto se cierra siempre a través del historial, así "atrás",
+  Escape y los botones consumen la misma entrada; y el toque que abre la ficha
+  ya no la cierra al caer sobre el fondo.
+- El generador del artefacto producía `import { , ... }` cuando un import de
+  lucide-react ocupaba varias líneas con coma final.
+
 ## [1.4.1]
 
 ### Corregido
