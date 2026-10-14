@@ -36,7 +36,7 @@ import { Segmentado, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
 import { compartirTexto, avisar } from './ui/Avisos.jsx';
-import { Icono3D } from './ui/Iconos.jsx';
+import { IconoIlustrado } from './ui/Iconos.jsx';
 
 const entrada = 'w-full rounded-xl border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2';
 
@@ -325,7 +325,7 @@ function ChequeoPrevio() {
                 >
                   {hecho && <Check key="hecho" size={15} color="#fff" strokeWidth={3} className="cc-pop" />}
                 </span>
-                <Icono3D nombre={item.imagen} tamano={34} className="shrink-0" />
+                <IconoIlustrado nombre={item.imagen} tamano={34} className="shrink-0" />
                 <span className="min-w-0">
                   <span
                     className="block text-sm font-semibold transition-colors"

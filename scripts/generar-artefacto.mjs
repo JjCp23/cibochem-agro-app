@@ -19,6 +19,7 @@ const MODULOS = [
   'src/data/taxonomia.js',
   'src/data/gruposMoA.js',
   'src/data/conocimiento.js',
+  'src/data/iconosIlustrados.js',
   'src/motores/resistencia.js',
   'src/motores/diagnostico.js',
   'src/motores/aplicacion.js',

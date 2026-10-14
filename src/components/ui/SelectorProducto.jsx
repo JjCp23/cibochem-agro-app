@@ -8,7 +8,7 @@ import { HojaInferior } from './Hoja.jsx';
 import { Hexagono, Chip } from './Superficie.jsx';
 import { SelloGrupo } from './Etiqueta.jsx';
 import { ICONO_CATEGORIA } from './Iconos.jsx';
-import { iconoDeProducto } from '../../data/iconos3d.js';
+import { iconoDeProducto } from '../../data/iconosIlustrados.js';
 
 /** ¿Pantalla táctil? Ahí no se abre el teclado solo: tapa media lista. */
 function esTactil() {

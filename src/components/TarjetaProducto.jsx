@@ -5,7 +5,7 @@ import { FAVORITOS, useAlmacen } from '../estado/memoria.js';
 import { Etiqueta, SelloGrupo } from './ui/Etiqueta.jsx';
 import { Hexagono } from './ui/Superficie.jsx';
 import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconos3d.js';
+import { iconoDeProducto } from '../data/iconosIlustrados.js';
 
 /**
  * Tarjeta de producto. Se usa en resultados, catálogo y rotación, así que

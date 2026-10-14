@@ -65,9 +65,9 @@ export const ESTILOS_APP = `
   .cc-presionable:active { transform: scale(.985); }
 }
 
-/* Íconos 3D vivos: se asoman al tocar o pasar el mouse por su tarjeta */
-.cc-icono3d { transition: transform .35s cubic-bezier(.3,1.5,.5,1); will-change: transform; }
-.cc-presionable:hover .cc-icono3d, .cc-presionable:active .cc-icono3d { transform: translateY(-3px) rotate(-6deg) scale(1.08); }
+/* Íconos ilustrados vivos: se asoman al tocar o pasar el mouse por su tarjeta */
+.cc-icono-ilustrado { transition: transform .35s cubic-bezier(.3,1.5,.5,1); will-change: transform; }
+.cc-presionable:hover .cc-icono-ilustrado, .cc-presionable:active .cc-icono-ilustrado { transform: translateY(-3px) rotate(-6deg) scale(1.08); }
 .cc-medalla { transition: transform .35s cubic-bezier(.3,1.5,.5,1); }
 .cc-presionable:hover .cc-medalla { transform: rotate(4deg); }
 

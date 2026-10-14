@@ -39,8 +39,8 @@ import {
 } from '../estado/memoria.js';
 import { FilaMenu, Hexagono, Chip, EstadoVacio } from './ui/Superficie.jsx';
 import { SelloGrupo } from './ui/Etiqueta.jsx';
-import { ICONO_RAMA, ICONO_CATEGORIA, Icono3D } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconos3d.js';
+import { ICONO_RAMA, ICONO_CATEGORIA, IconoIlustrado } from './ui/Iconos.jsx';
+import { iconoDeProducto } from '../data/iconosIlustrados.js';
 import { NumeroAnimado, useEnPantalla, llevarA } from './ui/Movimiento.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
@@ -86,7 +86,7 @@ function Opcion({ label, ayuda, activo, onClick, color, icono: Icono, imagen }) 
         boxShadow: activo ? `inset 0 0 0 1px ${color}` : undefined,
       }}
     >
-      {imagen && <Icono3D nombre={imagen} tamano={38} respaldo={Icono} color={color} className="shrink-0" />}
+      {imagen && <IconoIlustrado nombre={imagen} tamano={38} respaldo={Icono} color={color} className="shrink-0" />}
       {Icono && !imagen && (
         <span
           className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"

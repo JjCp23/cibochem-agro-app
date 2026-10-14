@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Bug, Sprout, Leaf, Droplets, Gauge } from 'lucide-react';
-import { ICONO_3D } from '../../data/iconos3d.js';
+import { ICONO_ILUSTRADO } from '../../data/iconosIlustrados.js';
 
 /** Icono de cada línea del portafolio. Uno solo para toda la app. */
 export const ICONO_CATEGORIA = {
@@ -20,19 +20,19 @@ export const ICONO_RAMA = {
 };
 
 /**
- * Ícono 3D de un concepto (ver data/iconos3d.js). Si la imagen no carga —por
+ * Ícono ilustrado de un concepto (ver data/iconosIlustrados.js). Si la imagen no carga —por
  * ejemplo en el artefacto de un solo archivo, que no lleva la carpeta de
  * íconos— muestra el ícono plano de respaldo, así nunca queda un hueco.
  */
-export function Icono3D({ nombre, tamano = 40, respaldo: Respaldo, color, titulo, className = '' }) {
-  const archivo = ICONO_3D[nombre] || null;
+export function IconoIlustrado({ nombre, tamano = 40, respaldo: Respaldo, color, titulo, className = '' }) {
+  const archivo = ICONO_ILUSTRADO[nombre] || null;
   const [falla, setFalla] = useState(!archivo);
   if (falla) {
     return Respaldo ? <Respaldo size={Math.round(tamano * 0.62)} color={color} strokeWidth={1.9} /> : null;
   }
   return (
     <img
-      src={`./iconos/${archivo}.webp`}
+      src={`./iconos/${archivo}.svg`}
       width={tamano}
       height={tamano}
       alt={titulo || ''}
@@ -41,7 +41,7 @@ export function Icono3D({ nombre, tamano = 40, respaldo: Respaldo, color, titulo
       decoding="async"
       draggable="false"
       onError={() => setFalla(true)}
-      className={`cc-icono3d ${className}`}
+      className={`cc-icono-ilustrado ${className}`}
       style={{ width: tamano, height: tamano, objectFit: 'contain' }}
     />
   );

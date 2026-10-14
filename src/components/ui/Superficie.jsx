@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { COLORES } from '../../data/taxonomia.js';
-import { Icono3D } from './Iconos.jsx';
+import { IconoIlustrado } from './Iconos.jsx';
 
 /**
  * Insignia hexagonal, el elemento gráfico que identifica cada línea del
@@ -9,7 +9,7 @@ import { Icono3D } from './Iconos.jsx';
  */
 export function Hexagono({ icono: Icono, imagen, color = COLORES.azul, tamano = 56, relleno = true }) {
   const iconoTam = Math.round(tamano * 0.4);
-  // Con imagen: hexágono claro con el ícono 3D adentro, como una medalla
+  // Con imagen: hexágono claro con el ícono ilustrado adentro, como una medalla
   if (imagen) {
     return (
       <span
@@ -28,7 +28,7 @@ export function Hexagono({ icono: Icono, imagen, color = COLORES.azul, tamano = 
           />
         </svg>
         <span className="absolute inset-0 flex items-center justify-center">
-          <Icono3D nombre={imagen} tamano={Math.round(tamano * 0.64)} respaldo={Icono} color={color} />
+          <IconoIlustrado nombre={imagen} tamano={Math.round(tamano * 0.64)} respaldo={Icono} color={color} />
         </span>
       </span>
     );
@@ -228,7 +228,7 @@ export function EstadoVacio({ icono: Icono, imagen, titulo, texto, accion, color
         style={{ backgroundColor: `${color}14` }}
       >
         {imagen ? (
-          <Icono3D nombre={imagen} tamano={44} respaldo={Icono} color={color} />
+          <IconoIlustrado nombre={imagen} tamano={44} respaldo={Icono} color={color} />
         ) : (
           <Icono size={28} style={{ color }} strokeWidth={1.8} />
         )}

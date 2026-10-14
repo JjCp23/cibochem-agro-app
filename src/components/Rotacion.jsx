@@ -9,7 +9,7 @@ import { SelloGrupo } from './ui/Etiqueta.jsx';
 import { Hexagono, EstadoVacio } from './ui/Superficie.jsx';
 import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { ICONO_CATEGORIA } from './ui/Iconos.jsx';
-import { iconoDeProducto } from '../data/iconos3d.js';
+import { iconoDeProducto } from '../data/iconosIlustrados.js';
 import { NumeroAnimado } from './ui/Movimiento.jsx';
 
 const VISIBLES_AL_INICIO = 8;

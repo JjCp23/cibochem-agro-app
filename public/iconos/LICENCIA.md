@@ -1,12 +1,11 @@
-# Íconos 3D
+# Íconos ilustrados
 
 La mayoría de los íconos de esta carpeta son de **Fluent Emoji** de Microsoft
-(https://github.com/microsoft/fluentui-emoji), publicados con licencia MIT.
-Se redujeron a 128 px y se convirtieron a WebP para que pesen unos 4 KB cada
-uno.
+(https://github.com/microsoft/fluentui-emoji), en su versión plana (SVG),
+publicados con licencia MIT. Pesan unos 2 KB cada uno.
 
 Los nueve que no existen en Fluent Emoji se dibujaron para esta app con el
-mismo estilo y se publican con la licencia del proyecto (MIT): `trips`,
+mismo estilo plano y se publican con la licencia del proyecto (MIT): `trips`,
 `ciperacea`, `mildeo`, `cana`, `algodon`, `helecho`, `raspadores`, `minador` y
 `bidon`.
 
