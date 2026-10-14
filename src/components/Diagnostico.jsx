@@ -28,7 +28,9 @@ import {
 } from 'lucide-react';
 import { RAMAS, COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
 import { PRODUCTOS } from '../data/productos.js';
-import { recomendar, construirPrograma } from '../motores/index.js';
+import { recomendar, construirPrograma, recomendacionTecnica, nombreCultivo } from '../motores/index.js';
+import { CULTIVOS } from '../data/cultivos.js';
+import { SelectorCultivo, ProblemasDeCultivo, TarjetaRecomendacion, RAMA_DE_PROBLEMA } from './DiagnosticoCultivo.jsx';
 import {
   FAVORITOS,
   RECIENTES,
@@ -282,7 +284,7 @@ function TarjetaInstalar() {
 }
 
 /** Pantalla de inicio: saludo, buscador, ramas del diagnóstico y accesos. */
-function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProducto }) {
+function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBuscar, onAbrirProducto }) {
   const [favoritosIds] = useAlmacen(FAVORITOS);
   const [recientesIds] = useAlmacen(RECIENTES);
   const favoritos = useMemo(() => productosDeIds(favoritosIds, PRODUCTOS), [favoritosIds]);
@@ -328,11 +330,21 @@ function InicioDiagnostico({ onEscogerRama, onVerCiclo, onBuscar, onAbrirProduct
 
       <TarjetaInstalar />
 
+      <h3 className="mt-7 text-xs font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+        Empieza por tu cultivo
+      </h3>
+      <p className="mt-1 text-xs" style={{ color: COLORES.textoSuave }}>
+        Escoge el cultivo y luego la plaga, enfermedad o maleza que estás viendo.
+      </p>
+      <div className="mt-3">
+        <SelectorCultivo compacto onEscoger={onEscogerCultivo} />
+      </div>
+
       <h3
-        className="mt-7 text-xs font-bold uppercase tracking-wide"
+        className="mt-6 text-xs font-bold uppercase tracking-wide"
         style={{ color: COLORES.textoSuave }}
       >
-        Diagnóstico guiado · responde 1 a 3 preguntas
+        O por tipo de problema · responde 1 a 3 preguntas
       </h3>
       <div className="cc-escalonado mt-3 space-y-3">
         {RAMAS.map((r) => {
@@ -439,6 +451,10 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
   const [escenario, setEscenario] = useState(null);
   const [momento, setMomento] = useState(null);
   const [ultimoId, setUltimoId] = useState('');
+  const [cultivoId, setCultivoId] = useState(null);
+  const [problema, setProblema] = useState(null);
+  const [etapaCultivo, setEtapaCultivo] = useState(null);
+  const cultivo = CULTIVOS.find((c) => c.id === cultivoId) || null;
 
   const refAfinar = useRef(null);
   const refResultados = useRef(null);
@@ -450,9 +466,13 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
   );
 
   const criterio = useMemo(
-    () => (rama && objetivo ? { categorias: rama.categorias, objetivo, escenario, momento, ultimoUsado } : null),
-    [rama, objetivo, escenario, momento, ultimoUsado]
+    () =>
+      rama && objetivo
+        ? { categorias: rama.categorias, objetivo, escenario, momento, ultimoUsado, cultivo: cultivoId, etapa: etapaCultivo }
+        : null,
+    [rama, objetivo, escenario, momento, ultimoUsado, cultivoId, etapaCultivo]
   );
+  const recomendacion = useMemo(() => (criterio && cultivoId ? recomendacionTecnica(criterio) : null), [criterio, cultivoId]);
   const resultados = useMemo(() => (criterio ? recomendar(criterio) : []), [criterio]);
   const programa = useMemo(
     () => (criterio && rama.sistema ? construirPrograma(criterio, 3) : []),
@@ -465,6 +485,30 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
     setEscenario(null);
     setMomento(null);
     setUltimoId('');
+    setCultivoId(null);
+    setProblema(null);
+    setEtapaCultivo(null);
+    window.scrollTo({ top: 0 });
+  };
+
+  // Del problema del cultivo a la rama, el objetivo y el escenario del asistente
+  const escogerProblema = (x) => {
+    const r = RAMAS.find((rm) => rm.id === RAMA_DE_PROBLEMA[x.tipoProblema]);
+    const esc =
+      x.tipoProblema === 'malezas' ? cultivo.escenarioMalezas : x.tipoProblema === 'enfermedades' ? cultivo.escenarioEnfermedades : null;
+    setProblema(x);
+    setRama(r);
+    setObjetivo(x.objetivo);
+    setEscenario(r.escenarios.some((e) => e.id === esc) ? esc : null);
+    setMomento(null);
+    window.scrollTo({ top: 0 });
+  };
+
+  const volverAProblemas = () => {
+    setProblema(null);
+    setRama(null);
+    setObjetivo(null);
+    setEscenario(null);
     window.scrollTo({ top: 0 });
   };
 
@@ -474,10 +518,19 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
     setTimeout(() => llevarA(refAfinar.current), 60);
   };
 
+  // ── Diagnóstico por cultivo: qué se está viendo ───────────────────
+  if (!rama && cultivo) {
+    return <ProblemasDeCultivo cultivoId={cultivo.id} onEscoger={escogerProblema} onVolver={reiniciar} />;
+  }
+
   // ── Pantalla inicial ────────────────────────────────────────────
   if (!rama) {
     return (
       <InicioDiagnostico
+        onEscogerCultivo={(id) => {
+          setCultivoId(id);
+          window.scrollTo({ top: 0 });
+        }}
         onEscogerRama={(r) => {
           setRama(r);
           window.scrollTo({ top: 0 });
@@ -504,13 +557,13 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
       </button>
 
       <div className="mt-3 flex items-center gap-3">
-        <Hexagono icono={ICONO_RAMA[rama.id]} imagen={rama.id} color={color} tamano={52} />
+        <Hexagono icono={ICONO_RAMA[rama.id]} imagen={cultivo ? cultivo.id : rama.id} color={color} tamano={52} />
         <div className="min-w-0">
           <h2 className="text-lg font-bold leading-tight" style={{ color: COLORES.tinta }}>
-            {rama.titulo}
+            {cultivo ? `${nombreCultivo(cultivo.id)} · ${rama.titulo.toLowerCase()}` : rama.titulo}
           </h2>
           <p className="text-xs" style={{ color: COLORES.textoSuave }}>
-            {rama.resumen}
+            {cultivo ? 'Diagnóstico por cultivo' : rama.resumen}
           </p>
         </div>
       </div>
@@ -536,7 +589,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
         </Paso>
       ) : (
         <button
-          onClick={() => setObjetivo(null)}
+          onClick={() => (problema ? volverAProblemas() : setObjetivo(null))}
           className="cc-entrada cc-presionable mt-5 flex w-full items-center gap-3 rounded-2xl border p-3 text-left"
           style={{ borderColor: `${color}55`, backgroundColor: `${color}0F` }}
         >
@@ -548,9 +601,10 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
-              {rama.pregunta.replace(/[¿?]/g, '')}
+              {problema ? `${problema.comun} · ${problema.cientifico || problema.agente || ''}` : rama.pregunta.replace(/[¿?]/g, '')}
             </span>
             <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
+              {problema ? 'Se maneja como: ' : ''}
               {objetivoElegido.label}
               {objetivoElegido.ayuda && (
                 <span className="font-normal" style={{ color: COLORES.textoSuave }}>
@@ -582,7 +636,23 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
             </div>
           </Paso>
 
-          <Paso numero={3} titulo={rama.preguntaMomento} nota="opcional" color={color}>
+          {cultivo && cultivo.etapas.length > 0 && (
+            <Paso numero={3} titulo="¿En qué etapa está el cultivo?" nota="opcional" color={color}>
+              <div className="flex flex-wrap gap-2">
+                {cultivo.etapas.map((e) => (
+                  <Chip
+                    key={e}
+                    label={e.replace(/\s*\(.*\)/, '')}
+                    color={color}
+                    activo={etapaCultivo === e}
+                    onClick={() => setEtapaCultivo(etapaCultivo === e ? null : e)}
+                  />
+                ))}
+              </div>
+            </Paso>
+          )}
+
+          <Paso numero={cultivo ? 4 : 3} titulo={rama.preguntaMomento} nota="opcional" color={color}>
             <div className="grid grid-cols-2 gap-2">
               {rama.momentos.map((m) => (
                 <Opcion
@@ -599,7 +669,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
           </Paso>
 
           {rama.sistema && (
-            <Paso numero={4} titulo="¿Qué aplicaste la vez anterior?" nota="opcional" color={color}>
+            <Paso numero={cultivo ? 5 : 4} titulo="¿Qué aplicaste la vez anterior?" nota="opcional" color={color}>
               <p className="mb-2 text-xs" style={{ color: COLORES.textoSuave }}>
                 Si lo indicas, la app baja los productos que repiten el mismo sitio de acción y arma la
                 rotación a partir de ahí.
@@ -631,6 +701,18 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar }) {
               </span>
             )}
           </div>
+
+          {recomendacion && (
+            <TarjetaRecomendacion
+              rec={recomendacion}
+              onAbrirProducto={onAbrirProducto}
+              contexto={{
+                cultivo: nombreCultivo(cultivo.id),
+                problema: problema?.comun,
+                etapa: etapaCultivo ? etapaCultivo.replace(/\s*\(.*\)/, '') : null,
+              }}
+            />
+          )}
 
           {programa.length >= 2 && (
             <ProgramaSugerido

@@ -38,6 +38,7 @@ const MODULOS = [
   'src/components/TarjetaProducto.jsx',
   'src/components/FichaProducto.jsx',
   'src/components/Buscador.jsx',
+  'src/components/DiagnosticoCultivo.jsx',
   'src/components/Diagnostico.jsx',
   'src/components/Comparador.jsx',
   'src/components/Catalogo.jsx',

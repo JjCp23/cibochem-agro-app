@@ -9,7 +9,8 @@
  *    PLM/DEAQ (octubre de 2026), solo los de confianza media o alta y con su
  *    fuente. No se incluyen dosis ni periodos de carencia o reentrada: esos
  *    datos se leen siempre en la etiqueta ICA vigente.
- *  - "cultivos": ids de cultivo detectados en los dos textos anteriores.
+ *  - "cultivos": ids de cultivo detectados en los dos textos anteriores;
+ *    "etiqueta.cultivos" son solo los que aparecen en la ficha técnica.
  *
  * El texto entre **dobles asteriscos** se muestra resaltado.
  */
@@ -130,7 +131,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://pfcinsumosagricolas.com/doc/FT/CIBOCHEM/METOMIL%20FT.pdf",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "papa"
+      ]
     },
     "cultivos": [
       "maiz",
@@ -159,7 +163,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "http://agroquimicos-organicosplm.com/colombia/metomil_vascal_216_sl/436/1/17008/13/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "papa"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -188,7 +195,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "http://agroquimicos-organicosplm.com/colombia/tioxam_250_wg/436/1/17022/230/3",
-      "confianza": "alta"
+      "confianza": "alta",
+      "cultivos": [
+        "tomate"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -236,7 +246,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://agroquimicos-organicosplm.com/colombia/concentrina_100_ec/436/1/16986/11/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "pastos"
+      ]
     },
     "cultivos": [
       "maiz",
@@ -281,7 +294,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/lambdox_50_ec/436/1/17000/11/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "tomate"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -323,7 +339,12 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/ridder_328_sc/436/1/17016/58/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "arroz",
+        "aguacate",
+        "flores"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -354,7 +375,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://pfcinsumosagricolas.com/doc/FT/CIBOCHEM/MULTA%20FT.pdf",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "tomate"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -414,7 +438,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/acarisil_100_ec/436/1/18325/11/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "tomate"
+      ]
     },
     "cultivos": [
       "cafe",
@@ -482,7 +509,10 @@ export const CAMPO = {
       "momento": "Aplicación al suelo; control en preemergencia y postemergencia temprana de malezas gramíneas y de hoja ancha anuales y algunas perennes (movimiento sistémico acropétalo por xilema).",
       "selectividad": "Herbicida selectivo al cultivo de maíz.",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/triasol_80_wp/436/1/17023/101/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "maiz"
+      ]
     },
     "cultivos": [
       "maiz",
@@ -511,7 +541,10 @@ export const CAMPO = {
       "momento": "Postemergente (gramíneas anuales y perennes).",
       "selectividad": "Herbicida selectivo y sistémico (inhibidor de ACCasa). La tabla de uso de la ficha solo registra fríjol. La ficha dice que no es fitotóxico bajo las recomendaciones, y sugiere ensayo previo en variedades o híbridos nuevos.",
       "fuente": "https://agroquimicos-organicosplm.com/colombia/pastrol_240_ec/436/1/18331/72/3",
-      "confianza": "alta"
+      "confianza": "alta",
+      "cultivos": [
+        "frijol"
+      ]
     },
     "cultivos": [
       "papa",
@@ -579,7 +612,10 @@ export const CAMPO = {
       "momento": "Pre y postemergente (gramíneas, hoja ancha y ciperáceas); más eficaz en malezas en crecimiento activo y en estados tempranos.",
       "selectividad": "Herbicida selectivo (ficha Cibochem de Quinclorac); uso registrado en arroz.",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/quinclorac_250_hxs/436/1/17015/58/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "arroz"
+      ]
     },
     "cultivos": [
       "arroz"
@@ -625,7 +661,10 @@ export const CAMPO = {
       "momento": "Postemergente; recomendado en la etapa de recuperación de potreros; una aplicación por ciclo.",
       "selectividad": "Herbicida selectivo y sistémico (sulfonilurea, inhibidor de ALS) para control de ciperáceas en potreros.",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/acertado_750_wg/436/1/17530/230/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "pastos"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -685,7 +724,12 @@ export const CAMPO = {
       "momento": "Postemergente, dirigido a malezas anuales y perennes en estados iniciales; una aplicación por ciclo de cultivo.",
       "selectividad": "No selectivo; acción de contacto con leve acción sistémica; sin efecto en el suelo. Controla malezas de hoja ancha y gramíneas.",
       "fuente": "https://cibochem.com.co/ficha/limpion",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "arroz",
+        "cafe",
+        "palma"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -762,7 +806,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/stopwest_pro_757_sg/436/1/17535/231/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "maiz"
+      ]
     },
     "cultivos": [
       "maiz"
@@ -814,7 +861,11 @@ export const CAMPO = {
       "momento": "Postemergente temprana o tardía, con malezas en vigoroso crecimiento.",
       "selectividad": "Herbicida hormonal sistémico de baja volatilidad; control de malezas de hoja ancha (PLM: hoja ancha y ciperáceas en pasturas; Cibochem: caña de azúcar y otros cultivos gramíneos).",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/herbimex_720_sl/436/1/16997/13/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "cana",
+        "pastos"
+      ]
     },
     "cultivos": [
       "cana",
@@ -851,7 +902,10 @@ export const CAMPO = {
       "momento": "Postemergente en fases tempranas de la maleza y con buen vigor; la ficha PLM indica que puede aplicarse en pre y postemergencia según cultivo y especie; sin lluvia por al menos 4 horas tras aplicar.",
       "selectividad": "Herbicida selectivo y sistémico; para malezas de hoja ancha, herbáceas y arbustivas en potreros; selectivo con gramíneas.",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/vipper_304_sl/436/1/17536/13/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "pastos"
+      ]
     },
     "cultivos": [
       "pastos"
@@ -875,7 +929,10 @@ export const CAMPO = {
       "momento": "Pre y postemergencia.",
       "selectividad": "Herbicida sistémico y de contacto del grupo de las triazinas; su persistencia en el suelo depende del contenido de arcilla y materia orgánica.",
       "fuente": "https://cibochem.com.co/ficha/kanero",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "cana"
+      ]
     },
     "cultivos": [
       "cana"
@@ -990,7 +1047,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://agroquimicos-organicosplm.com/colombia/benevolo_250_sc/436/1/16982/58/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "tomate"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -1027,7 +1087,11 @@ export const CAMPO = {
         }
       ],
       "fuente": "http://agroquimicos-organicosplm.com/colombia/carbendazim_500_hxs/436/1/16984/242/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "arroz",
+        "tomate"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -1122,7 +1186,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://cdn.prod.website-files.com/62a8d97630e75f4fd68412e3/633fbefe28f7af2b7054f46c_BENOAGRO%2050%20WP%20-%20Ficha%20t%C3%A9cnica.pdf",
-      "confianza": "alta"
+      "confianza": "alta",
+      "cultivos": [
+        "arroz"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -1156,7 +1223,11 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/durab_325_sc/436/1/16989/58/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "flores",
+        "cebolla"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -1187,7 +1258,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://agroquimicos-organicosplm.com/colombia/difenex_250_ec/436/1/16988/11/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "tomate"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -1250,7 +1324,10 @@ export const CAMPO = {
         }
       ],
       "fuente": "https://agroquimicos-organicosplm.com/colombia/tebunex_250_ec/436/1/17021/11/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "platano-banano"
+      ]
     },
     "cultivos": [
       "arroz",
@@ -1391,7 +1468,14 @@ export const CAMPO = {
       ],
       "composicion": "Según PLM (producto 'LEILI ALGA 600', presentaciones 100 g/250 g/1 kg que coinciden con Alga600): nitrógeno total 1,2 %; K2O 17,0 %; azufre total 1,22 %; carbono orgánico oxidable 24,5 %; SiO2 total 1,14 %. Cibochem: extracto de alga sargassum con 3 ingredientes patentados (Algene, Minecal, Kelmost).",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/leili_alga_600/436/1/17002/48/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "maiz",
+        "cana",
+        "tomate",
+        "aguacate",
+        "pastos"
+      ]
     },
     "cultivos": [
       "maiz",
@@ -1481,7 +1565,13 @@ export const CAMPO = {
       ],
       "composicion": "Aminoácidos libres 43,0 % (16 aminoácidos libres); nitrógeno total 17,0 %; carbono orgánico oxidable total 15,0 %; silicio total 0,90 %; pH (10 %) 4,7; CE 4,56 dS/m; humedad 3,27 %.",
       "fuente": "https://www.agroquimicos-organicosplm.com/colombia/fertilita_amino_43/436/1/16991/48/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "maiz",
+        "tomate",
+        "aguacate",
+        "pastos"
+      ]
     },
     "cultivos": [
       "maiz",
@@ -1622,7 +1712,10 @@ export const CAMPO = {
       "composicion": "Ácido giberélico (GA3) 100 g/kg.",
       "momento": "Regulador hormonal de acción sistémica local; penetra por las hojas.",
       "fuente": "https://agroquimicos-organicosplm.com/colombia/gibox_10_sp/436/1/17112/48/3",
-      "confianza": "media"
+      "confianza": "media",
+      "cultivos": [
+        "pastos"
+      ]
     },
     "cultivos": [
       "papa",

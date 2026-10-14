@@ -10,7 +10,10 @@
 
 import { PRODUCTOS } from '../data/productos.js';
 import { RAMAS } from '../data/taxonomia.js';
-import { compartenModoDeAccion, explicarConflicto, gruposDeRotacion } from './resistencia.js';
+import { CAMPO } from '../data/campo.js';
+import { CULTIVOS } from '../data/cultivos.js';
+import { TRANSLOCACION, fichasDeProducto } from '../data/gruposMoA.js';
+import { compartenModoDeAccion, explicarConflicto, gruposDeRotacion, gruposQuimicosDe } from './resistencia.js';
 
 const PESOS = {
   base: 50,
@@ -22,7 +25,16 @@ const PESOS = {
   riesgoBajo: 8,
   rotacionOk: 30,
   rotacionMal: -100,
+  cultivoEnFicha: 16,
+  cultivoEnGuia: 10,
+  etapaDesaconsejada: -25,
 };
+
+/** Nombre corto de un cultivo: "Frutales andinos (mora…)" → "Frutales andinos". */
+export function nombreCultivo(id) {
+  const c = CULTIVOS.find((x) => x.id === id);
+  return c ? c.nombre.replace(/\s*\(.*\)/, '') : '';
+}
 
 /**
  * Recomienda productos según el criterio del diagnóstico guiado.
@@ -33,7 +45,8 @@ const PESOS = {
  * oomiceto, que no tiene ergosterol en su membrana.
  */
 export function recomendar(criterio) {
-  const { categoria, categorias, objetivo, escenario, momento, ultimoUsado } = criterio;
+  const { categoria, categorias, objetivo, escenario, momento, ultimoUsado, cultivo, etapa } = criterio;
+  const enFloracion = /flora/i.test(etapa || '');
 
   // Una rama del diagnóstico puede abarcar varias categorías de producto. La
   // rama de nutrición, por ejemplo, incluye bioestimulantes Y reguladores de
@@ -62,6 +75,26 @@ export function recomendar(criterio) {
     if (momento && p.momento?.includes(momento)) {
       puntaje += PESOS.momento;
       razones.push('Encaja en ese momento');
+    }
+
+    // El cultivo no filtra (la guía no es un registro), pero sí ordena: primero
+    // lo que la ficha técnica menciona para ese cultivo, luego lo que la guía
+    // de campo usa en él.
+    if (cultivo) {
+      const campo = CAMPO[p.id];
+      if (campo?.etiqueta?.cultivos?.includes(cultivo)) {
+        puntaje += PESOS.cultivoEnFicha;
+        razones.push(`Uso en ${nombreCultivo(cultivo).toLowerCase()} según su ficha técnica`);
+      } else if (campo?.cultivos?.includes(cultivo)) {
+        puntaje += PESOS.cultivoEnGuia;
+        razones.push(`Se usa en ${nombreCultivo(cultivo).toLowerCase()}`);
+      }
+    }
+
+    // Grupos que la guía desaconseja en floración (polinizadores)
+    if (enFloracion && gruposQuimicosDe(p).some((g) => /floraci/i.test(g.noRecomiendesSi || ''))) {
+      puntaje += PESOS.etapaDesaconsejada;
+      alertas.push('En floración no se recomienda este grupo químico: protege a los polinizadores');
     }
 
     if (p.estado === 'Disponible') puntaje += PESOS.disponible;
@@ -192,4 +225,60 @@ export function construirPrograma(criterio, pases = 3) {
   }
 
   return programa;
+}
+
+/**
+ * La oración que dice qué se observa en campo ("ves", "vas a ver"…); si
+ * ninguna lo dice, la primera.
+ */
+function oracionDeCampo(texto) {
+  const oraciones = String(texto || '').match(/[^.!?]+[.!?]+/g) || [String(texto || '')];
+  const observacion = oraciones.find((o) => /\b(ves|verás|vas a ver|se ve|notas|aparece|dejó de|deja de)\b/i.test(o));
+  return (observacion || oraciones[0]).trim();
+}
+
+/**
+ * Recomendación técnica para una situación concreta: el producto principal y
+ * todo lo que un agrónomo diría al recomendarlo. Con qué rotar después, si
+ * necesita un acompañante multisitio, cómo aplicarlo según su movimiento,
+ * qué se va a ver en campo y si la ficha técnica lo menciona para el cultivo.
+ */
+export function recomendacionTecnica(criterio) {
+  const lista = recomendar(criterio).filter((p) => p.estado !== 'Pronto');
+  if (lista.length === 0) return null;
+  const principal = lista[0];
+
+  // Siguiente pase: el mejor candidato que no comparta sitio con el principal.
+  // En herbicidas además tiene que servir en el mismo escenario: un no
+  // selectivo no es rotación dentro de un cultivo establecido.
+  const sirveEnEscenario = (p) =>
+    p.categoria !== 'Herbicida' || !criterio.escenario || p.escenarios?.includes(criterio.escenario);
+  const siguiente =
+    principal.sistema &&
+    lista.find((p) => p.id !== principal.id && !compartenModoDeAccion(p, principal) && sirveEnEscenario(p));
+
+  // Regla de fungicidas: los de riesgo alto nunca van solos, van con un multisitio
+  let acompanante = null;
+  const riesgoAlto = gruposQuimicosDe(principal).some((g) => g.riesgo === 'alto');
+  const esMultisitio = /^M/.test(String(principal.grupo));
+  if (principal.categoria === 'Fungicida' && riesgoAlto && !esMultisitio) {
+    const multisitios = lista.filter((p) => /^M/.test(String(p.grupo)));
+    acompanante = multisitios[0] || null;
+  }
+
+  const ficha = fichasDeProducto(principal)[0]?.ficha;
+  const movimiento = ficha && TRANSLOCACION[ficha.translocacion];
+  const campo = CAMPO[principal.id] || {};
+
+  return {
+    principal,
+    siguiente: siguiente || null,
+    acompanante,
+    movimiento: movimiento || null,
+    enCampo: oracionDeCampo(campo.enCampo),
+    consejo: campo.consejo || '',
+    fichaMencionaCultivo: Boolean(criterio.cultivo && campo.etiqueta?.cultivos?.includes(criterio.cultivo)),
+    fuente: campo.etiqueta?.fuente || null,
+    alternativas: lista.slice(1, 4),
+  };
 }

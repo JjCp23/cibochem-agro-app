@@ -44,6 +44,7 @@ import { CAMPO } from '../src/data/campo.js';
 import { CULTIVOS } from '../src/data/cultivos.js';
 import { GRUPOS_QUIMICOS, GRUPOS_FUNCIONALES } from '../src/data/gruposQuimicos.js';
 import { ICONO_ILUSTRADO } from '../src/data/iconosIlustrados.js';
+import { recomendacionTecnica, recomendar as recomendarConCultivo } from '../src/motores/diagnostico.js';
 import {
   gemelosDe,
   mismaMoleculaDe,
@@ -403,6 +404,36 @@ check(
   CULTIVOS.find((c) => c.id === 'arroz').enfermedades.find((e) => /piricularia/i.test(e.comun)).objetivo === 'hongos-foliares',
   'la piricularia del arroz es un hongo foliar'
 );
+
+// ────────────────────────────────────────────────────────────
+seccion('Diagnóstico por cultivo y recomendación técnica');
+{
+  const arroz = recomendacionTecnica({ categorias: ['Fungicida'], objetivo: 'hongos-foliares', cultivo: 'arroz' });
+  check(arroz?.principal, 'arroz con hongos foliares debe tener recomendación');
+  check(arroz.principal.objetivos.includes('hongos-foliares'), 'la recomendación respeta el filtro duro del objetivo');
+  check(
+    !arroz.acompanante || /^M/.test(String(arroz.acompanante.grupo)),
+    'el acompañante de un fungicida de riesgo alto es un multisitio'
+  );
+  check(
+    !arroz.siguiente || !compartenModoDeAccion(arroz.siguiente, arroz.principal),
+    'la siguiente aplicación no repite sitio de acción'
+  );
+  const maleza = recomendacionTecnica({ categorias: ['Herbicida'], objetivo: 'gramineas', escenario: 'arroz', cultivo: 'arroz' });
+  check(
+    !maleza.siguiente || maleza.siguiente.escenarios.includes('arroz'),
+    'en herbicidas, la rotación sugerida sirve en el mismo cultivo'
+  );
+  const enFlor = recomendarConCultivo({ categorias: ['Insecticida'], objetivo: 'chupadores', etapa: 'Floración' });
+  const neonic = enFlor.find((p) => p.id === 'tioxam');
+  check(
+    neonic && neonic.alertas.some((a) => /floración/i.test(a)),
+    'en floración los neonicotinoides llevan alerta por los polinizadores'
+  );
+  const papa = recomendarConCultivo({ categorias: ['Insecticida'], objetivo: 'masticadores', cultivo: 'papa' });
+  const metomil = papa.find((p) => p.id === 'metomil40');
+  check(!metomil || metomil.razones.some((r) => /papa/.test(r)), 'el cultivo de la ficha técnica aparece como razón');
+}
 
 // ────────────────────────────────────────────────────────────
 seccion('App instalable: manifiesto, iconos y service worker');
