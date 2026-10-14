@@ -5,28 +5,54 @@ import { FilaMenu } from './ui/Superficie.jsx';
 import { PRODUCTOS } from '../data/productos.js';
 import { recomendar } from '../motores/index.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
+import { ICONOS_INSECTOS } from './ui/iconos/IconosInsectos.jsx';
+import { ICONOS_MALEZAS } from './ui/iconos/IconosMalezas.jsx';
+import { ICONOS_ENFERMEDADES_FOLIARES, ICONOS_ENFERMEDADES_OTRAS } from './ui/iconos/IconosEnfermedades.jsx';
+
+const ICONOS_ENFERMEDADES = { ...ICONOS_ENFERMEDADES_FOLIARES, ...ICONOS_ENFERMEDADES_OTRAS };
 
 const ICONOS = { insectos: Bug, malezas: Sprout, enfermedades: Leaf, nutricion: Droplets };
 
-function Opcion({ label, ayuda, activo, onClick, color }) {
+/**
+ * Ícono ilustrado de cada objetivo, por rama. Ayuda a reconocer la plaga, la
+ * maleza o la enfermedad por su forma antes de leer el nombre. La rama de
+ * nutrición no lleva: sus objetivos son procesos, no organismos.
+ */
+const ICONOS_OBJETIVO = {
+  insectos: ICONOS_INSECTOS,
+  malezas: ICONOS_MALEZAS,
+  enfermedades: ICONOS_ENFERMEDADES,
+};
+
+function Opcion({ label, ayuda, activo, onClick, color, icono: Icono }) {
   return (
     <button
       onClick={onClick}
-      className="rounded-lg border p-3 text-left transition hover:shadow-sm"
+      className="flex items-start gap-2.5 rounded-lg border p-3 text-left transition hover:shadow-sm"
       style={{
         borderColor: activo ? color : COLORES.borde,
         backgroundColor: activo ? `${color}12` : '#fff',
         boxShadow: activo ? `inset 0 0 0 1px ${color}` : undefined,
       }}
     >
-      <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
-        {label}
-      </span>
-      {ayuda && (
-        <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
-          {ayuda}
+      {Icono && (
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: `${color}14` }}
+        >
+          <Icono size={30} color={color} strokeWidth={1.8} />
         </span>
       )}
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
+          {label}
+        </span>
+        {ayuda && (
+          <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
+            {ayuda}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -155,6 +181,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo }) {
               label={o.label}
               ayuda={o.ayuda}
               color={color}
+              icono={ICONOS_OBJETIVO[rama.id]?.[o.id]}
               activo={objetivo === o.id}
               onClick={() => setObjetivo(objetivo === o.id ? null : o.id)}
             />
