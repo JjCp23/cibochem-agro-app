@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Beaker, ChevronLeft, ChevronRight, Droplets, X } from 'lucide-react';
+import { Beaker, ChevronLeft, ChevronRight, Droplets } from 'lucide-react';
 import { COLORES } from '../data/taxonomia.js';
+import { HojaInferior } from './ui/Hoja.jsx';
 
 /**
  * Repaso rápido del orden de carga: cinco ideas clave para que no se corte la
@@ -44,7 +45,11 @@ const DIAPOSITIVAS = [
   },
 ];
 
-/** Tutorial en ventana sobre la pantalla, con flechas del teclado y Escape. */
+/**
+ * Tutorial en hoja inferior: se cierra con el botón atrás del teléfono,
+ * Escape, arrastrando hacia abajo o tocando fuera, igual que las fichas.
+ * Las flechas del teclado pasan de diapositiva.
+ */
 export function TutorialMezcla({ onCerrar }) {
   const [indice, setIndice] = useState(0);
   const total = DIAPOSITIVAS.length;
@@ -53,100 +58,80 @@ export function TutorialMezcla({ onCerrar }) {
 
   useEffect(() => {
     const conTecla = (e) => {
-      if (e.key === 'Escape') onCerrar();
       if (e.key === 'ArrowRight') setIndice((i) => Math.min(i + 1, total - 1));
       if (e.key === 'ArrowLeft') setIndice((i) => Math.max(i - 1, 0));
     };
     document.addEventListener('keydown', conTecla);
-
-    // Bloquear el desplazamiento del fondo mientras el tutorial está abierto
-    const desplazamientoPrevio = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', conTecla);
-      document.body.style.overflow = desplazamientoPrevio;
-    };
-  }, [onCerrar, total]);
+    return () => document.removeEventListener('keydown', conTecla);
+  }, [total]);
 
   const puntos = useMemo(() => DIAPOSITIVAS.map((_, i) => i), []);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"
-      onClick={onCerrar}
-      role="presentation"
+    <HojaInferior
+      etiqueta="Repaso rápido: cómo armar una mezcla"
+      onCerrar={onCerrar}
+      ancho="sm:max-w-lg"
+      cabecera={
+        <span
+          className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide"
+          style={{ color: COLORES.textoSuave }}
+        >
+          <Beaker size={14} /> Repaso rápido · {indice + 1} de {total}
+        </span>
+      }
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Tutorial: cómo armar una mezcla"
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white sm:rounded-2xl"
-      >
-        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: COLORES.borde }}>
-          <span
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide"
-            style={{ color: COLORES.textoSuave }}
-          >
-            <Beaker size={14} /> Tutorial · {indice + 1} de {total}
-          </span>
-          <button
-            onClick={onCerrar}
-            className="rounded-full p-1.5 transition hover:bg-slate-100"
-            aria-label="Cerrar tutorial"
-          >
-            <X size={18} style={{ color: COLORES.textoSuave }} />
-          </button>
-        </div>
+      {(cerrar) => (
+        <>
+          <div key={indice} className="cc-entrada px-5 py-5">
+            <h3 className="text-lg font-bold" style={{ color: COLORES.tinta }}>
+              {diapositiva.titulo}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+              {diapositiva.cuerpo}
+            </p>
+            {diapositiva.porque && (
+              <div className="mt-3 flex gap-2 rounded-2xl p-3" style={{ backgroundColor: COLORES.azulClaro }}>
+                <Droplets size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.azul }} />
+                <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
+                  <strong>¿Por qué?</strong> {diapositiva.porque}
+                </p>
+              </div>
+            )}
+          </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
-          <h3 className="text-lg font-bold" style={{ color: COLORES.tinta }}>
-            {diapositiva.titulo}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
-            {diapositiva.cuerpo}
-          </p>
-          {diapositiva.porque && (
-            <div className="mt-3 flex gap-2 rounded-lg p-3" style={{ backgroundColor: COLORES.azulClaro }}>
-              <Droplets size={16} className="mt-0.5 shrink-0" style={{ color: COLORES.azul }} />
-              <p className="text-sm leading-relaxed" style={{ color: COLORES.tinta }}>
-                <strong>¿Por qué?</strong> {diapositiva.porque}
-              </p>
+          <div className="border-t px-5 pb-5 pt-3" style={{ borderColor: COLORES.borde }}>
+            {/* Puntos de avance: el actual se alarga */}
+            <div className="flex items-center justify-center gap-1.5">
+              {puntos.map((i) => (
+                <span
+                  key={i}
+                  className="h-1.5 rounded-full transition-all"
+                  style={{ width: i === indice ? 16 : 6, backgroundColor: i === indice ? COLORES.azul : COLORES.borde }}
+                />
+              ))}
             </div>
-          )}
-        </div>
-
-        <div className="border-t px-5 py-3" style={{ borderColor: COLORES.borde }}>
-          {/* Puntos de avance: el actual se alarga */}
-          <div className="flex items-center justify-center gap-1.5">
-            {puntos.map((i) => (
-              <span
-                key={i}
-                className="h-1.5 rounded-full transition-all"
-                style={{ width: i === indice ? 16 : 6, backgroundColor: i === indice ? COLORES.azul : COLORES.borde }}
-              />
-            ))}
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => setIndice((i) => Math.max(i - 1, 0))}
+                disabled={indice === 0}
+                className="cc-presionable flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-30"
+                style={{ color: COLORES.tinta, border: `1px solid ${COLORES.borde}` }}
+              >
+                <ChevronLeft size={16} /> Anterior
+              </button>
+              <button
+                onClick={() => (esUltima ? cerrar() : setIndice((i) => i + 1))}
+                className="cc-presionable flex flex-1 items-center justify-center gap-1 rounded-xl py-2.5 text-sm font-bold text-white"
+                style={{ backgroundColor: COLORES.tinta }}
+              >
+                {esUltima ? 'Listo' : 'Siguiente'} {!esUltima && <ChevronRight size={16} />}
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={() => setIndice((i) => Math.max(i - 1, 0))}
-              disabled={indice === 0}
-              className="flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-30"
-              style={{ color: COLORES.tinta, border: `1px solid ${COLORES.borde}` }}
-            >
-              <ChevronLeft size={16} /> Anterior
-            </button>
-            <button
-              onClick={() => (esUltima ? onCerrar() : setIndice((i) => i + 1))}
-              className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2.5 text-sm font-bold text-white transition hover:opacity-90"
-              style={{ backgroundColor: COLORES.tinta }}
-            >
-              {esUltima ? 'Listo' : 'Siguiente'} {!esUltima && <ChevronRight size={16} />}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </HojaInferior>
   );
 }
 
