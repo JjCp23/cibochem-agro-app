@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Stethoscope, LayoutList, RotateCcw, Calculator, GraduationCap, Bug } from 'lucide-react';
 import { COLORES } from './data/taxonomia.js';
 import { PRODUCTOS } from './data/productos.js';
@@ -9,6 +9,7 @@ import { Mezcla } from './components/Mezcla.jsx';
 import { CicloVida } from './components/CicloVida.jsx';
 import { Aprender } from './components/Aprender.jsx';
 import { FichaProducto } from './components/FichaProducto.jsx';
+import { AvisosApp } from './components/AvisosApp.jsx';
 import { BarraInferior, Encabezado } from './components/ui/Superficie.jsx';
 
 // La barra inferior se queda con cinco entradas: más de eso deja de leerse
@@ -21,15 +22,33 @@ const PESTANAS = [
   { id: 'aprender', label: 'Aprender', icono: GraduationCap, titulo: 'Datos de interés' },
 ];
 
+const VISTAS = ['diagnostico', 'catalogo', 'rotacion', 'mezcla', 'aprender'];
+
+/**
+ * Pestaña con la que abre la app. Los atajos del ícono instalado
+ * (manifest.webmanifest) entran con ?vista=diagnostico o ?vista=mezcla.
+ */
+function vistaInicial() {
+  const vista = new URLSearchParams(window.location.search).get('vista');
+  return VISTAS.includes(vista) ? vista : 'diagnostico';
+}
+
 export default function App() {
-  const [pestana, setPestana] = useState('diagnostico');
+  const [pestana, setPestana] = useState(vistaInicial);
   const [productoAbierto, setProductoAbierto] = useState(null);
   const [productoRotacion, setProductoRotacion] = useState(null);
   const [verCiclo, setVerCiclo] = useState(false);
 
   const actual = PESTANAS.find((p) => p.id === pestana);
 
+  // Función estable: la ficha la guarda en una referencia y no debe cambiar
+  // en cada pintado.
+  const cerrarFicha = useCallback(() => setProductoAbierto(null), []);
+
   const irARotacion = (producto) => {
+    // La ficha abierta dejó una entrada en el historial: se consume para que
+    // "atrás" no vuelva a una ficha que ya no está.
+    if (window.history.state?.ficha) window.history.back();
     setProductoRotacion(producto);
     setProductoAbierto(null);
     setVerCiclo(false);
@@ -47,6 +66,10 @@ export default function App() {
         titulo={verCiclo ? 'Ciclo de vida' : actual.titulo}
         subtitulo={`${PRODUCTOS.length} productos · IRAC · HRAC · FRAC`}
       />
+
+      <div className="mx-auto max-w-3xl">
+        <AvisosApp />
+      </div>
 
       <main className="mx-auto max-w-3xl px-4 py-5">
         {pestana === 'diagnostico' &&
@@ -67,7 +90,8 @@ export default function App() {
           style={{ borderColor: COLORES.borde, color: COLORES.textoSuave }}
         >
           Herramienta de apoyo a la decisión sobre el portafolio Cibochem 2026.
-          No reemplaza la etiqueta ICA ni la visita técnica.
+          No reemplaza la etiqueta ICA ni la visita técnica: la decisión final y la aplicación en campo son
+          responsabilidad del profesional o usuario que las ejecuta.
         </p>
       </main>
 
@@ -76,7 +100,7 @@ export default function App() {
       {productoAbierto && (
         <FichaProducto
           producto={productoAbierto}
-          onCerrar={() => setProductoAbierto(null)}
+          onCerrar={cerrarFicha}
           onVerRotacion={irARotacion}
         />
       )}

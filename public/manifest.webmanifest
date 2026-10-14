@@ -1,0 +1,24 @@
+{
+  "name": "Cibochem Campo — Selector agronómico",
+  "short_name": "Cibochem Campo",
+  "description": "Diagnóstico guiado, rotación anti-resistencia y calculadora de mezcla sobre el portafolio Cibochem 2026.",
+  "lang": "es-CO",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F8FA",
+  "theme_color": "#2B7FB8",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    { "src": "./iconos/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./iconos/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./iconos/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./iconos/icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Diagnóstico", "short_name": "Diagnóstico", "url": "./?vista=diagnostico" },
+    { "name": "Calculadora de mezcla", "short_name": "Mezcla", "url": "./?vista=mezcla" }
+  ]
+}
