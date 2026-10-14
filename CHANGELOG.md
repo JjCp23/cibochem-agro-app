@@ -28,6 +28,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
   nueve dibujados para la app) para líneas, problemas, cultivos y
   herramientas.
 
+- **Comparador útil con cualquier producto**: filas que se adaptan a la línea
+  (controla, cultivos, momento, acción, formulación, qué se ve en campo,
+  cuándo elegirlo; base funcional y composición en bioestimulantes),
+  interruptor "Solo diferencias", la mejor opción marcada por fila, un "En
+  resumen" con conflictos, gemelos y exclusivos, y sugerencias "Compárelo
+  con". Se lee en el teléfono sin desplazarse de lado. Se abre desde el botón
+  **Comparar** de cada ficha.
+- **Mezcla explicada**: para qué sirve cada dato y cada resultado, envases a
+  llevar por producto, botones − / +, aviso de qué dato falta, aviso de unidad
+  cuando la dosis por hectárea es inusualmente alta y "Cómo se calcula".
+
 ### Cambiado
 - El cultivo ordena las recomendaciones: primero lo que su ficha técnica
   menciona para ese cultivo. En floración se penalizan los grupos que afectan
@@ -35,6 +46,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - Portada con paisaje animado.
 
 ### Corregido
+- TIOXAM tenía "prevención" entre sus objetivos (es un momento de
+  aplicación); hay una prueba que lo impide en adelante.
 - PROTECSOL pasa de FRAC 33 a **FRAC P07**, según la reclasificación de los
   fosfonatos.
 - La búsqueda reconocía "Propiconazol" y "Propiconazole" como moléculas

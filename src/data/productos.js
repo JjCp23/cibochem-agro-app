@@ -187,7 +187,7 @@ export const PRODUCTOS = [
     mecanismo: 'Agonista permanente del receptor nicotínico de acetilcolina.',
     sintoma: 'Corta la alimentación rápido (efecto antifeeding).',
     movimiento: 'Sistémico (xilema)',
-    objetivos: ['chupadores', 'raspadores', 'preventivo-vector'],
+    objetivos: ['chupadores', 'raspadores'],
     escenarios: ['general', 'semilla-suelo'],
     momento: ['preventivo-vector', 'poblacion-establecida', 'siembra'],
     riesgo: 'Medio',

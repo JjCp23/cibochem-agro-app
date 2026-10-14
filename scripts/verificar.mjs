@@ -399,6 +399,27 @@ PRODUCTOS.filter((p) => p.sistema).forEach((p) =>
 GRUPOS_FUNCIONALES.forEach((g) => g.productos.forEach((id) => check(idsProductos.has(id), `grupo funcional ${g.id}: producto ${id} no existe`)));
 check(buscar('protecsol').grupo === 'P07', 'los fosfonatos son FRAC P07 desde la reclasificación de FRAC');
 
+seccion('Datos que usan el comparador y el diagnóstico');
+{
+  const objetivosValidos = new Set(RAMAS.flatMap((r) => r.objetivos.map((o) => o.id)));
+  const momentosValidos = new Set(RAMAS.flatMap((r) => r.momentos.map((o) => o.id)));
+  PRODUCTOS.forEach((p) => {
+    p.objetivos.forEach((o) => check(objetivosValidos.has(o), `${p.nombre}: "${o}" no es un objetivo (¿es un momento?)`));
+    (p.momento || []).forEach((m) => check(momentosValidos.has(m), `${p.nombre}: "${m}" no es un momento válido`));
+    check(CAMPO[p.id]?.enCampo && CAMPO[p.id]?.accion, `${p.nombre}: faltan "qué se ve en campo" o el tipo de acción`);
+    (CAMPO[p.id]?.cultivos || []).forEach((c) =>
+      check(CULTIVOS.some((x) => x.id === c) && ICONO_ILUSTRADO[c], `${p.nombre}: el cultivo ${c} no tiene nombre o ícono`)
+    );
+  });
+  PRODUCTOS.filter((p) => !p.sistema).forEach((p) =>
+    check(GRUPOS_FUNCIONALES.filter((g) => g.productos.includes(p.id)).length === 1, `${p.nombre}: debe tener una sola base funcional`)
+  );
+  check(
+    !/overflow-x-auto|min-w-\[3\d/.test(readFileSync('src/components/Comparador.jsx', 'utf8')),
+    'el comparador no debe obligar a desplazarse de lado en el teléfono'
+  );
+}
+
 seccion('Marcas gemelas y misma molécula');
 check(gemelosDe(buscar('ridder')).some((p) => p.id === 'furioso'), 'RIDDER y FURIOSO son la misma composición');
 check(gemelosDe(buscar('undazol')).some((p) => p.id === 'powerplus'), 'UNDAZOL y POWEREX son propiconazol 250 g/L');

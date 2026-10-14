@@ -31,6 +31,7 @@ export default function App() {
   const [productoRotacion, setProductoRotacion] = useState(null);
   const [verCiclo, setVerCiclo] = useState(false);
   const [buscador, setBuscador] = useState(null); // null | 'buscar' | 'favoritos'
+  const [pedidoComparar, setPedidoComparar] = useState(null);
   const [favoritos] = useAlmacen(FAVORITOS);
 
   const actual = PESTANAS.find((p) => p.id === pestana);
@@ -105,6 +106,15 @@ export default function App() {
     );
   };
 
+  const compararProducto = (producto) => {
+    recordarPosicion();
+    posiciones.current.catalogo = 0;
+    setProductoAbierto(null);
+    setBuscador(null);
+    setPedidoComparar({ id: producto.id, vez: Date.now() });
+    setPestana('catalogo');
+  };
+
   const cambiarPestana = (id) => {
     if (id === pestana) {
       // Tocar la pestaña activa vuelve a su inicio, como en las apps nativas
@@ -160,7 +170,7 @@ export default function App() {
           </section>
         )}
         <section hidden={vista !== 'catalogo'}>
-          <Catalogo onAbrirProducto={abrirProducto} />
+          <Catalogo onAbrirProducto={abrirProducto} pedidoComparar={pedidoComparar} />
         </section>
         <section hidden={vista !== 'rotacion'}>
           <Rotacion onAbrirProducto={abrirProducto} productoInicial={productoRotacion} />
@@ -201,6 +211,7 @@ export default function App() {
           onCerrar={cerrarProducto}
           onVerRotacion={irARotacion}
           onAgregarAMezcla={agregarAMezcla}
+          onComparar={compararProducto}
         />
       )}
 

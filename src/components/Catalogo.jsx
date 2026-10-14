@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, SearchX, X, Star, CheckCircle2, Scale, LayoutList } from 'lucide-react';
 import { PRODUCTOS } from '../data/productos.js';
 import { buscarTexto } from '../motores/index.js';
@@ -11,8 +11,12 @@ import { NumeroAnimado } from './ui/Movimiento.jsx';
 import { Comparador } from './Comparador.jsx';
 
 /** Catálogo completo del portafolio con búsqueda y filtros. */
-export function Catalogo({ onAbrirProducto }) {
+export function Catalogo({ onAbrirProducto, pedidoComparar }) {
   const [vista, setVista] = useState('lista');
+
+  useEffect(() => {
+    if (pedidoComparar) setVista('comparar');
+  }, [pedidoComparar]);
   const [termino, setTermino] = useState('');
   const [categoria, setCategoria] = useState(null);
   const [soloDisponibles, setSoloDisponibles] = useState(false);
@@ -71,7 +75,7 @@ export function Catalogo({ onAbrirProducto }) {
 
       {vista === 'comparar' ? (
         <div key="comparar" className="cc-entrada mt-5">
-          <Comparador onAbrirProducto={onAbrirProducto} />
+          <Comparador onAbrirProducto={onAbrirProducto} pedido={pedidoComparar} />
         </div>
       ) : (
         <div key="lista" className="cc-entrada mt-4">

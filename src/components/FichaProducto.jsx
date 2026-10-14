@@ -20,6 +20,7 @@ import {
   Copy,
   Sprout,
   Atom,
+  Scale,
 } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, COLOR_RIESGO, etiquetaDe } from '../data/taxonomia.js';
 import { TRANSLOCACION, ESTADIOS, fichasDeProducto } from '../data/gruposMoA.js';
@@ -150,7 +151,7 @@ function dominioDe(url) {
 }
 
 /** Ficha técnica completa. Combina datos del producto con la ficha de su grupo. */
-export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMezcla, onAbrirProducto }) {
+export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMezcla, onAbrirProducto, onComparar }) {
   const [favoritos, setFavoritos] = useAlmacen(FAVORITOS);
   if (!producto) return null;
 
@@ -228,6 +229,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion, onAgregarAMez
           {producto.sistema && onVerRotacion && (
             <AccionFicha icono={RotateCcw} etiqueta="Rotación" onClick={() => onVerRotacion(producto)} />
           )}
+          {onComparar && <AccionFicha icono={Scale} etiqueta="Comparar" onClick={() => onComparar(producto)} />}
         </div>
 
         {/* Lo esencial de un vistazo */}
