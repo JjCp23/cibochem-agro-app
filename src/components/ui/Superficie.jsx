@@ -1,5 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Sun } from 'lucide-react';
 import { COLORES } from '../../data/taxonomia.js';
+
+const CLAVE_MODO_CAMPO = 'cibochem-modo-campo';
+
+/**
+ * Modo campo: agranda toda la interfaz (texto y botones) para leer bajo el sol
+ * o tocar con guantes. Se aplica como una clase en <html> que sube el tamaño de
+ * letra base (ver index.css), así todo lo que está en rem crece en proporción.
+ * La preferencia se recuerda en el teléfono entre visitas.
+ */
+function useModoCampo() {
+  const [activo, setActivo] = useState(() => localStorage.getItem(CLAVE_MODO_CAMPO) === '1');
+  useEffect(() => {
+    document.documentElement.classList.toggle('modo-campo', activo);
+    localStorage.setItem(CLAVE_MODO_CAMPO, activo ? '1' : '0');
+  }, [activo]);
+  return [activo, setActivo];
+}
 
 /**
  * Insignia hexagonal, el elemento gráfico que identifica cada línea del
@@ -130,10 +148,30 @@ export function BarraInferior({ pestanas, activa, onCambio }) {
   );
 }
 
-/** Encabezado azul con el logotipo y, opcionalmente, un control segmentado. */
+/**
+ * Encabezado azul con el logotipo y, opcionalmente, un control segmentado.
+ * El sol de la esquina activa el modo campo.
+ */
 export function Encabezado({ titulo, subtitulo, children }) {
+  const [modoCampo, setModoCampo] = useModoCampo();
   return (
-    <header style={{ backgroundColor: COLORES.azul }}>
+    <header style={{ backgroundColor: COLORES.azul }} className="relative">
+      <button
+        onClick={() => setModoCampo((v) => !v)}
+        aria-pressed={modoCampo}
+        aria-label={
+          modoCampo
+            ? 'Desactivar modo campo (texto y botones grandes)'
+            : 'Activar modo campo: agranda texto y botones para leer bajo sol o tocar con guantes'
+        }
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full transition"
+        style={{
+          backgroundColor: modoCampo ? '#fff' : 'rgba(255,255,255,0.16)',
+          color: modoCampo ? COLORES.azul : '#fff',
+        }}
+      >
+        <Sun size={18} strokeWidth={2} />
+      </button>
       <div className="mx-auto max-w-3xl px-4 pb-4 pt-5 text-center">
         <p className="text-2xl font-extrabold tracking-tight text-white">
           Cibo<span className="font-light">CAMPO</span>
