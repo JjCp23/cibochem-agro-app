@@ -36,6 +36,8 @@ import {
   recetaDeMezcla,
   formatear,
   unidadAmigable,
+  envasesNecesarios,
+  partirCantidad,
 } from '../src/motores/aplicacion.js';
 import { buscarTexto, normalizarTexto } from '../src/motores/diagnostico.js';
 import { codigosDeGrupo } from '../src/data/gruposMoA.js';
@@ -340,6 +342,30 @@ check(
 );
 check(formatear(20) === '20' && formatear(1.5) === '1.5', 'los números no llevan ceros sobrantes');
 check(unidadAmigable(0.35, 'L') === '350 cc', '0.35 L se muestra como 350 cc');
+
+// ────────────────────────────────────────────────────────────
+seccion('Envases a llevar');
+{
+  const e1 = envasesNecesarios(1.5, 'L', ['250 cc', '1 L', '4 L']);
+  check(e1.texto === '1 × 1 L + 2 × 250 cc' && e1.sobrante === 0, '1.5 L se cubre exacto con 1 L y dos de 250 cc');
+  const e2 = envasesNecesarios(0.9, 'Kg', ['100 g', '1 Kg']);
+  check(e2.texto === '1 × 1 Kg', 'si sobra poco, mejor una bolsa de 1 Kg que nueve sobres de 100 g');
+  const e3 = envasesNecesarios(3.1, 'L', ['250 cc', '1 L', '4 L']);
+  check(e3.texto === '3 × 1 L + 1 × 250 cc', '3.1 L: sobrar 2.9 L con un galón es demasiado');
+  check(envasesNecesarios(0.1, 'L', ['4 L']).texto === '1 × 4 L', 'con un solo envase posible, se lleva ese');
+  check(
+    envasesNecesarios(1.5, 'L', ['100 g', '1 Kg']) === null &&
+      envasesNecesarios(1, 'L', ['Caja']) === null &&
+      envasesNecesarios(0, 'L', ['1 L']) === null,
+    'base distinta, envase sin medida o cantidad cero no dan resultado'
+  );
+  PRODUCTOS.forEach((p) => {
+    const base = unidadesSugeridas(p)[0].startsWith('K') || unidadesSugeridas(p)[0].startsWith('g') ? 'Kg' : 'L';
+    const r = envasesNecesarios(2.3, base, p.presentaciones);
+    if (r) check(r.cubierto >= 2.3 - 1e-9, `${p.nombre}: los envases deben cubrir lo necesario`);
+  });
+  check(partirCantidad(0.35, 'L').unidad === 'cc' && unidadAmigable(1.234, 'L') === '1.23 L', 'las cantidades se muestran igual que antes');
+}
 
 // ────────────────────────────────────────────────────────────
 seccion('Memoria local: favoritos y recientes');

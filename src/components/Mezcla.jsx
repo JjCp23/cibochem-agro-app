@@ -14,6 +14,11 @@ import {
   Check,
   PartyPopper,
   ArrowRight,
+  Minus,
+  ChevronDown,
+  Calculator,
+  Lightbulb,
+  Package,
 } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA } from '../data/taxonomia.js';
 import { PRODUCTOS } from '../data/productos.js';
@@ -26,6 +31,8 @@ import {
   ORDEN_TANQUE,
   formatear,
   unidadAmigable,
+  partirCantidad,
+  envasesNecesarios,
   recetaDeMezcla,
   compartenModoDeAccion,
   explicarConflicto,
@@ -65,6 +72,31 @@ const ITEMS_CHEQUEO = [
   { id: 'envases', imagen: 'envases', titulo: 'Plan para envases y sobrantes', detalle: 'Triple lavado, perforar el envase y entregarlo al punto de acopio.' },
 ];
 
+// Los tres datos de la prueba de calibración y para qué sirve cada uno
+const CAMPOS_CALIBRACION = [
+  {
+    id: 'gastoLitros',
+    etiqueta: 'Gasto medido',
+    ayuda: 'litros',
+    placeholder: 'Ej. 4',
+    uso: 'Agua que gastó el equipo en la prueba: lo que falta en el tanque al terminar.',
+  },
+  {
+    id: 'anchoFranja',
+    etiqueta: 'Ancho de franja',
+    ayuda: 'metros',
+    placeholder: 'Ej. 3',
+    uso: 'Lo que moja un solo pase. Con él se sabe qué área cubriste.',
+  },
+  {
+    id: 'distancia',
+    etiqueta: 'Distancia recorrida',
+    ayuda: 'metros',
+    placeholder: 'Ej. 50',
+    uso: 'Lo que caminaste asperjando. Ancho × distancia es el área mojada.',
+  },
+];
+
 function nuevaLinea(producto = null) {
   const unidades = unidadesSugeridas(producto);
   return {
@@ -94,24 +126,147 @@ export function agregarProductoAMezcla(producto) {
   return true;
 }
 
-function Campo({ etiqueta, ayuda, children }) {
+const sombraSuave = '0 1px 3px rgba(11,36,49,0.08)';
+
+/** Une una lista en español: "el área, el volumen y la bomba". */
+function unirConY(lista) {
+  if (lista.length <= 1) return lista.join('');
+  return `${lista.slice(0, -1).join(', ')} y ${lista[lista.length - 1]}`;
+}
+
+const valorPositivo = (v) => Number(v) > 0;
+
+/** Qué datos del lote faltan para poder calcular bombas y agua. */
+function datosFaltantesDelLote(c) {
+  const falta = [];
+  if (!valorPositivo(c.area)) falta.push({ id: 'area', texto: 'el área del lote' });
+  if (!valorPositivo(c.volumenHa)) falta.push({ id: 'volumenHa', texto: 'el volumen de agua por hectárea' });
+  if (!valorPositivo(c.capacidadBomba)) falta.push({ id: 'capacidadBomba', texto: 'los litros de tu bomba' });
+  return falta;
+}
+
+/** Qué datos faltan para calcular el volumen real de la calibración. */
+function datosFaltantesDeCalibracion(c) {
+  const falta = [];
+  if (!valorPositivo(c.gastoLitros)) falta.push('el gasto medido');
+  if (!valorPositivo(c.anchoFranja)) falta.push('el ancho de franja');
+  if (!valorPositivo(c.distancia)) falta.push('la distancia recorrida');
+  return falta;
+}
+
+/** Suma o resta un paso y devuelve texto limpio, sin decimales flotantes ni negativos. */
+function ajustarNumero(valor, delta) {
+  const nuevo = Math.max(0, (Number(valor) || 0) + delta);
+  return String(Number(nuevo.toFixed(4)));
+}
+
+/** Campo con etiqueta y una línea que explica para qué sirve el dato. */
+function Campo({ id, etiqueta, ayuda, uso, children }) {
   return (
-    <label className="block">
-      <span className="block text-xs font-semibold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
+    <div>
+      <label
+        htmlFor={id}
+        className="block text-xs font-semibold uppercase tracking-wide"
+        style={{ color: COLORES.textoSuave }}
+      >
         {etiqueta}
-      </span>
-      {ayuda && (
-        <span className="mt-0.5 block text-xs" style={{ color: COLORES.textoSuave }}>
-          {ayuda}
-        </span>
-      )}
+        {ayuda && <span className="ml-1.5 font-medium normal-case tracking-normal">· {ayuda}</span>}
+      </label>
       <div className="mt-1.5">{children}</div>
-    </label>
+      {uso && (
+        <p className="mt-1.5 text-xs leading-snug" style={{ color: COLORES.textoSuave }}>
+          {uso}
+        </p>
+      )}
+    </div>
   );
 }
 
-/** Número en grande para el resumen de la mezcla. */
-function Cifra({ icono: Icono, valor, unidad, etiqueta, decimales = 1 }) {
+/**
+ * Dato del lote con botones − / + para ajustar rápido con el pulgar y una
+ * línea que dice para qué sirve. Todo lo que se escribe se recalcula al instante.
+ */
+function CondicionLote({ id, etiqueta, unidad, uso, valor, onCambio, paso, placeholder, falta, extra }) {
+  const sinValor = !valorPositivo(valor);
+  const boton = 'cc-presionable flex h-11 w-11 shrink-0 items-center justify-center rounded-xl disabled:opacity-40';
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={id} className="min-w-0">
+          <span className="block text-sm font-bold" style={{ color: COLORES.tinta }}>
+            {etiqueta}
+          </span>
+          <span className="block text-xs font-semibold" style={{ color: COLORES.textoSuave }}>
+            {unidad}
+          </span>
+        </label>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onCambio(ajustarNumero(valor, -paso))}
+            disabled={sinValor}
+            aria-label={`Bajar ${etiqueta.toLowerCase()} en ${paso}`}
+            className={boton}
+            style={{ backgroundColor: COLORES.grisClaro, color: COLORES.tinta }}
+          >
+            <Minus size={18} strokeWidth={2.5} />
+          </button>
+          <input
+            id={id}
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={valor}
+            onChange={(e) => onCambio(e.target.value)}
+            placeholder={placeholder}
+            className="h-11 w-[84px] rounded-xl border bg-white px-1 text-center font-mono text-base font-bold focus:outline-none focus:ring-2"
+            style={{ borderColor: falta ? COLORES.ambar : COLORES.borde, color: COLORES.tinta }}
+          />
+          <button
+            type="button"
+            onClick={() => onCambio(ajustarNumero(valor, paso))}
+            aria-label={`Subir ${etiqueta.toLowerCase()} en ${paso}`}
+            className={boton}
+            style={{ backgroundColor: COLORES.azulClaro, color: COLORES.tinta }}
+          >
+            <Plus size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+      </div>
+      <p className="mt-1.5 text-xs leading-snug" style={{ color: COLORES.textoSuave }}>
+        {uso}
+      </p>
+      {extra}
+    </div>
+  );
+}
+
+/** Aviso amable: guía cuando falta un dato o llama la atención sin asustar. */
+function AvisoAmable({ tono = 'info', imagen, className = '', children }) {
+  const ojo = tono === 'ojo';
+  const Icono = ojo ? AlertTriangle : Lightbulb;
+  const color = ojo ? COLORES.ambar : COLORES.azul;
+  return (
+    <div
+      role="status"
+      className={`cc-entrada flex items-start gap-2.5 rounded-2xl px-3 py-2.5 ${className}`}
+      style={{ backgroundColor: ojo ? COLORES.ambarClaro : `${COLORES.azul}14` }}
+    >
+      {imagen ? (
+        <IconoIlustrado nombre={imagen} tamano={30} respaldo={Icono} color={color} className="shrink-0" />
+      ) : (
+        <Icono size={16} className="mt-0.5 shrink-0" style={{ color }} />
+      )}
+      <p className="min-w-0 text-xs leading-snug sm:text-sm" style={{ color: COLORES.tinta }}>
+        {children}
+      </p>
+    </div>
+  );
+}
+
+/** Número en grande para el resumen de la mezcla, con su uso práctico. */
+function Cifra({ icono: Icono, valor, unidad, etiqueta, uso, decimales = 1 }) {
   return (
     <div className="flex-1 rounded-2xl p-3" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
       <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#9DB8C9' }}>
@@ -121,9 +276,95 @@ function Cifra({ icono: Icono, valor, unidad, etiqueta, decimales = 1 }) {
         <NumeroAnimado valor={valor} formato={(n) => formatear(n, decimales)} />
         {unidad && <span className="ml-1 text-sm font-semibold">{unidad}</span>}
       </span>
+      {uso && (
+        <span className="mt-1.5 block text-[11px] leading-snug" style={{ color: '#9DB8C9' }}>
+          {uso}
+        </span>
+      )}
     </div>
   );
 }
+
+/** Cantidad de producto con el número animado y la unidad cómoda (350 cc, 1.5 L). */
+function Cantidad({ valor, base }) {
+  const p = partirCantidad(valor, base);
+  if (!p) return <>—</>;
+  return (
+    <>
+      {/* la clave evita animar de 350 cc a 1.2 L pasando por números sin sentido */}
+      <NumeroAnimado key={p.unidad} valor={p.numero} formato={(n) => formatear(n, p.decimales)} /> {p.unidad}
+    </>
+  );
+}
+
+/** Fórmulas en lenguaje simple, plegables, con los números del lote cuando ya están. */
+function ComoSeCalcula({ condiciones, resumen }) {
+  const [abierto, setAbierto] = useState(false);
+  const pasos = [
+    {
+      formula: 'Dosis por hectárea × área = total del lote',
+      nota: 'Sirve para las dosis en L/ha, cc/ha, Kg/ha y g/ha. Es lo que sacas de bodega.',
+    },
+    {
+      formula: 'Total del lote ÷ número de bombas = por bomba',
+      nota: 'Es lo que mides y echas en cada tanque.',
+    },
+    {
+      formula: 'Agua total ÷ litros de la bomba = número de bombas',
+      nota: 'El agua total es el volumen por hectárea × el área.',
+    },
+    {
+      formula: 'Dosis por litro × litros del tanque = por bomba',
+      nota: 'Sirve para las dosis en cc/L y g/L de agua.',
+    },
+  ];
+  return (
+    <div className="mt-4 rounded-2xl bg-white" style={{ boxShadow: sombraSuave }}>
+      <button
+        type="button"
+        onClick={() => setAbierto(!abierto)}
+        aria-expanded={abierto}
+        className="flex w-full items-center gap-3 p-3 text-left"
+      >
+        <Calculator size={18} style={{ color: COLORES.azul }} className="shrink-0" />
+        <span className="flex-1 text-sm font-semibold" style={{ color: COLORES.tinta }}>
+          Cómo se calcula
+        </span>
+        <ChevronDown
+          size={16}
+          className="shrink-0 transition-transform duration-300"
+          style={{ color: COLORES.textoSuave, transform: abierto ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+      <div className="cc-pliegue" data-abierto={abierto}>
+        <div>
+          <ul className="space-y-3 px-3 pb-3">
+            {pasos.map((p) => (
+              <li key={p.formula}>
+                <span className="block text-sm font-semibold" style={{ color: COLORES.tinta }}>
+                  {p.formula}
+                </span>
+                <span className="block text-xs leading-snug" style={{ color: COLORES.textoSuave }}>
+                  {p.nota}
+                </span>
+              </li>
+            ))}
+            {resumen && (
+              <li className="rounded-xl p-2.5 text-xs leading-snug" style={{ backgroundColor: COLORES.papel, color: COLORES.tinta }}>
+                Con tus datos: {formatear(Number(condiciones.area))} ha × {formatear(Number(condiciones.volumenHa), 0)} L/ha ={' '}
+                {formatear(resumen.aguaTotal, 0)} L de agua ÷ {formatear(Number(condiciones.capacidadBomba), 0)} L ={' '}
+                {formatear(resumen.numeroBombas, 1)} bombas.
+              </li>
+            )}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Por encima de esta dosis por hectárea (en L o Kg) se pide revisar la unidad
+const DOSIS_ALTA_POR_HA = 50;
 
 /** Una línea de producto dentro de la mezcla de tanque. */
 function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrirProducto }) {
@@ -131,6 +372,7 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
   const opciones = unidadesSugeridas(producto);
   const color = producto ? COLOR_CATEGORIA[producto.categoria] : COLORES.borde;
   const formulacion = formulacionDe(producto);
+  const dosisValida = valorPositivo(item.dosis);
 
   const resultado = useMemo(
     () =>
@@ -144,10 +386,22 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
     [item.dosis, item.unidad, condiciones]
   );
 
+  // Envases comerciales que cubren todo el lote con el menor sobrante
+  const envases = useMemo(
+    () =>
+      resultado && producto
+        ? envasesNecesarios(resultado.productoTotal, resultado.base, producto.presentaciones)
+        : null,
+    [resultado, producto]
+  );
+
+  const etiquetaResultado = 'block text-[10px] font-bold uppercase tracking-wide';
+  const usoResultado = 'mt-0.5 block text-[11px] leading-snug';
+
   return (
     <div
       className="cc-entrada rounded-2xl bg-white p-3"
-      style={{ borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(11,36,49,0.08)' }}
+      style={{ borderLeft: `4px solid ${color}`, boxShadow: sombraSuave }}
     >
       <div className="flex items-start gap-2">
         <span
@@ -199,10 +453,10 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
               step="any"
               value={item.dosis}
               onChange={(e) => onCambiar({ ...item, dosis: e.target.value })}
-              placeholder="Dosis de la etiqueta"
+              placeholder="De la etiqueta"
               aria-label="Dosis"
               className={entrada}
-              style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+              style={{ borderColor: producto && !dosisValida ? COLORES.ambar : COLORES.borde, color: COLORES.tinta }}
             />
             <select
               value={item.unidad}
@@ -218,35 +472,77 @@ function LineaProducto({ item, onCambiar, onQuitar, condiciones, indice, onAbrir
               ))}
             </select>
           </div>
+          <p className="mt-1.5 text-xs leading-snug" style={{ color: COLORES.textoSuave }}>
+            Cópiala de la etiqueta ICA con su misma unidad: con ella se calcula todo lo demás.
+          </p>
 
           {resultado ? (
-            <div
-              className="cc-entrada mt-2 grid grid-cols-2 gap-2 rounded-xl p-2.5 text-sm"
-              style={{ backgroundColor: `${color}12`, color: COLORES.tinta }}
-            >
-              <span>
-                <span className="block text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
-                  Por bomba
-                </span>
-                <span className="font-mono text-base font-bold">
-                  {unidadAmigable(resultado.productoPorBomba, resultado.base)}
-                </span>
-              </span>
-              <span>
-                <span className="block text-[10px] font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
-                  Todo el lote
-                </span>
-                <span className="font-mono text-base font-bold">
-                  {unidadAmigable(resultado.productoTotal, resultado.base)}
-                </span>
-              </span>
-            </div>
+            <>
+              <div
+                className="cc-entrada mt-2 rounded-xl p-2.5 text-sm"
+                style={{ backgroundColor: `${color}12`, color: COLORES.tinta }}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <span>
+                    <span className={etiquetaResultado} style={{ color: COLORES.textoSuave }}>
+                      Por bomba
+                    </span>
+                    <span className="block font-mono text-base font-bold">
+                      <Cantidad valor={resultado.productoPorBomba} base={resultado.base} />
+                    </span>
+                    <span className={usoResultado} style={{ color: COLORES.textoSuave }}>
+                      Lo que mides y echas en cada tanque.
+                    </span>
+                  </span>
+                  <span>
+                    <span className={etiquetaResultado} style={{ color: COLORES.textoSuave }}>
+                      Todo el lote
+                    </span>
+                    <span className="block font-mono text-base font-bold">
+                      <Cantidad valor={resultado.productoTotal} base={resultado.base} />
+                    </span>
+                    <span className={usoResultado} style={{ color: COLORES.textoSuave }}>
+                      Lo que sacas de bodega o compras.
+                    </span>
+                  </span>
+                </div>
+
+                {envases && (
+                  <div className="mt-2.5 flex items-start gap-2.5 border-t pt-2.5" style={{ borderColor: `${color}33` }}>
+                    <IconoIlustrado nombre="envases" tamano={30} respaldo={Package} color={color} className="shrink-0" />
+                    <span className="min-w-0">
+                      <span className={etiquetaResultado} style={{ color: COLORES.textoSuave }}>
+                        Envases a llevar
+                      </span>
+                      <span key={envases.texto} className="cc-pop block origin-left font-mono text-base font-bold">
+                        {envases.texto}
+                      </span>
+                      <span className={usoResultado} style={{ color: COLORES.textoSuave }}>
+                        Lo que cargas para cubrir el lote.{' '}
+                        {envases.exacto
+                          ? 'No sobra nada.'
+                          : `Sobran ${unidadAmigable(envases.sobrante, envases.base)}.`}
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {resultado.dosisPorHa > DOSIS_ALTA_POR_HA && (
+                <AvisoAmable tono="ojo" className="mt-2">
+                  Es una dosis inusualmente alta: revisa que la unidad sea la de la etiqueta (por ejemplo
+                  cc/ha o g/ha).
+                </AvisoAmable>
+              )}
+            </>
           ) : (
-            producto && (
-              <p className="mt-2 text-xs" style={{ color: COLORES.textoSuave }}>
-                Escribe la dosis de la etiqueta para ver cuánto va por bomba.
-              </p>
-            )
+            <AvisoAmable className="mt-2">
+              {!dosisValida
+                ? producto
+                  ? 'Escribe la dosis de la etiqueta para ver cuánto va por bomba.'
+                  : 'Elige el producto y escribe la dosis de su etiqueta.'
+                : 'Completa los datos del lote de arriba para ver cuánto va por bomba.'}
+            </AvisoAmable>
           )}
         </div>
 
@@ -427,7 +723,11 @@ export function Mezcla({ onAbrirProducto }) {
     [condiciones, items]
   );
 
-  const actualizar = (campo) => (e) => setCondiciones({ ...condiciones, [campo]: e.target.value });
+  const faltantes = useMemo(() => datosFaltantesDelLote(condiciones), [condiciones]);
+  const falta = (id) => faltantes.some((f) => f.id === id);
+  const faltanCalib = useMemo(() => datosFaltantesDeCalibracion(calib), [calib]);
+
+  const cambiarCondicion = (campo) => (valor) => setCondiciones((c) => ({ ...c, [campo]: valor }));
 
   const vaciar = () => {
     setItems([]);
@@ -440,8 +740,8 @@ export function Mezcla({ onAbrirProducto }) {
         Mezcla y aplicación
       </h2>
       <p className="mt-1 text-sm" style={{ color: COLORES.textoSuave }}>
-        Toma la dosis de la etiqueta y calcula cuánto va por bomba. Tu mezcla queda guardada en el
-        teléfono, aun sin señal.
+        Escribe los datos del lote y la dosis de la etiqueta: los resultados cambian al instante. Tu
+        mezcla queda guardada en el teléfono, aun sin señal.
       </p>
 
       <div className="mt-4">
@@ -461,50 +761,95 @@ export function Mezcla({ onAbrirProducto }) {
       {/* ───────────── MEZCLA ───────────── */}
       {vista === 'mezcla' && (
         <div key="mezcla" className="cc-entrada">
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Campo etiqueta="Área" ayuda="Hectáreas">
-              <input
-                type="number" inputMode="decimal" min="0" step="any"
-                value={condiciones.area} onChange={actualizar('area')}
-                className={entrada} style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+          <div className="mt-5 rounded-3xl bg-white p-4" style={{ boxShadow: sombraSuave }}>
+            <p className="text-sm font-bold" style={{ color: COLORES.tinta }}>
+              Datos del lote
+            </p>
+            <p className="mt-0.5 text-xs" style={{ color: COLORES.textoSuave }}>
+              Cambia cualquiera con los botones − y + o escribiéndolo: todo se recalcula al instante.
+            </p>
+
+            <div className="mt-4 space-y-5">
+              <CondicionLote
+                id="mezcla-area"
+                etiqueta="Área"
+                unidad="hectáreas"
+                paso={0.5}
+                placeholder="Ej. 2.5"
+                uso="Tamaño del lote que vas a aplicar. Define cuánta agua y cuánto producto necesitas."
+                valor={condiciones.area}
+                onCambio={cambiarCondicion('area')}
+                falta={falta('area')}
               />
-            </Campo>
-            <Campo etiqueta="Volumen" ayuda="Litros de agua/ha">
-              <input
-                type="number" inputMode="decimal" min="0" step="any"
-                value={condiciones.volumenHa} onChange={actualizar('volumenHa')}
-                className={entrada} style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+              <CondicionLote
+                id="mezcla-volumen"
+                etiqueta="Volumen"
+                unidad="L de agua por ha"
+                paso={10}
+                placeholder="Ej. 200"
+                uso="Litros de agua que tu equipo gasta por hectárea. Si no lo sabes, mídelo en Calibrar."
+                valor={condiciones.volumenHa}
+                onCambio={cambiarCondicion('volumenHa')}
+                falta={falta('volumenHa')}
+                extra={
+                  <button
+                    type="button"
+                    onClick={() => setVista('calibracion')}
+                    className="mt-1 flex items-center gap-1 text-xs font-semibold"
+                    style={{ color: COLORES.azul }}
+                  >
+                    Ir a Calibrar <ArrowRight size={12} />
+                  </button>
+                }
               />
-            </Campo>
-            <div className="col-span-2 sm:col-span-1">
-              <Campo etiqueta="Bomba" ayuda="Litros por tanque">
-                <input
-                  type="number" inputMode="decimal" min="0" step="any"
-                  value={condiciones.capacidadBomba} onChange={actualizar('capacidadBomba')}
-                  className={entrada} style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
+              <CondicionLote
+                id="mezcla-bomba"
+                etiqueta="Bomba"
+                unidad="L por tanque"
+                paso={1}
+                placeholder="Ej. 20"
+                uso="Litros que caben en tu equipo. Define cuántas veces lo llenas y cuánto producto echas en cada tanque."
+                valor={condiciones.capacidadBomba}
+                onCambio={cambiarCondicion('capacidadBomba')}
+                falta={falta('capacidadBomba')}
+              />
+            </div>
+
+            <p className="mt-5 text-xs font-semibold" style={{ color: COLORES.textoSuave }}>
+              Equipos comunes
+            </p>
+            <div className="cc-sin-barra -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+              {PRESETS_BOMBA.map((b) => (
+                <Chip
+                  key={b.litros}
+                  label={b.label}
+                  icono={Container}
+                  color={COLORES.azul}
+                  activo={String(condiciones.capacidadBomba) === b.litros}
+                  onClick={() => setCondiciones((c) => ({ ...c, capacidadBomba: b.litros }))}
                 />
-              </Campo>
+              ))}
             </div>
           </div>
 
-          <div className="cc-sin-barra -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
-            {PRESETS_BOMBA.map((b) => (
-              <Chip
-                key={b.litros}
-                label={b.label}
-                icono={Container}
-                color={COLORES.azul}
-                activo={String(condiciones.capacidadBomba) === b.litros}
-                onClick={() => setCondiciones({ ...condiciones, capacidadBomba: b.litros })}
-              />
-            ))}
-          </div>
-
-          {resumen && (
+          {resumen ? (
             <div className="mt-4 rounded-3xl p-3" style={{ backgroundColor: COLORES.tinta }}>
               <div className="flex gap-2">
-                <Cifra icono={Container} valor={resumen.numeroBombas} etiqueta="Bombas" decimales={1} />
-                <Cifra icono={Droplets} valor={resumen.aguaTotal} unidad="L" etiqueta="Agua total" decimales={0} />
+                <Cifra
+                  icono={Container}
+                  valor={resumen.numeroBombas}
+                  etiqueta="Bombas"
+                  uso="Cuántas veces llenas el tanque: planea el tiempo y el agua."
+                  decimales={1}
+                />
+                <Cifra
+                  icono={Droplets}
+                  valor={resumen.aguaTotal}
+                  unidad="L"
+                  etiqueta="Agua total"
+                  uso="Lo que debes tener disponible en el lote."
+                  decimales={0}
+                />
               </div>
               {resumen.fraccionUltimaBomba > 0.01 && (
                 <p className="mt-2 px-1 text-xs" style={{ color: '#9DB8C9' }}>
@@ -513,6 +858,11 @@ export function Mezcla({ onAbrirProducto }) {
                 </p>
               )}
             </div>
+          ) : (
+            <AvisoAmable imagen="idea" className="mt-4">
+              Escribe {unirConY(faltantes.map((f) => f.texto))} para ver cuántas bombas necesitas y
+              cuánta agua llevar.
+            </AvisoAmable>
           )}
 
           {items.length === 0 ? (
@@ -608,6 +958,8 @@ export function Mezcla({ onAbrirProducto }) {
               )}
             </div>
           )}
+
+          <ComoSeCalcula condiciones={condiciones} resumen={resumen} />
         </div>
       )}
 
@@ -618,28 +970,19 @@ export function Mezcla({ onAbrirProducto }) {
             Asperja una distancia conocida con agua, mide cuántos litros gastaste y obtén el volumen
             real por hectárea. Ese número es el que debes usar en la mezcla, no el que supones.
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Campo etiqueta="Gasto medido" ayuda="Litros gastados en la prueba">
-              <input
-                type="number" inputMode="decimal" min="0" step="any" value={calib.gastoLitros}
-                onChange={(e) => setCalib({ ...calib, gastoLitros: e.target.value })}
-                className={entrada} style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
-              />
-            </Campo>
-            <Campo etiqueta="Ancho de franja" ayuda="Metros que cubre un pase">
-              <input
-                type="number" inputMode="decimal" min="0" step="any" value={calib.anchoFranja}
-                onChange={(e) => setCalib({ ...calib, anchoFranja: e.target.value })}
-                className={entrada} style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
-              />
-            </Campo>
-            <Campo etiqueta="Distancia recorrida" ayuda="Metros">
-              <input
-                type="number" inputMode="decimal" min="0" step="any" value={calib.distancia}
-                onChange={(e) => setCalib({ ...calib, distancia: e.target.value })}
-                className={entrada} style={{ borderColor: COLORES.borde, color: COLORES.tinta }}
-              />
-            </Campo>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {CAMPOS_CALIBRACION.map((c) => (
+              <Campo key={c.id} id={`calibrar-${c.id}`} etiqueta={c.etiqueta} ayuda={c.ayuda} uso={c.uso}>
+                <input
+                  id={`calibrar-${c.id}`}
+                  type="number" inputMode="decimal" min="0" step="any" value={calib[c.id]}
+                  onChange={(e) => setCalib({ ...calib, [c.id]: e.target.value })}
+                  placeholder={c.placeholder}
+                  className={entrada}
+                  style={{ borderColor: valorPositivo(calib[c.id]) ? COLORES.borde : COLORES.ambar, color: COLORES.tinta }}
+                />
+              </Campo>
+            ))}
           </div>
 
           {resultadoCalib ? (
@@ -650,8 +993,13 @@ export function Mezcla({ onAbrirProducto }) {
               <p className="mt-1 font-mono text-3xl font-bold text-white">
                 <NumeroAnimado valor={resultadoCalib.volumenHa} formato={(n) => formatear(n, 0)} /> L/ha
               </p>
-              <p className="mt-2 text-xs" style={{ color: '#9DB8C9' }}>
-                Área tratada en la prueba: {formatear(resultadoCalib.areaTratada, 0)} m²
+              <p className="mt-2 text-xs leading-snug" style={{ color: '#9DB8C9' }}>
+                Es lo que gasta de verdad tu equipo por hectárea. Úsalo como volumen en la mezcla y la
+                dosis por bomba saldrá ajustada a tu equipo.
+              </p>
+              <p className="mt-2 text-xs leading-snug" style={{ color: '#9DB8C9' }}>
+                Cómo sale: gasto ÷ área mojada × 10 000 m². En la prueba mojaste{' '}
+                {formatear(resultadoCalib.areaTratada, 0)} m² (ancho × distancia).
               </p>
               <button
                 onClick={() => {
@@ -670,7 +1018,7 @@ export function Mezcla({ onAbrirProducto }) {
               icono={Ruler}
               imagen="calibrar"
               titulo="Faltan datos de la prueba"
-              texto="Completa los tres datos para calcular el volumen real de tu equipo."
+              texto={`Escribe ${unirConY(faltanCalib)} para ver el volumen real de tu equipo.`}
             />
           )}
         </div>
