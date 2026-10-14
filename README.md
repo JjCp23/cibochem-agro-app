@@ -5,7 +5,7 @@ Convierte una situación de campo — *"tengo mosca blanca en etapa vegetativa y
 última vez apliqué un neonicotinoide"* — en una lista corta de productos que
 encajan, ordenada y explicada.
 
-![Estado](https://img.shields.io/badge/verificaciones-2701-brightgreen)
+![Estado](https://img.shields.io/badge/verificaciones-2842-brightgreen)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-blue)
 
 ---
@@ -18,7 +18,7 @@ encajan, ordenada y explicada.
 | **Catálogo** | Búsqueda por nombre comercial, ingrediente activo, familia química o código de grupo, con filtros por línea. |
 | **Rotación** | Escoges lo que acabas de aplicar y separa el portafolio en lo que **repite** el sitio de acción y lo que **sí sirve** para rotar, explicando por qué importa rotar ese grupo. |
 | **Ciclo de vida** | Matriz de qué estadio de la plaga alcanza cada insecticida. Muchos fracasos de campo son el producto correcto en el estadio equivocado. |
-| **Mezcla** | Calculadora multiproducto, calibración real del equipo, orden de carga del tanque y detección de modos de acción repetidos dentro de la misma mezcla. |
+| **Mezcla** | Calculadora multiproducto, calibración real del equipo, orden de carga del tanque guiado sobre una caneca de 200 L que se llena paso a paso, y detección de modos de acción repetidos y de formulaciones incompatibles dentro de la misma mezcla. |
 | **Aprender** | El razonamiento agronómico completo: resistencia, translocación, biología de arvenses, hongos frente a oomicetos, ciclo de vida y calidad de aplicación. |
 
 ---
@@ -138,6 +138,11 @@ en un subdirectorio de Pages o en un dominio propio.
 │   │   └── verificar.yml    ← corre pruebas en cada pull request
 │   ├── ISSUE_TEMPLATE/
 │   └── pull_request_template.md
+├── public/                  ← se copia tal cual al build
+│   ├── manifest.webmanifest ← app instalable y atajos ?vista=
+│   ├── sw.js                ← service worker: funciona sin señal
+│   ├── iconos/              ← íconos de la app
+│   └── productos/           ← fotos de empaque, <id>.jpg
 ├── scripts/
 │   ├── verificar.mjs        ← suite de pruebas, sin framework
 │   └── generar-artefacto.mjs
@@ -155,8 +160,10 @@ en un subdirectorio de Pages o en un dominio propio.
     ├── components/
     │   ├── Diagnostico.jsx  · Catalogo.jsx   · Rotacion.jsx
     │   ├── CicloVida.jsx    · Mezcla.jsx     · Aprender.jsx
-    │   ├── FichaProducto.jsx · TarjetaProducto.jsx
-    │   └── ui/Etiqueta.jsx
+    │   ├── FichaProducto.jsx · TarjetaProducto.jsx · Comparador.jsx
+    │   ├── Caneca.jsx       ← caneca de 200 L del orden de carga
+    │   ├── TutorialMezcla.jsx · AvisosApp.jsx (sin conexión, actualizar, instalar)
+    │   └── ui/              ← Etiqueta, Superficie, Ilustraciones, iconos/
     └── App.jsx
 ```
 
@@ -201,7 +208,6 @@ npm run verificar
 - Historial de aplicaciones por finca, para calcular la rotación contra las
   últimas 2–3 aplicaciones y no solo la anterior.
 - Umbrales de acción por plaga y cultivo.
-- Modo sin conexión (PWA) para uso en finca sin señal.
 - Costo por hectárea a partir de precio y dosis.
 
 ---

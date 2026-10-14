@@ -7921,14 +7921,13 @@ function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros = 200,
                       ? colorAcento
                       : COLORES.borde
                     : COLORES.grisClaro;
-                const numero = Number.isFinite(Number(paso.paso)) ? paso.paso : i + 1;
                 return (
                   <li key={`riel-${i}`} className="min-w-0">
                     <button
                       type="button"
                       onClick={() => irA(i)}
                       aria-current={esActual ? 'step' : undefined}
-                      aria-label={`Paso ${numero}: ${paso.que || 'sin título'}${aplicaPaso ? '' : ' (no aplica a tu mezcla)'}`}
+                      aria-label={`Paso ${Number.isFinite(Number(paso.paso)) ? paso.paso : i + 1}: ${paso.que || 'sin título'}${aplicaPaso ? '' : ' (no aplica a tu mezcla)'}`}
                       className="block w-full rounded-md px-0.5 pb-0.5 pt-1 text-center transition"
                       style={{ opacity: aplicaPaso ? 1 : 0.4 }}
                     >
@@ -7944,7 +7943,7 @@ function Caneca({ pasos, indiceActivo = 0, onCambiarPaso, capacidadLitros = 200,
                         className="mt-1 block font-mono text-[10px] font-bold leading-none"
                         style={{ color: esActual ? colorAcento : COLORES.textoSuave }}
                       >
-                        {numero}
+                        {Number.isFinite(Number(paso.paso)) ? paso.paso : i + 1}
                       </span>
                     </button>
                   </li>
