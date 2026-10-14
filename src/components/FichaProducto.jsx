@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, AlertTriangle, RotateCcw, Info, Target, Compass, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { COLORES, COLOR_CATEGORIA, COLOR_RIESGO, etiquetaDe } from '../data/taxonomia.js';
 import { TRANSLOCACION, ESTADIOS, fichasDeProducto } from '../data/gruposMoA.js';
@@ -43,17 +43,32 @@ function Dato({ etiqueta, children }) {
 /** Ficha técnica completa. Combina datos del producto con la ficha de su grupo. */
 export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
   const panel = useRef(null);
+  const [sinFoto, setSinFoto] = useState(false);
+
+  // onCerrar se lee desde una referencia para que el efecto del historial no
+  // se vuelva a ejecutar (y no apile otra entrada) cada vez que el padre se
+  // vuelve a pintar con una función nueva.
+  const cerrarRef = useRef(onCerrar);
+  cerrarRef.current = onCerrar;
+
+  // Cada producto puede tener o no foto de empaque: se vuelve a intentar al
+  // cambiar de ficha.
+  useEffect(() => {
+    setSinFoto(false);
+  }, [producto?.id]);
+
+  const idProducto = producto?.id;
 
   // La ficha se abre sobre toda la pantalla, así que tiene que poder cerrarse
   // sin buscar el botón: tecla Escape, botón físico de atrás del teléfono, o
   // tocando fuera del panel.
   useEffect(() => {
-    if (!producto) return undefined;
+    if (!idProducto) return;
 
     const conEscape = (e) => {
-      if (e.key === 'Escape') onCerrar();
+      if (e.key === 'Escape') window.history.back();
     };
-    const conAtras = () => onCerrar();
+    const conAtras = () => cerrarRef.current();
 
     document.addEventListener('keydown', conEscape);
     window.addEventListener('popstate', conAtras);
@@ -70,10 +85,23 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
       document.removeEventListener('keydown', conEscape);
       window.removeEventListener('popstate', conAtras);
       document.body.style.overflow = desplazamientoPrevio;
-      // Si se cerró con el botón y no con "atrás", limpiar la entrada añadida
-      if (window.history.state?.ficha) window.history.back();
     };
-  }, [producto, onCerrar]);
+  }, [idProducto]);
+
+  // Todos los cierres pasan por el historial: así la entrada que se añadió al
+  // abrir siempre se consume, y "atrás" y los botones se comportan igual.
+  const cerrar = () => window.history.back();
+
+  // El fondo no acepta toques hasta el cuadro siguiente a la apertura: el
+  // mismo toque que abrió la ficha podía caer sobre el fondo y cerrarla al
+  // instante.
+  const [listo, setListo] = useState(false);
+  useEffect(() => {
+    if (!idProducto) return;
+    setListo(false);
+    const cuadro = requestAnimationFrame(() => setListo(true));
+    return () => cancelAnimationFrame(cuadro);
+  }, [idProducto]);
 
   if (!producto) return null;
 
@@ -86,7 +114,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"
-      onClick={onCerrar}
+      onClick={listo ? cerrar : undefined}
       role="presentation"
     >
       <div
@@ -104,33 +132,46 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
           style={{ borderColor: COLORES.borde }}
         >
           <button
-            onClick={onCerrar}
+            onClick={cerrar}
             className="mb-2 flex items-center gap-1.5 text-sm font-semibold transition hover:opacity-70"
             style={{ color: COLORES.azul }}
           >
             <ArrowLeft size={16} /> Volver
           </button>
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Etiqueta texto={producto.categoria} color={color} tono="solido" />
-                {producto.estado !== 'Disponible' && (
-                  <Etiqueta
-                    texto={producto.estado}
-                    color={producto.estado === 'Nuevo' ? COLORES.verde : COLORES.naranja}
-                  />
-                )}
-                {producto.todera && <Etiqueta texto="Producto ancla" color={COLORES.verde} />}
+            <div className="flex min-w-0 items-start gap-3">
+              {/* Foto del empaque; si el producto no tiene, se omite sin dejar hueco */}
+              {!sinFoto && (
+                <img
+                  src={`/productos/${producto.id}.jpg`}
+                  alt=""
+                  loading="lazy"
+                  className="h-16 w-16 shrink-0 rounded-xl object-cover sm:h-20 sm:w-20"
+                  style={{ border: `1px solid ${COLORES.borde}` }}
+                  onError={() => setSinFoto(true)}
+                />
+              )}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Etiqueta texto={producto.categoria} color={color} tono="solido" />
+                  {producto.estado !== 'Disponible' && (
+                    <Etiqueta
+                      texto={producto.estado}
+                      color={producto.estado === 'Nuevo' ? COLORES.verde : COLORES.naranja}
+                    />
+                  )}
+                  {producto.todera && <Etiqueta texto="Producto ancla" color={COLORES.verde} />}
+                </div>
+                <h2 className="mt-2 text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
+                  {producto.nombre}
+                </h2>
+                <p className="text-sm" style={{ color: COLORES.textoSuave }}>
+                  {producto.ia}
+                </p>
               </div>
-              <h2 className="mt-2 text-xl font-bold leading-tight" style={{ color: COLORES.tinta }}>
-                {producto.nombre}
-              </h2>
-              <p className="text-sm" style={{ color: COLORES.textoSuave }}>
-                {producto.ia}
-              </p>
             </div>
             <button
-              onClick={onCerrar}
+              onClick={cerrar}
               className="shrink-0 rounded-full p-2 transition hover:bg-slate-100"
               aria-label="Cerrar ficha"
             >
@@ -383,7 +424,7 @@ export function FichaProducto({ producto, onCerrar, onVerRotacion }) {
 
           {/* Cierre al final: tras una ficha larga, el botón de arriba queda lejos */}
           <button
-            onClick={onCerrar}
+            onClick={cerrar}
             className="mt-5 w-full rounded-xl py-3 text-sm font-bold text-white transition hover:opacity-90"
             style={{ backgroundColor: COLORES.tinta }}
           >
