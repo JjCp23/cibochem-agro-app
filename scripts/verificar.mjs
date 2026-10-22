@@ -52,6 +52,7 @@ import { CULTIVOS } from '../src/data/cultivos.js';
 import { GRUPOS_QUIMICOS, GRUPOS_FUNCIONALES } from '../src/data/gruposQuimicos.js';
 import { ICONO_ILUSTRADO } from '../src/data/iconosIlustrados.js';
 import { FOTOS_PRODUCTOS } from '../src/data/fotosProductos.js';
+import { itemValorado, resumenDeBodega, formatearPesos, cantidadLegible } from '../src/motores/bodega.js';
 import { recomendacionTecnica, recomendar as recomendarConCultivo } from '../src/motores/diagnostico.js';
 import {
   gemelosDe,
@@ -644,6 +645,23 @@ check(
   !/,\s*22$/.test(productoDesdeMolecula({ nombre: 'Paraquat', familia: 'bipiridilo, 22', grupo: 'HRAC:22' }).familia),
   'la familia no repite el número de grupo'
 );
+
+// ────────────────────────────────────────────────────────────
+seccion('Bodega: valor del inventario');
+{
+  const item = { nombre: 'X', marca: 'cibochem', productoId: 'tenaz', cantidad: 3800, base: 'cc', precio: { valor: 112000, presentacion: 1000 } };
+  const v = itemValorado(item);
+  check(Math.round(v.valor) === 425600, `3.8 L a $112.000 el litro valen $425.600 (salió ${v.valor})`);
+  check(v.linea === 'Fungicida', 'la línea sale del producto Cibochem');
+  const aj = itemValorado(item, { cantidad: 1000, valor: 100000, presentacion: 1000 });
+  check(aj.valor === 100000 && aj.ajustado, 'los ajustes del teléfono cambian cantidad y precio');
+  const sin = itemValorado({ ...item, precio: null });
+  check(sin.valor === null, 'sin precio no se inventa valor');
+  const r = resumenDeBodega([v, sin]);
+  check(r.conPrecio === 1 && r.sinPrecio === 1 && Math.round(r.valor) === 425600, 'el resumen suma solo lo que tiene precio');
+  check(formatearPesos(15855350) === '$ 15.855.350', `pesos con punto de miles (salió ${formatearPesos(15855350)})`);
+  check(cantidadLegible(8470, 'g') === '8.47 Kg' && cantidadLegible(250, 'cc') === '250 cc', 'cantidades legibles');
+}
 
 // ────────────────────────────────────────────────────────────
 seccion('Presentación de cada producto: envases y fotos');

@@ -5,3 +5,6 @@ dist
 
 # Artefacto generado: se reconstruye con npm run artefacto
 dist-artefacto/
+
+# Datos del negocio (inventario y precios): no se publican
+src/data/privado/

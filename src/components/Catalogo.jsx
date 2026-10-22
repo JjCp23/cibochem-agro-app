@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, SearchX, X, Star, CheckCircle2, Scale, LayoutList, Images, List } from 'lucide-react';
+import { Search, SearchX, X, Star, CheckCircle2, Scale, LayoutList, Images, List, Warehouse } from 'lucide-react';
 import { PRODUCTOS } from '../data/productos.js';
 import { buscarTexto } from '../motores/index.js';
 import { COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA, CATEGORIAS } from '../data/taxonomia.js';
-import { FAVORITOS, useAlmacen, usePersistente } from '../estado/memoria.js';
+import { FAVORITOS, VISTA_CATALOGO, useAlmacen, usePersistente } from '../estado/memoria.js';
+import { Bodega } from './Bodega.jsx';
 import { HAY_FOTOS, fotoDeProducto } from '../data/fotosProductos.js';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
 import { Segmentado, Chip, EstadoVacio } from './ui/Superficie.jsx';
@@ -46,7 +47,7 @@ function TarjetaGaleria({ producto, onAbrir }) {
 
 /** Catálogo completo del portafolio con búsqueda y filtros. */
 export function Catalogo({ onAbrirProducto, pedidoComparar }) {
-  const [vista, setVista] = useState('lista');
+  const [vista, setVista] = useAlmacen(VISTA_CATALOGO);
 
   useEffect(() => {
     if (pedidoComparar) setVista('comparar');
@@ -106,12 +107,17 @@ export function Catalogo({ onAbrirProducto, pedidoComparar }) {
         opciones={[
           { id: 'lista', label: 'Buscar', icono: LayoutList },
           { id: 'comparar', label: 'Comparar', icono: Scale },
+          { id: 'bodega', label: 'Bodega', icono: Warehouse },
         ]}
         valor={vista}
         onCambio={setVista}
       />
 
-      {vista === 'comparar' ? (
+      {vista === 'bodega' ? (
+        <div key="bodega" className="cc-entrada mt-5">
+          <Bodega onAbrirProducto={onAbrirProducto} />
+        </div>
+      ) : vista === 'comparar' ? (
         <div key="comparar" className="cc-entrada mt-5">
           <Comparador onAbrirProducto={onAbrirProducto} pedido={pedidoComparar} />
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from
 import { Stethoscope, LayoutList, RotateCcw, FlaskConical, GraduationCap, Search, Star } from 'lucide-react';
 import { COLORES } from './data/taxonomia.js';
 import { PRODUCTOS } from './data/productos.js';
-import { FAVORITOS, RECIENTES, VISTA_MEZCLA, useAlmacen, anteponerReciente } from './estado/memoria.js';
+import { FAVORITOS, RECIENTES, VISTA_MEZCLA, VISTA_CATALOGO, useAlmacen, anteponerReciente } from './estado/memoria.js';
 import { Diagnostico } from './components/Diagnostico.jsx';
 import { Catalogo } from './components/Catalogo.jsx';
 import { Rotacion } from './components/Rotacion.jsx';
@@ -181,6 +181,10 @@ export default function App() {
             onAbrirProducto={abrirProducto}
             onVerCiclo={() => verCicloDeVida(true)}
             onBuscar={() => setBuscador('buscar')}
+            onIrABodega={() => {
+              VISTA_CATALOGO.fijar('bodega');
+              cambiarPestana('catalogo');
+            }}
             activa={vista === 'diagnostico'}
           />
         </section>

@@ -25,6 +25,8 @@ import {
   ThermometerSun,
   Route,
   Download,
+  Warehouse,
+  ChevronRight,
 } from 'lucide-react';
 import { RAMAS, COLORES, COLOR_CATEGORIA, FONDO_CATEGORIA } from '../data/taxonomia.js';
 import { PRODUCTOS } from '../data/productos.js';
@@ -47,6 +49,8 @@ import { SelectorProducto } from './ui/SelectorProducto.jsx';
 import { TarjetaProducto } from './TarjetaProducto.jsx';
 import { MiniaturaProducto } from './ui/Presentacion.jsx';
 import { usePasoConAtras } from './ui/Hoja.jsx';
+import { BODEGA_PRIVADA } from '../data/bodegaPrivada.js';
+import { itemValorado, resumenDeBodega, formatearPesos } from '../motores/bodega.js';
 
 // Un icono por momento ayuda a ubicar la opción sin leerla entera
 const ICONO_MOMENTO = {
@@ -285,7 +289,39 @@ function TarjetaInstalar() {
 }
 
 /** Pantalla de inicio: saludo, buscador, ramas del diagnóstico y accesos. */
-function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBuscar, onAbrirProducto }) {
+/** Acceso a la bodega desde la portada, con su valor estimado. */
+function TarjetaBodega({ onIrABodega }) {
+  const valor = useMemo(() => {
+    if (!BODEGA_PRIVADA) return null;
+    return resumenDeBodega(BODEGA_PRIVADA.items.map((it) => itemValorado(it))).valor;
+  }, []);
+  if (valor == null || !onIrABodega) return null;
+  return (
+    <button
+      onClick={onIrABodega}
+      className="cc-presionable cc-entrada mt-4 flex w-full items-center gap-3 rounded-2xl p-4 text-left"
+      style={{ background: `linear-gradient(135deg, ${COLORES.tinta} 0%, #16384A 100%)` }}
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
+        <Warehouse size={22} color="#fff" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-semibold uppercase tracking-wide" style={{ color: '#9DB8C9' }}>
+          Bodega {BODEGA_PRIVADA.bodega}
+        </span>
+        <span className="block font-mono text-lg font-bold text-white">
+          <NumeroAnimado valor={valor} duracion={900} formato={formatearPesos} />
+        </span>
+        <span className="block text-xs" style={{ color: '#9DB8C9' }}>
+          {BODEGA_PRIVADA.items.length} productos en inventario · ver detalle
+        </span>
+      </span>
+      <ChevronRight size={18} color="#9DB8C9" />
+    </button>
+  );
+}
+
+function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBuscar, onAbrirProducto, onIrABodega }) {
   const [favoritosIds] = useAlmacen(FAVORITOS);
   const [recientesIds] = useAlmacen(RECIENTES);
   const favoritos = useMemo(() => productosDeIds(favoritosIds, PRODUCTOS), [favoritosIds]);
@@ -343,6 +379,7 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
         </button>
       </div>
 
+      <TarjetaBodega onIrABodega={onIrABodega} />
       <TarjetaInstalar />
 
       <h3 className="mt-7 text-xs font-bold uppercase tracking-wide" style={{ color: COLORES.textoSuave }}>
@@ -460,7 +497,7 @@ function InicioDiagnostico({ onEscogerRama, onEscogerCultivo, onVerCiclo, onBusc
 }
 
 /** Asistente que traduce una situación de campo en una lista de productos. */
-export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar, activa = true }) {
+export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar, onIrABodega, activa = true }) {
   const [rama, setRama] = useState(null);
   const [objetivo, setObjetivo] = useState(null);
   const [escenario, setEscenario] = useState(null);
@@ -575,6 +612,7 @@ export function Diagnostico({ onAbrirProducto, onVerCiclo, onBuscar, activa = tr
         onVerCiclo={onVerCiclo}
         onBuscar={onBuscar}
         onAbrirProducto={onAbrirProducto}
+        onIrABodega={onIrABodega}
       />
     );
   }

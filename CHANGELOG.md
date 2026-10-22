@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.8.0]
+
+### Agregado
+- **Bodega** (Catálogo → Bodega, y acceso desde la portada): inventario con su
+  valor estimado en pesos, reparto por línea y por marca, búsqueda, filtro de
+  lo que no tiene precio y aviso de los datos para revisar. Cada ítem se puede
+  ajustar (cantidad o precio) en el teléfono y el resumen se comparte por
+  WhatsApp. Los envases abiertos cuentan por lo que les queda.
+- Los datos del negocio (inventario y precios) viven en
+  `src/data/privado/bodega.json`, fuera del repositorio: la versión pública no
+  los trae.
+
 ## [1.7.0]
 
 Unión de las dos líneas de desarrollo: la versión publicada en

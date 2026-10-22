@@ -24,9 +24,11 @@ const MODULOS = [
   'src/data/campo.js',
   'src/data/cultivos.js',
   'src/data/fotosProductos.js',
+  'src/data/bodegaPrivada.js',
   'src/motores/resistencia.js',
   'src/motores/diagnostico.js',
   'src/motores/aplicacion.js',
+  'src/motores/bodega.js',
   'src/estado/memoria.js',
   'src/components/ui/Movimiento.jsx',
   'src/components/ui/Etiqueta.jsx',
@@ -46,6 +48,7 @@ const MODULOS = [
   'src/components/DiagnosticoCultivo.jsx',
   'src/components/Diagnostico.jsx',
   'src/components/Comparador.jsx',
+  'src/components/Bodega.jsx',
   'src/components/Catalogo.jsx',
   'src/components/Rotacion.jsx',
   'src/components/CicloVida.jsx',
@@ -68,6 +71,8 @@ function aplanar(codigo) {
     .replace(/^export default \w+;\s*$/gm, '')
     // export default function App -> function App
     .replace(/^export default function/gm, 'function')
+    // import.meta.glob solo existe en Vite: el artefacto no lleva datos privados
+    .replace(/import\.meta\.glob\([^)]*\)/g, '({})')
     // export const / export function -> const / function
     .replace(/^export (const|function)/gm, '$1')
     .trim();

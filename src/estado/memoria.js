@@ -115,6 +115,9 @@ export const COMPARACION = crearAlmacenVolatil([]);
 /** Sub-vista de Mezcla (mezcla, calibración, orden, chequeo). */
 export const VISTA_MEZCLA = crearAlmacenVolatil('mezcla');
 
+/** Sub-vista del Catálogo (buscar, comparar, bodega). */
+export const VISTA_CATALOGO = crearAlmacenVolatil('lista');
+
 export function escucharInstalacion() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
