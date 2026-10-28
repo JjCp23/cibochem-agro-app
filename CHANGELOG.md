@@ -5,12 +5,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 ## [Sin publicar]
 
 ### Agregado
-- **Guía de campo con grupos químicos** (`docs/Portafolio_Cibochem_en_Campo.html`).
-  Ubica cada producto en su grupo químico y sitio de acción IRAC/FRAC/HRAC,
-  ordenados por modo de acción y con las moléculas y marcas de cada grupo. Cada
-  tarjeta dice cuándo recomendar y cuándo no. Trae además un verificador
-  "¿Se cruzan?" que acepta productos del portafolio o moléculas de otras casas,
-  y la ficha de cada producto muestra con qué se cruza y hacia qué grupos rotar.
+- **Guía de campo interactiva** (`docs/Portafolio_Cibochem_en_Campo.html`), que
+  se genera con `npm run guia` desde `docs/guia/`. Tiene siete vistas: inicio,
+  catálogo con filtros y ficha deslizante, recomendador por plaga, enfermedad o
+  maleza con programa de ejemplo, verificador de cruces con historial del lote
+  (acepta moléculas de otras casas), matriz de cruces, grupos químicos con
+  concentración del portafolio y estadios por grupo, y una sección para
+  aprender con siete mini-videos animados, simulador de resistencia, lecciones,
+  tarjetas, quiz y glosario.
+- La guía toma las lecciones, las preguntas frecuentes y los estadios y
+  velocidades por grupo directamente de `src/data`, y valida al construir que
+  el grupo de cada producto coincida con sus moléculas.
+- Todo el contenido queda escrito en el HTML: se lee completo aunque el visor
+  no ejecute JavaScript, y avisa que la parte interactiva necesita el navegador.
+
+### Corregido
+- En la guía, QUINCLORAC pasa a HRAC 4; doce herbicidas llevan HRAC 4 (no
+  once); nueve fungicidas llevan FRAC 3 (no siete); IRAC 15 afecta CHS1; las
+  estrobilurinas sí tienen actividad parcial sobre oomicetos.
 
 ## [1.4.1]
 

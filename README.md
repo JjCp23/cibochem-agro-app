@@ -100,6 +100,32 @@ npm run dev        # http://localhost:5173
 | `npm run preview` | Revisa el build localmente |
 | `npm run verificar` | Pruebas de integridad y lógica agronómica |
 | `npm run artefacto` | Genera la versión de un solo archivo |
+| `npm run guia` | Genera la guía de campo en `docs/Portafolio_Cibochem_en_Campo.html` |
+
+---
+
+## Guía de campo
+
+`docs/Portafolio_Cibochem_en_Campo.html` es una guía de estudio de un solo
+archivo, pensada para el celular: catálogo con fichas, recomendador por
+objetivo, verificador de cruces con historial del lote, grupos químicos, siete
+mini-videos animados, simulador de resistencia, tarjetas y quiz. No necesita
+servidor: se abre con doble clic. Si el visor no ejecuta JavaScript, el
+contenido se sigue leyendo completo.
+
+Sus fuentes están en `docs/guia/`:
+
+| Ruta | Contenido |
+|---|---|
+| `datos/productos.js` | Las 82 referencias con su ficha técnica |
+| `datos/grupos.js` | Moléculas, grupos IRAC/FRAC/HRAC, moléculas de otras casas |
+| `datos/objetivos.js` | Plagas, enfermedades y malezas del recomendador |
+| `datos/aprender.js`, `datos/faq.js` | Consejos, quiz, tarjetas, glosario y preguntas |
+| `src/` | Plantilla, estilos, animaciones y lógica de la página |
+
+Las lecciones, las preguntas del app y los estadios por grupo se leen de
+`src/data`, así que se mantienen en un solo lugar. `npm run guia` valida que el
+grupo de cada producto coincida con sus moléculas antes de escribir el archivo.
 
 ---
 
